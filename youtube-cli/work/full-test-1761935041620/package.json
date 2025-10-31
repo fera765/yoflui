@@ -1,0 +1,13 @@
+{
+  "name": "hello-project",
+  "version": "1.0.0",
+  "description": "A simple Node.js project with a hello function",
+  "main": "hello.js",
+  "scripts": {
+    "test": "node test.js",
+    "start": "node hello.js"
+  },
+  "keywords": ["nodejs", "hello", "example"],
+  "author": "AI Agent",
+  "license": "MIT"
+}

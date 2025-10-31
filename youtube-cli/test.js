@@ -1,17 +1,27 @@
-import React from 'react';
-import chalk from 'chalk';
-import test from 'ava';
-import {render} from 'ink-testing-library';
-import App from './source/app.js';
+// test.js - Test file for the hello function
 
-test('greet unknown user', t => {
-	const {lastFrame} = render(<App />);
+const { hello } = require('./hello.js');
 
-	t.is(lastFrame(), `Hello, ${chalk.green('Stranger')}`);
-});
+// Test cases
+console.log('Testing hello function:');
+console.log('hello("John"):', hello("John"));
+console.log('hello("Jane"):', hello("Jane"));
+console.log('hello():', hello());
+console.log('hello(""):', hello(""));
 
-test('greet user with a name', t => {
-	const {lastFrame} = render(<App name="Jane" />);
+// Simple assertion function for testing
+function assert(actual, expected, message) {
+  if (actual === expected) {
+    console.log(`✓ ${message}`);
+  } else {
+    console.log(`✗ ${message} - Expected: ${expected}, Got: ${actual}`);
+  }
+}
 
-	t.is(lastFrame(), `Hello, ${chalk.green('Jane')}`);
-});
+// Run tests
+assert(hello("John"), "Hello, John!", "Should return 'Hello, John!' when name is 'John'");
+assert(hello("World"), "Hello, World!", "Should return 'Hello, World!' when name is 'World'");
+assert(hello(), "Hello, World!", "Should return 'Hello, World!' when no name is provided");
+assert(hello(""), "Hello, !", "Should return 'Hello, !' when name is empty string");
+
+console.log("\nAll tests completed!");

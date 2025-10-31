@@ -2,19 +2,20 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import TextInput from 'ink-text-input';
+import { KanbanBox } from './KanbanBox.js';
+import { ToolExecutionBox } from './ToolExecutionBox.js';
+import type { KanbanTask } from '../tools/kanban.js';
 
 export interface Message {
-	role: 'user' | 'assistant' | 'tool';
+	role: 'user' | 'assistant' | 'tool' | 'kanban';
 	content: string;
 	toolCall?: {
 		name: string;
-		query: string;
-		status: 'running' | 'complete';
-		result?: {
-			totalVideos: number;
-			totalComments: number;
-		};
+		args: any;
+		status: 'running' | 'complete' | 'error';
+		result?: string;
 	};
+	kanban?: KanbanTask[];
 }
 
 // Header ultra moderno
@@ -110,15 +111,23 @@ export const UltraTimeline: React.FC<{ messages: Message[] }> = ({ messages }) =
 				if (msg.role === 'user') {
 					return <UserMsg key={idx} text={msg.content} />;
 				}
+				if (msg.role === 'kanban' && msg.kanban) {
+					return (
+						<Box key={idx} marginY={1}>
+							<KanbanBox tasks={msg.kanban} />
+						</Box>
+					);
+				}
 				if (msg.role === 'tool' && msg.toolCall) {
 					return (
-						<ToolBox
-							key={idx}
-							name={msg.toolCall.name}
-							query={msg.toolCall.query}
-							status={msg.toolCall.status}
-							result={msg.toolCall.result}
-						/>
+						<Box key={idx} marginY={1}>
+							<ToolExecutionBox
+								toolName={msg.toolCall.name}
+								args={msg.toolCall.args}
+								status={msg.toolCall.status}
+								result={msg.toolCall.result}
+							/>
+						</Box>
 					);
 				}
 				if (msg.role === 'assistant') {

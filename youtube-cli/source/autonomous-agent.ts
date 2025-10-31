@@ -9,10 +9,13 @@ interface AgentOptions {
 	userMessage: string;
 	workDir: string;
 	onProgress?: (message: string) => void;
+	onKanbanUpdate?: (tasks: KanbanTask[]) => void;
+	onToolExecute?: (toolName: string, args: any) => void;
+	onToolComplete?: (toolName: string, args: any, result: string, error?: boolean) => void;
 }
 
 export async function runAutonomousAgent(options: AgentOptions): Promise<string> {
-	const { userMessage, workDir, onProgress } = options;
+	const { userMessage, workDir, onProgress, onKanbanUpdate, onToolExecute, onToolComplete } = options;
 
 	// Create work directory
 	mkdirSync(workDir, { recursive: true });
@@ -36,17 +39,40 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
-	const systemPrompt = `You are an autonomous AI agent. When given a task:
-1. Break it down into subtasks and create a Kanban board using update_kanban
-2. Execute tasks one by one using available tools
-3. Update Kanban as you progress
-4. When all tasks are done, provide a final summary
+	const systemPrompt = `You are an AUTONOMOUS AI AGENT that MUST complete ALL tasks given to you.
+
+CRITICAL RULES:
+1. First, analyze the task and create a Kanban board using update_kanban with ALL subtasks
+2. Execute EVERY task one by one using the available tools
+3. After EACH task completion, update the Kanban board (change task status to 'done')
+4. You MUST actually USE the tools to complete tasks - don't just plan, EXECUTE!
+5. When ALL tasks are done, provide a comprehensive final summary
 
 Work directory: ${workDir}
 
-Available tools: edit_file, read_file, write_file, execute_shell, find_files, search_text, read_folder, update_kanban, web_fetch
+Available tools:
+- write_file: Create/overwrite files with content
+- read_file: Read file contents
+- edit_file: Edit files by replacing text
+- execute_shell: Run shell commands
+- find_files: Find files by pattern
+- search_text: Search text in files
+- read_folder: List directory contents
+- update_kanban: Update task board
+- web_fetch: Fetch URLs
 
-Be autonomous and efficient.`;
+IMPORTANT: You must ACTUALLY complete all tasks using the tools. Don't just update the kanban without doing the work!
+
+Example workflow:
+1. User: "Create hello.js and test.js"
+2. You: update_kanban with tasks ["Create hello.js", "Create test.js"]
+3. You: write_file to create hello.js with actual code
+4. You: update_kanban marking "Create hello.js" as done
+5. You: write_file to create test.js with actual test code
+6. You: update_kanban marking "Create test.js" as done
+7. You: Return summary of what was created
+
+BE AUTONOMOUS. COMPLETE ALL TASKS. USE THE TOOLS.`;
 
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{ role: 'system', content: systemPrompt },

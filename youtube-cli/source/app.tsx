@@ -79,6 +79,49 @@ export default function App() {
 				onProgress: (progress) => {
 					console.log(`[AGENT] ${progress}`);
 				},
+				onKanbanUpdate: (tasks) => {
+					setMessages(prev => {
+						// Remove previous kanban and add new one
+						const filtered = prev.filter(m => m.role !== 'kanban');
+						return [...filtered, { role: 'kanban', content: '', kanban: tasks }];
+					});
+				},
+				onToolExecute: (toolName, args) => {
+					setMessages(prev => [
+						...prev,
+						{
+							role: 'tool',
+							content: '',
+							toolCall: { name: toolName, args, status: 'running' },
+						},
+					]);
+				},
+				onToolComplete: (toolName, args, result, error) => {
+					setMessages(prev => {
+						const updated = [...prev];
+						// Find the last tool message with matching name and running status
+						for (let i = updated.length - 1; i >= 0; i--) {
+							if (
+								updated[i]?.role === 'tool' &&
+								updated[i]?.toolCall?.name === toolName &&
+								updated[i]?.toolCall?.status === 'running'
+							) {
+								updated[i] = {
+									role: 'tool',
+									content: '',
+									toolCall: {
+										name: toolName,
+										args,
+										status: error ? 'error' : 'complete',
+										result,
+									},
+								};
+								break;
+							}
+						}
+						return updated;
+					});
+				},
 			});
 
 			setMessages(prev => [...prev, { role: 'assistant', content: response }]);
