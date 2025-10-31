@@ -1,7 +1,7 @@
 {
-  "endpoint": "http://localhost:4000/v1",
-  "apiKey": "",
-  "model": "gemini",
-  "maxVideos": 7,
-  "maxCommentsPerVideo": 10
+  "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "apiKey": "Un0IgYbXi3vY4IKcOQicvZJhzcgpRbWvm-oJyEMM92O2GFqfP5GthSjHeoe4ZGnucCUhQYqnBdeoTNQoCKo7WA",
+  "model": "qwen-max",
+  "maxVideos": 10,
+  "maxCommentsPerVideo": 100
 }

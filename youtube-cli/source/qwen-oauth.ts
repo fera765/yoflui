@@ -101,6 +101,22 @@ function getCredentialsPath(): string {
  */
 export function loadQwenCredentials(): QwenCredentials | null {
 	try {
+		// First, try to load from local directory (for testing/dev)
+		const localPath = join(process.cwd(), 'qwen-credentials.json');
+		if (existsSync(localPath)) {
+			const data = readFileSync(localPath, 'utf-8');
+			const creds = JSON.parse(data) as QwenCredentials;
+			
+			// Check if token is expired
+			if (creds.expiry_date && Date.now() > creds.expiry_date) {
+				console.log('??  Token expired, needs refresh or re-auth');
+				return null;
+			}
+			
+			return creds;
+		}
+		
+		// Then try the default location
 		const path = getCredentialsPath();
 		if (!existsSync(path)) {
 			return null;
@@ -110,7 +126,7 @@ export function loadQwenCredentials(): QwenCredentials | null {
 		
 		// Check if token is expired
 		if (creds.expiry_date && Date.now() > creds.expiry_date) {
-			console.log('?? Token expired, needs refresh or re-auth');
+			console.log('??  Token expired, needs refresh or re-auth');
 			return null;
 		}
 		

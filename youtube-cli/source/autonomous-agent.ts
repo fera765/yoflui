@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { mkdirSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
@@ -39,7 +39,20 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
+	// Check if .flui.md exists and load it
+	let fluiContext = '';
+	const fluiPath = join(process.cwd(), '.flui.md');
+	if (existsSync(fluiPath)) {
+		try {
+			fluiContext = readFileSync(fluiPath, 'utf-8');
+			onProgress?.('?? Loaded .flui.md context');
+		} catch (error) {
+			// Ignore errors loading .flui.md
+		}
+	}
+
 	const systemPrompt = `You are an AUTONOMOUS AI AGENT that MUST complete ALL tasks given to you.
+${fluiContext ? `\n## PROJECT CONTEXT FROM .flui.md:\n${fluiContext}\n` : ''}
 
 CRITICAL RULES:
 1. First, analyze the task and create a Kanban board using update_kanban with ALL subtasks
@@ -121,7 +134,7 @@ BE AUTONOMOUS. COMPLETE ALL TASKS. USE THE TOOLS.`;
 					// Special handling for kanban updates
 					if (toolName === 'update_kanban') {
 						const kanban = loadKanban(workDir);
-						onKanbanUpdate?.(kanban.tasks);
+						onKanbanUpdate?.(kanban);
 					}
 				} catch (error) {
 					result = error instanceof Error ? error.message : String(error);

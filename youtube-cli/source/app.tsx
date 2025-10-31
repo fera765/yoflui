@@ -4,11 +4,12 @@ import { QuantumTimeline, QuantumInput, type Message } from './components/Quantu
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
+import { ToolsScreen } from './components/ToolsScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
 import { join } from 'path';
 
-type Screen = 'chat' | 'auth' | 'config';
+type Screen = 'chat' | 'auth' | 'config' | 'tools';
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
@@ -39,6 +40,8 @@ export default function App() {
 			setScreen('auth');
 		} else if (command === '/config') {
 			setScreen('config');
+		} else if (command === '/tools') {
+			setScreen('tools');
 		} else if (command === '/exit') {
 			process.exit(0);
 		}
@@ -58,6 +61,10 @@ export default function App() {
 		}
 		if (msg === '/config') {
 			setScreen('config');
+			return;
+		}
+		if (msg === '/tools') {
+			setScreen('tools');
 			return;
 		}
 		if (msg === '/exit') {
@@ -170,6 +177,10 @@ export default function App() {
 				currentMaxComments={config.maxCommentsPerVideo}
 			/>
 		);
+	}
+
+	if (screen === 'tools') {
+		return <ToolsScreen onClose={() => setScreen('chat')} />;
 	}
 
 	return (
