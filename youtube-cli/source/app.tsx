@@ -3,7 +3,7 @@ import { Box } from 'ink';
 import { ElegantHeader } from './components/ElegantHeader.js';
 import { ElegantTimeline, type Message } from './components/ElegantTimeline.js';
 import { ElegantInput } from './components/ElegantInput.js';
-import { ElegantConfigScreen } from './components/ElegantConfigScreen.js';
+import { OAuthConfigScreen } from './components/OAuthConfigScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { sendMessage } from './llm-service.js';
 
@@ -77,26 +77,24 @@ export default function App() {
 	};
 
 	const handleSaveConfig = (
+		mode: 'custom' | 'qwen',
 		endpoint: string,
 		apiKey: string,
-		model: string,
-		maxVideos: number,
-		maxCommentsPerVideo: number
+		model: string
 	) => {
-		setConfig({ endpoint, apiKey, model, maxVideos, maxCommentsPerVideo });
+		setConfig({ endpoint, apiKey, model });
 		setScreen('chat');
 	};
 
 	if (screen === 'config') {
 		return (
-			<ElegantConfigScreen
-				onSave={handleSaveConfig}
+			<OAuthConfigScreen
+				onComplete={handleSaveConfig}
 				onCancel={() => setScreen('chat')}
+				currentMode="custom"
 				currentEndpoint={config.endpoint}
 				currentApiKey={config.apiKey}
 				currentModel={config.model}
-				currentMaxVideos={config.maxVideos}
-				currentMaxComments={config.maxCommentsPerVideo}
 			/>
 		);
 	}
