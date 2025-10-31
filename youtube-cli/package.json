@@ -2,6 +2,7 @@
   "name": "hello-world-project",
   "version": "1.0.0",
   "description": "A simple Node.js project with a hello function",
+  "type": "module",
   "main": "hello.js",
   "scripts": {
     "build": "npx tsc",
