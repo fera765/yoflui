@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, useInput, Text } from 'ink';
-import { UltraHeader, UltraTimeline, UltraInput, type Message } from './components/UltraModernUI.js';
+import { QuantumHeader, QuantumTimeline, QuantumInput, type Message } from './components/QuantumTerminal.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
@@ -174,13 +174,13 @@ export default function App() {
 
 	return (
 		<Box flexDirection="column" height="100%">
-			<UltraHeader
+			<QuantumHeader
 				model={config.model}
 				count={messages.filter(m => m.role === 'user').length}
 			/>
 
 			<Box flexGrow={1} flexDirection="column">
-				<UltraTimeline messages={messages} />
+				<QuantumTimeline messages={messages} />
 			</Box>
 
 			{showCommandSuggestions && (
@@ -189,12 +189,11 @@ export default function App() {
 				</Box>
 			)}
 
-			<UltraInput
+			<QuantumInput
 				value={inputValue}
 				onChange={handleInputChange}
 				onSubmit={handleSubmit}
 				isProcessing={isProcessing}
-				showSuggestions={showCommandSuggestions}
 			/>
 		</Box>
 	);
