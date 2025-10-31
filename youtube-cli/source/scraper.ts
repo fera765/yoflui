@@ -80,6 +80,15 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 		// Add small delay to avoid rate limiting
 		await delay(300);
 		
+		// Suppress parser warnings
+		const originalConsoleError = console.error;
+		console.error = (...args: any[]) => {
+			const msg = args[0]?.toString() || '';
+			if (!msg.includes('YOUTUBEJS') && !msg.includes('Parser')) {
+				originalConsoleError(...args);
+			}
+		};
+		
 		const youtube = await retryWithBackoff(
 			() => Innertube.create(),
 			2,
@@ -97,9 +106,14 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 				1000
 			);
 		} catch (commErr) {
+			// Restore console.error
+			console.error = originalConsoleError;
 			// Comments may be disabled or rate limited
 			return [];
 		}
+
+		// Restore console.error
+		console.error = originalConsoleError;
 
 		if (!commentsList) {
 			return [];

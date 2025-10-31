@@ -1,139 +1,139 @@
 import React, { useState } from 'react';
 import { Box, Text, useApp } from 'ink';
-import { NewCommandInput } from './components/NewCommandInput.js';
-import { ModernProgressBox } from './components/ModernProgressBox.js';
-import { ModernTimeline } from './components/ModernTimeline.js';
-import { scrapeYouTubeData } from './scraper.js';
-import type { ScrapedSession } from './types.js';
+import { LLMConfigScreen } from './components/LLMConfigScreen.js';
+import { ChatTimeline, type ChatMessageData } from './components/ChatTimeline.js';
+import { ChatInput } from './components/ChatInput.js';
+import { getConfig, setConfig } from './llm-config.js';
+import { sendMessage } from './llm-service.js';
+
+type Screen = 'chat' | 'config';
 
 export default function App() {
 	const { exit } = useApp();
+	const [screen, setScreen] = useState<Screen>('chat');
+	const [messages, setMessages] = useState<ChatMessageData[]>([]);
 	const [isProcessing, setIsProcessing] = useState(false);
-	const [progress, setProgress] = useState(0);
-	const [showProgress, setShowProgress] = useState(false);
-	const [isComplete, setIsComplete] = useState(false);
-	const [currentVideo, setCurrentVideo] = useState<string>('');
-	const [currentResult, setCurrentResult] = useState<{
-		totalVideos: number;
-		totalComments: number;
-	} | null>(null);
 
-	const [scrapedSessions, setScrapedSessions] = useState<ScrapedSession[]>([]);
-	const [lastQuery, setLastQuery] = useState('');
-	const [totalCommentsAllTime, setTotalCommentsAllTime] = useState(0);
+	const handleSendMessage = async (userMessage: string) => {
+		setIsProcessing(true);
 
-	const handleCommand = async (command: string, args: string) => {
-		if (command === '/exit') {
-			exit();
-			return;
-		}
+		// Add user message
+		const userMsgId = Date.now().toString();
+		const userMsg: ChatMessageData = {
+			id: userMsgId,
+			role: 'user',
+			content: userMessage,
+		};
 
-		if (command === '/ytube') {
-			if (!args.trim()) {
-				return;
-			}
+		setMessages((prev) => [...prev, userMsg]);
 
-			setIsProcessing(true);
-			setShowProgress(true);
-			setIsComplete(false);
-			setProgress(0);
-			setLastQuery(args);
-			setCurrentVideo('');
+		// Create assistant message with potential tool call
+		const assistantMsgId = (Date.now() + 1).toString();
+		let assistantMsg: ChatMessageData = {
+			id: assistantMsgId,
+			role: 'assistant',
+			content: '',
+		};
 
-			// Enhanced progress simulation
-			const progressInterval = setInterval(() => {
-				setProgress((prev) => {
-					if (prev >= 90) {
-						clearInterval(progressInterval);
-						return 90;
+		setMessages((prev) => [...prev, assistantMsg]);
+
+		try {
+			const response = await sendMessage(
+				userMessage,
+				// onToolCall
+				(toolName, query) => {
+					assistantMsg.toolCall = {
+						name: toolName,
+						query,
+						status: 'running',
+					};
+					setMessages((prev) =>
+						prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
+					);
+				},
+				// onToolComplete
+				(result) => {
+					if (assistantMsg.toolCall) {
+						assistantMsg.toolCall.status = 'complete';
+						assistantMsg.toolCall.result = {
+							totalVideos: result.totalVideos,
+							totalComments: result.totalComments,
+						};
 					}
-					return prev + Math.random() * 8;
-				});
-			}, 800);
+					setMessages((prev) =>
+						prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
+					);
+				}
+			);
 
-			try {
-				const result = await scrapeYouTubeData(args);
-
-				clearInterval(progressInterval);
-				setProgress(100);
-
-				const totalComments = result.videos.reduce(
-					(sum, v) => sum + v.comments.length,
-					0
-				);
-
-				const session: ScrapedSession = {
-					query: args,
-					scrapedAt: result.scrapedAt,
-					totalVideos: result.videos.length,
-					totalComments,
-					data: result.videos,
-				};
-
-				setScrapedSessions((prev) => [...prev, session]);
-				setTotalCommentsAllTime((prev) => prev + totalComments);
-				setCurrentResult({
-					totalVideos: result.videos.length,
-					totalComments,
-				});
-
-				setIsComplete(true);
-			} catch (error) {
-				clearInterval(progressInterval);
-				setShowProgress(false);
-			} finally {
-				setIsProcessing(false);
-			}
+			// Update with final response
+			assistantMsg.content = response;
+			setMessages((prev) =>
+				prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
+			);
+		} catch (error) {
+			assistantMsg.content = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+			setMessages((prev) =>
+				prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
+			);
+		} finally {
+			setIsProcessing(false);
 		}
 	};
 
-	const handleProgressTimeout = () => {
-		setShowProgress(false);
-		setIsComplete(false);
-		setCurrentResult(null);
-		setCurrentVideo('');
+	const handleConfigSave = (endpoint: string, apiKey: string, model: string) => {
+		setConfig({ endpoint, apiKey, model });
+		setScreen('chat');
 	};
+
+	const handleConfigCancel = () => {
+		setScreen('chat');
+	};
+
+	const handleExit = () => {
+		exit();
+	};
+
+	if (screen === 'config') {
+		const config = getConfig();
+		return (
+			<Box flexDirection="column" height="100%">
+				<LLMConfigScreen
+					onSave={handleConfigSave}
+					onCancel={handleConfigCancel}
+					currentEndpoint={config.endpoint}
+					currentApiKey={config.apiKey}
+					currentModel={config.model}
+				/>
+			</Box>
+		);
+	}
 
 	return (
-		<Box flexDirection="column" height="100%" width="100%">
-			{/* Modern Header */}
+		<Box flexDirection="column" height="100%">
+			{/* Header */}
 			<Box borderStyle="bold" borderColor="magenta" paddingX={2} paddingY={0}>
 				<Text color="magenta" bold>
-					? YT SCRAPER
+					? AI YOUTUBE ANALYST
 				</Text>
 				<Text color="gray" dimColor>
 					{' '}
-					? Sessions: {scrapedSessions.length} ? Total: {totalCommentsAllTime.toLocaleString()} comments
+					? Model: {getConfig().model}
 				</Text>
 			</Box>
 
-			{/* Modern Timeline */}
+			{/* Chat Timeline */}
 			<Box flexGrow={1}>
-				<ModernTimeline
-					totalScraped={scrapedSessions.length}
-					lastQuery={lastQuery}
-					totalComments={totalCommentsAllTime}
-				/>
+				<ChatTimeline messages={messages} />
 			</Box>
 
-			{/* Progress Box */}
-			{showProgress && currentResult && (
-				<ModernProgressBox
-					isActive={showProgress}
-					progress={progress}
-					isComplete={isComplete}
-					totalComments={currentResult.totalComments}
-					totalVideos={currentResult.totalVideos}
-					currentVideo={currentVideo}
-					onTimeout={handleProgressTimeout}
-				/>
-			)}
-
-			{/* New Command Input with Keyboard Navigation */}
+			{/* Chat Input */}
 			<Box>
-				<NewCommandInput
-					onCommand={handleCommand}
-					isDisabled={isProcessing}
+				<ChatInput
+					onSendMessage={handleSendMessage}
+					onConfigCommand={() => setScreen('config')}
+					onExitCommand={handleExit}
+					isProcessing={isProcessing}
 				/>
 			</Box>
 		</Box>
