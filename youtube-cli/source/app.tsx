@@ -184,8 +184,8 @@ export default function App() {
 	}
 
 	return (
-		<Box flexDirection="column">
-			<Box flexDirection="column" overflow="hidden">
+		<Box flexDirection="column" minHeight={0}>
+			<Box flexDirection="column" flexGrow={1} minHeight={0}>
 				<QuantumTimeline messages={messages} />
 			</Box>
 
@@ -195,12 +195,14 @@ export default function App() {
 				</Box>
 			)}
 
-			<QuantumInput
-				value={inputValue}
-				onChange={handleInputChange}
-				onSubmit={handleSubmit}
-				isProcessing={isProcessing}
-			/>
+			<Box flexShrink={0}>
+				<QuantumInput
+					value={inputValue}
+					onChange={handleInputChange}
+					onSubmit={handleSubmit}
+					isProcessing={isProcessing}
+				/>
+			</Box>
 		</Box>
 	);
 }
