@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { getConfig } from './llm-config.js';
-import { executeYouTubeTool, youtubeToolDefinition } from './youtube-tool.js';
+import { executeYouTubeTool } from './youtube-tool.js';
 
 export interface ChatMessage {
 	role: 'user' | 'assistant' | 'system';
@@ -10,6 +10,44 @@ export interface ChatMessage {
 		query: string;
 		result?: any;
 	};
+}
+
+/**
+ * Detect if user intent requires YouTube search
+ * Since llm7.io doesn't support function calling, we use heuristics
+ */
+function detectYouTubeIntent(message: string): string | null {
+	const lower = message.toLowerCase();
+	
+	// Direct YouTube search intent
+	if (lower.includes('youtube') && (lower.includes('search') || lower.includes('busca') || lower.includes('pesquise'))) {
+		// Extract only the topic, not the whole command
+		const match = message.match(/(?:search|busca|pesquise)\s+(?:youtube\s+)?(?:for|sobre|por)?\s+(.+?)(?:\s+and|\se|$)/i);
+		if (match) return match[1].trim().replace(/^["']|["']$/g, '');
+	}
+	
+	// Phrases that indicate needing YouTube data
+	const needsYouTube = [
+		/what are (?:people|users) saying about (.+)/i,
+		/analyze.*comments.*about (.+)/i,
+		/(?:find|search|get).*(?:comments|videos|opinions).*about (.+)/i,
+		/(o que|quais s?o).+(?:dizendo|falando|comentando).+sobre (.+)/i,
+		/pesquise.*sobre (.+?)(?:\se|$)/i,
+		/busque.*sobre (.+?)(?:\se|$)/i,
+		/analise.*sobre (.+?)(?:\se|$)/i,
+		/(?:pain points?|dores|problemas).*(?:in|no|do) (.+?) (?:niche|nicho)/i,
+	];
+	
+	for (const pattern of needsYouTube) {
+		const match = message.match(pattern);
+		if (match) {
+			const query = match[match.length - 1].trim();
+			// Clean up common trailing words
+			return query.replace(/(?:\se suas dores|\sand .*problems?|!|\?)$/i, '').trim();
+		}
+	}
+	
+	return null;
 }
 
 export async function sendMessage(
@@ -24,92 +62,87 @@ export async function sendMessage(
 		apiKey: config.apiKey || 'not-needed',
 	});
 
-	const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-		{
-			role: 'system',
-			content: 'You are a helpful AI assistant with access to YouTube comment data. When users ask about topics, trends, or opinions, use the search_youtube_comments tool to gather real user feedback from YouTube comments. Analyze the comments to provide insights, identify patterns, pain points, and common themes.',
-		},
-		{
-			role: 'user',
-			content: userMessage,
-		},
-	];
-
 	try {
-		// First API call with tool
+		// Detect YouTube intent (since llm7.io doesn't support function calling)
+		const youtubeQuery = detectYouTubeIntent(userMessage);
+		
+		if (youtubeQuery) {
+			// Manual tool execution
+			if (onToolCall) {
+				onToolCall('YouTube Search', youtubeQuery);
+			}
+
+			// Execute YouTube tool
+			const toolResult = await executeYouTubeTool(youtubeQuery);
+
+			// Notify tool complete
+			if (onToolComplete) {
+				onToolComplete(toolResult);
+			}
+
+			// Create enriched prompt with YouTube data
+			const systemPrompt = `You are an AI analyst. The user asked about "${youtubeQuery}" and I've gathered ${toolResult.totalComments} real comments from ${toolResult.totalVideos} YouTube videos.
+
+Your task: Analyze these comments and provide insights about:
+- Main themes and patterns
+- Common pain points or problems mentioned
+- User sentiment and opinions
+- Key takeaways
+
+Be specific and reference actual comment content when relevant.`;
+
+			// Take top 20 most-liked comments to reduce token usage
+			const topComments = toolResult.comments
+				.sort((a, b) => b.likes - a.likes)
+				.slice(0, 20)
+				.map(c => {
+					// Clean comment text to avoid API errors
+					const cleanText = c.comment
+						.replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+						.substring(0, 300); // Limit comment length
+					return `? [${c.videoTitle.substring(0, 50)}] ${c.author}: "${cleanText}" (${c.likes} likes)`;
+				})
+				.join('\n\n');
+			
+			const commentsSample = topComments;
+
+			const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+				{
+					role: 'system',
+					content: systemPrompt,
+				},
+				{
+					role: 'user',
+					content: `Here are the YouTube comments:\n\n${commentsSample}\n\nPlease analyze these comments and answer: ${userMessage}`,
+				},
+			];
+
+			const response = await openai.chat.completions.create({
+				model: config.model,
+				messages,
+			});
+
+			return response.choices[0]?.message?.content || 'No response generated';
+		}
+
+		// No YouTube intent detected - normal chat
+		const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+			{
+				role: 'system',
+				content: 'You are a helpful AI assistant. Answer questions clearly and concisely.',
+			},
+			{
+				role: 'user',
+				content: userMessage,
+			},
+		];
+
 		const response = await openai.chat.completions.create({
 			model: config.model,
 			messages,
-			tools: [youtubeToolDefinition],
-			tool_choice: 'auto',
 		});
 
-		const assistantMessage = response.choices[0]?.message;
-		
-		// Debug: Log tool calls
-		if (process.env.DEBUG === 'true') {
-			console.log('Assistant message:', JSON.stringify(assistantMessage, null, 2));
-		}
-
-		// Check if tool was called
-		if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
-			const toolCall = assistantMessage.tool_calls[0];
-			const func = (toolCall as any).function;
-			
-			if (func && func.name === 'search_youtube_comments') {
-				const args = JSON.parse(func.arguments);
-				const query = args.query;
-
-				// Notify about tool call
-				if (onToolCall) {
-					onToolCall('YouTube Search', query);
-				}
-
-				// Execute YouTube tool
-				const toolResult = await executeYouTubeTool(query);
-
-				// Notify tool complete
-				if (onToolComplete) {
-					onToolComplete(toolResult);
-				}
-
-				// Add assistant message with tool call
-				messages.push({
-					role: 'assistant',
-					content: assistantMessage.content || '',
-					tool_calls: assistantMessage.tool_calls,
-				});
-
-				// Add tool response
-				messages.push({
-					role: 'tool',
-					content: JSON.stringify({
-						success: toolResult.success,
-						totalVideos: toolResult.totalVideos,
-						totalComments: toolResult.totalComments,
-						// Send top 100 comments to avoid token limits
-						comments: toolResult.comments.slice(0, 100).map(c => ({
-							video: c.videoTitle,
-							author: c.author,
-							text: c.comment,
-							likes: c.likes,
-						})),
-					}),
-					tool_call_id: toolCall.id,
-				});
-
-				// Second API call with tool results
-				const finalResponse = await openai.chat.completions.create({
-					model: config.model,
-					messages,
-				});
-
-				return finalResponse.choices[0]?.message?.content || 'No response';
-			}
-		}
-
-		// No tool call needed
-		return assistantMessage?.content || 'No response';
+		return response.choices[0]?.message?.content || 'No response';
 	} catch (error) {
 		console.error('LLM Error:', error);
 		throw error;
