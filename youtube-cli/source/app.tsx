@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Box, useInput } from 'ink';
+import { Box, useInput, Text } from 'ink';
 import { UltraHeader, UltraTimeline, UltraInput, type Message } from './components/UltraModernUI.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
-import { sendMessage } from './llm-service.js';
+import { runAutonomousAgent } from './autonomous-agent.js';
+import { join } from 'path';
 
 type Screen = 'chat' | 'auth' | 'config';
 
@@ -64,43 +65,21 @@ export default function App() {
 			return;
 		}
 
-		// Send message
+		// Send message - autonomous agent
 		setMessages(prev => [...prev, { role: 'user', content: msg }]);
 		setIsProcessing(true);
 
 		try {
-			let toolMsgIndex: number | null = null;
+			// Create work directory
+			const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
 
-			const response = await sendMessage(
-				msg,
-				(toolName, query) => {
-					const toolMsg: Message = {
-						role: 'tool',
-						content: '',
-						toolCall: { name: toolName, query, status: 'running' },
-					};
-					setMessages(prev => {
-						toolMsgIndex = prev.length;
-						return [...prev, toolMsg];
-					});
+			const response = await runAutonomousAgent({
+				userMessage: msg,
+				workDir,
+				onProgress: (progress) => {
+					console.log(`[AGENT] ${progress}`);
 				},
-				result => {
-					if (toolMsgIndex !== null) {
-						setMessages(prev => {
-							const updated = [...prev];
-							const tm = updated[toolMsgIndex!];
-							if (tm?.toolCall) {
-								tm.toolCall.status = 'complete';
-								tm.toolCall.result = {
-									totalVideos: result.totalVideos,
-									totalComments: result.totalComments,
-								};
-							}
-							return updated;
-						});
-					}
-				}
-			);
+			});
 
 			setMessages(prev => [...prev, { role: 'assistant', content: response }]);
 		} catch (error) {
