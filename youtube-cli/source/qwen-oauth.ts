@@ -370,11 +370,30 @@ export function getQwenConfig() {
 }
 
 /**
+ * Get proper API endpoint from resource_url
+ */
+function getApiEndpoint(resourceUrl?: string): string {
+	if (!resourceUrl) {
+		return QWEN_API_ENDPOINT;
+	}
+	
+	// Normalize URL: add protocol if missing, ensure /v1 suffix
+	const normalizedUrl = resourceUrl.startsWith('http')
+		? resourceUrl
+		: `https://${resourceUrl}`;
+	
+	return normalizedUrl.endsWith('/v1')
+		? normalizedUrl
+		: `${normalizedUrl}/v1`;
+}
+
+/**
  * Fetch available Qwen models
  */
-export async function fetchQwenModels(accessToken: string): Promise<string[]> {
+export async function fetchQwenModels(accessToken: string, resourceUrl?: string): Promise<string[]> {
 	try {
-		const response = await fetch(`${QWEN_API_ENDPOINT}/models`, {
+		const endpoint = getApiEndpoint(resourceUrl);
+		const response = await fetch(`${endpoint}/models`, {
 			headers: {
 				'Authorization': `Bearer ${accessToken}`,
 				'Accept': 'application/json',

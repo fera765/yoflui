@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import SelectInput from 'ink-select-input';
 import Spinner from 'ink-spinner';
-import { fetchQwenModels } from '../qwen-oauth.js';
+import { fetchQwenModels, loadQwenCredentials } from '../qwen-oauth.js';
 
 interface Props {
 	accessToken: string;
@@ -26,7 +26,8 @@ export const QwenModelSelector: React.FC<Props> = ({
 	const loadModels = async () => {
 		try {
 			setLoading(true);
-			const availableModels = await fetchQwenModels(accessToken);
+			const creds = loadQwenCredentials();
+			const availableModels = await fetchQwenModels(accessToken, creds?.resource_url);
 			setModels(availableModels);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to load models');
