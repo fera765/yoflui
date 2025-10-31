@@ -1,0 +1,7 @@
+{
+  "endpoint": "http://localhost:4000/v1",
+  "apiKey": "",
+  "model": "gemini",
+  "maxVideos": 7,
+  "maxCommentsPerVideo": 10
+}
