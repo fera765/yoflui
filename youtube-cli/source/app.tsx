@@ -1,56 +1,97 @@
 import React, { useState } from 'react';
-import { Box } from 'ink';
-import { ElegantHeader } from './components/ElegantHeader.js';
-import { ElegantTimeline, type Message } from './components/ElegantTimeline.js';
-import { ElegantInput } from './components/ElegantInput.js';
-import { SimpleOAuthConfigScreen } from './components/SimpleOAuthConfigScreen.js';
+import { Box, useInput } from 'ink';
+import { UltraHeader, UltraTimeline, UltraInput, type Message } from './components/UltraModernUI.js';
+import { CommandSuggestions } from './components/CommandSuggestions.js';
+import { NewAuthScreen } from './components/NewAuthScreen.js';
+import { ConfigScreen } from './components/ConfigScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { sendMessage } from './llm-service.js';
 
-type Screen = 'chat' | 'config';
+type Screen = 'chat' | 'auth' | 'config';
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
 	const [messages, setMessages] = useState<Message[]>([]);
+	const [inputValue, setInputValue] = useState('');
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
 
 	const config = getConfig();
 
-	const handleSendMessage = async (userMessage: string) => {
-		// Add user message
-		setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+	useInput((input, key) => {
+		if (key.escape && inputValue.length > 0) {
+			setInputValue('');
+			setShowCommandSuggestions(false);
+		}
+	});
+
+	const handleInputChange = (value: string) => {
+		setInputValue(value);
+		setShowCommandSuggestions(value === '/');
+	};
+
+	const handleCommandSelect = (command: string) => {
+		setInputValue('');
+		setShowCommandSuggestions(false);
+
+		if (command === '/llm') {
+			setScreen('auth');
+		} else if (command === '/config') {
+			setScreen('config');
+		} else if (command === '/exit') {
+			process.exit(0);
+		}
+	};
+
+	const handleSubmit = async () => {
+		if (!inputValue.trim() || isProcessing) return;
+
+		const msg = inputValue.trim();
+		setInputValue('');
+		setShowCommandSuggestions(false);
+
+		// Handle commands
+		if (msg === '/llm') {
+			setScreen('auth');
+			return;
+		}
+		if (msg === '/config') {
+			setScreen('config');
+			return;
+		}
+		if (msg === '/exit') {
+			process.exit(0);
+			return;
+		}
+
+		// Send message
+		setMessages(prev => [...prev, { role: 'user', content: msg }]);
 		setIsProcessing(true);
 
 		try {
-			let toolMessageIndex: number | null = null;
+			let toolMsgIndex: number | null = null;
 
 			const response = await sendMessage(
-				userMessage,
+				msg,
 				(toolName, query) => {
-					// Tool started
 					const toolMsg: Message = {
 						role: 'tool',
 						content: '',
-						toolCall: {
-							name: toolName,
-							query,
-							status: 'running',
-						},
+						toolCall: { name: toolName, query, status: 'running' },
 					};
 					setMessages(prev => {
-						toolMessageIndex = prev.length;
+						toolMsgIndex = prev.length;
 						return [...prev, toolMsg];
 					});
 				},
-				(result) => {
-					// Tool completed
-					if (toolMessageIndex !== null) {
+				result => {
+					if (toolMsgIndex !== null) {
 						setMessages(prev => {
 							const updated = [...prev];
-							const toolMsg = updated[toolMessageIndex!];
-							if (toolMsg && toolMsg.toolCall) {
-								toolMsg.toolCall.status = 'complete';
-								toolMsg.toolCall.result = {
+							const tm = updated[toolMsgIndex!];
+							if (tm?.toolCall) {
+								tm.toolCall.status = 'complete';
+								tm.toolCall.result = {
 									totalVideos: result.totalVideos,
 									totalComments: result.totalComments,
 								};
@@ -61,14 +102,13 @@ export default function App() {
 				}
 			);
 
-			// Add assistant response
 			setMessages(prev => [...prev, { role: 'assistant', content: response }]);
 		} catch (error) {
 			setMessages(prev => [
 				...prev,
 				{
 					role: 'assistant',
-					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+					content: `**Error:** ${error instanceof Error ? error.message : 'Unknown error'}`,
 				},
 			]);
 		} finally {
@@ -76,20 +116,20 @@ export default function App() {
 		}
 	};
 
-	const handleSaveConfig = (
-		mode: 'custom' | 'qwen',
-		endpoint: string,
-		apiKey: string,
-		model: string
-	) => {
+	const handleAuthComplete = (mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
 		setConfig({ endpoint, apiKey, model });
 		setScreen('chat');
 	};
 
-	if (screen === 'config') {
+	const handleConfigSave = (maxVideos: number, maxCommentsPerVideo: number) => {
+		setConfig({ maxVideos, maxCommentsPerVideo });
+		setScreen('chat');
+	};
+
+	if (screen === 'auth') {
 		return (
-			<SimpleOAuthConfigScreen
-				onComplete={handleSaveConfig}
+			<NewAuthScreen
+				onComplete={handleAuthComplete}
 				onCancel={() => setScreen('chat')}
 				currentMode="custom"
 				currentEndpoint={config.endpoint}
@@ -99,19 +139,40 @@ export default function App() {
 		);
 	}
 
+	if (screen === 'config') {
+		return (
+			<ConfigScreen
+				onSave={handleConfigSave}
+				onCancel={() => setScreen('chat')}
+				currentMaxVideos={config.maxVideos}
+				currentMaxComments={config.maxCommentsPerVideo}
+			/>
+		);
+	}
+
 	return (
 		<Box flexDirection="column" height="100%">
-			<ElegantHeader model={config.model} messageCount={messages.filter(m => m.role === 'user').length} />
-			
+			<UltraHeader
+				model={config.model}
+				count={messages.filter(m => m.role === 'user').length}
+			/>
+
 			<Box flexGrow={1} flexDirection="column">
-				<ElegantTimeline messages={messages} />
+				<UltraTimeline messages={messages} />
 			</Box>
 
-			<ElegantInput
-				onSendMessage={handleSendMessage}
-				onConfigCommand={() => setScreen('config')}
-				onExitCommand={() => process.exit(0)}
+			{showCommandSuggestions && (
+				<Box paddingX={2} paddingBottom={1}>
+					<CommandSuggestions onSelect={handleCommandSelect} />
+				</Box>
+			)}
+
+			<UltraInput
+				value={inputValue}
+				onChange={handleInputChange}
+				onSubmit={handleSubmit}
 				isProcessing={isProcessing}
+				showSuggestions={showCommandSuggestions}
 			/>
 		</Box>
 	);
