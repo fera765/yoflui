@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, useInput, Text } from 'ink';
-import { QuantumHeader, QuantumTimeline, QuantumInput, type Message } from './components/QuantumTerminal.js';
+import { QuantumTimeline, QuantumInput, type Message } from './components/QuantumTerminal.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
@@ -174,11 +174,6 @@ export default function App() {
 
 	return (
 		<Box flexDirection="column" height="100%">
-			<QuantumHeader
-				model={config.model}
-				count={messages.filter(m => m.role === 'user').length}
-			/>
-
 			<Box flexGrow={1} flexDirection="column">
 				<QuantumTimeline messages={messages} />
 			</Box>

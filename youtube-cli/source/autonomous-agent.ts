@@ -109,9 +109,27 @@ BE AUTONOMOUS. COMPLETE ALL TASKS. USE THE TOOLS.`;
 				const toolName = func.name;
 				const args = JSON.parse(func.arguments);
 
-				onProgress?.(`?? Executing: ${toolName}`);
+				// Notify UI that tool execution started
+				onToolExecute?.(toolName, args);
 
-				const result = await executeToolCall(toolName, args, workDir);
+				let result: string;
+				let hasError = false;
+
+				try {
+					result = await executeToolCall(toolName, args, workDir);
+					
+					// Special handling for kanban updates
+					if (toolName === 'update_kanban') {
+						const kanban = loadKanban(workDir);
+						onKanbanUpdate?.(kanban.tasks);
+					}
+				} catch (error) {
+					result = error instanceof Error ? error.message : String(error);
+					hasError = true;
+				}
+
+				// Notify UI that tool execution completed
+				onToolComplete?.(toolName, args, result, hasError);
 
 				messages.push({
 					role: 'tool',
