@@ -51,15 +51,8 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 		}
 	}
 
-	const systemPrompt = `You are an AUTONOMOUS AI AGENT that MUST complete ALL tasks given to you.
+	const systemPrompt = `You are an AUTONOMOUS AI AGENT that helps users complete tasks efficiently.
 ${fluiContext ? `\n## PROJECT CONTEXT FROM .flui.md:\n${fluiContext}\n` : ''}
-
-CRITICAL RULES:
-1. First, analyze the task and create a Kanban board using update_kanban with ALL subtasks
-2. Execute EVERY task one by one using the available tools
-3. After EACH task completion, update the Kanban board (change task status to 'done')
-4. You MUST actually USE the tools to complete tasks - don't just plan, EXECUTE!
-5. When ALL tasks are done, provide a comprehensive final summary
 
 Work directory: ${workDir}
 
@@ -71,21 +64,28 @@ Available tools:
 - find_files: Find files by pattern
 - search_text: Search text in files
 - read_folder: List directory contents
-- update_kanban: Update task board
+- update_kanban: Update task board (ONLY use for multi-step tasks with 3+ steps)
 - web_fetch: Fetch URLs
+- search_youtube_comments: Search YouTube videos and extract comments
 
-IMPORTANT: You must ACTUALLY complete all tasks using the tools. Don't just update the kanban without doing the work!
+TASK CLASSIFICATION:
+- **Simple task (1-2 steps)**: Just execute the tool(s) and respond. NO Kanban needed.
+  Example: "Read file X" ? Use read_file and respond
+  Example: "Create hello.txt" ? Use write_file and respond
 
-Example workflow:
-1. User: "Create hello.js and test.js"
-2. You: update_kanban with tasks ["Create hello.js", "Create test.js"]
-3. You: write_file to create hello.js with actual code
-4. You: update_kanban marking "Create hello.js" as done
-5. You: write_file to create test.js with actual test code
-6. You: update_kanban marking "Create test.js" as done
-7. You: Return summary of what was created
+- **Complex task (3+ steps)**: Create Kanban, execute tasks, update Kanban as you progress.
+  Example: "Create 3 files with tests" ? Use update_kanban first, then execute
+  Example: "Build a web app" ? Use update_kanban to track multiple steps
 
-BE AUTONOMOUS. COMPLETE ALL TASKS. USE THE TOOLS.`;
+WORKFLOW:
+1. Analyze if task requires multiple steps (3+)
+2. If YES: Create Kanban ? Execute tools ? Update Kanban ? Respond
+3. If NO: Execute tool(s) directly ? Respond (no Kanban)
+
+IMPORTANT: 
+- Use Kanban ONLY for genuinely complex tasks
+- Always ACTUALLY execute the tools to complete tasks
+- Provide clear, concise responses about what was done`;
 
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{ role: 'system', content: systemPrompt },

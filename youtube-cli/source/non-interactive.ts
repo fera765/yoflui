@@ -43,7 +43,7 @@ function loadConfig(): ConfigFile {
 			return {
 				endpoint: `https://${qwenCreds.resource_url}/v1`,
 				apiKey: qwenCreds.access_token,
-				model: 'qwen2.5-coder-32b-instruct',
+				model: 'qwen3-coder-plus',
 				maxVideos: 7,
 				maxCommentsPerVideo: 10,
 			};
