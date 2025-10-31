@@ -84,7 +84,7 @@ export default function App() {
 				userMessage: msg,
 				workDir,
 				onProgress: (progress) => {
-					console.log(`[AGENT] ${progress}`);
+					// Silent in interactive mode - visual feedback via timeline
 				},
 				onKanbanUpdate: (tasks) => {
 					setMessages(prev => {
@@ -184,8 +184,8 @@ export default function App() {
 	}
 
 	return (
-		<Box flexDirection="column" height="100%">
-			<Box flexGrow={1} flexDirection="column">
+		<Box flexDirection="column">
+			<Box flexDirection="column" overflow="hidden">
 				<QuantumTimeline messages={messages} />
 			</Box>
 

@@ -195,7 +195,7 @@ const AIResponse: React.FC<{ text: string }> = ({ text }) => (
 export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages }) => {
 	if (messages.length === 0) {
 		return (
-			<Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1} paddingY={5}>
+			<Box flexDirection="column" alignItems="center" justifyContent="center" paddingY={5}>
 				<Text color={MONOKAI.blue} bold>[ READY ]</Text>
 			</Box>
 		);
@@ -204,18 +204,21 @@ export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages })
 	return (
 		<Box flexDirection="column" paddingX={2} paddingY={1}>
 			{messages.map((msg, idx) => {
+				// Use stable keys to prevent flickering
+				const key = `${msg.role}-${idx}`;
+				
 				if (msg.role === 'user') {
-					return <UserMessage key={idx} text={msg.content} />;
+					return <UserMessage key={key} text={msg.content} />;
 				}
 
 				if (msg.role === 'kanban' && msg.kanban) {
-					return <QuantumKanban key={idx} tasks={msg.kanban} />;
+					return <QuantumKanban key={key} tasks={msg.kanban} />;
 				}
 
 				if (msg.role === 'tool' && msg.toolCall) {
 					return (
 						<QuantumTool
-							key={idx}
+							key={key}
 							name={msg.toolCall.name}
 							args={msg.toolCall.args}
 							status={msg.toolCall.status}
@@ -226,7 +229,7 @@ export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages })
 				}
 
 				if (msg.role === 'assistant') {
-					return <AIResponse key={idx} text={msg.content} />;
+					return <AIResponse key={key} text={msg.content} />;
 				}
 
 				return null;
