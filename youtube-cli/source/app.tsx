@@ -3,7 +3,7 @@ import { Box } from 'ink';
 import { ElegantHeader } from './components/ElegantHeader.js';
 import { ElegantTimeline, type Message } from './components/ElegantTimeline.js';
 import { ElegantInput } from './components/ElegantInput.js';
-import { OAuthConfigScreen } from './components/OAuthConfigScreen.js';
+import { SimpleOAuthConfigScreen } from './components/SimpleOAuthConfigScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { sendMessage } from './llm-service.js';
 
@@ -88,7 +88,7 @@ export default function App() {
 
 	if (screen === 'config') {
 		return (
-			<OAuthConfigScreen
+			<SimpleOAuthConfigScreen
 				onComplete={handleSaveConfig}
 				onCancel={() => setScreen('chat')}
 				currentMode="custom"
