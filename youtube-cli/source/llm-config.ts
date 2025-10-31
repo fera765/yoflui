@@ -22,15 +22,32 @@ export async function fetchAvailableModels(endpoint: string): Promise<string[]> 
 	try {
 		const modelsUrl = endpoint.endsWith('/') ? `${endpoint}models` : `${endpoint}/models`;
 		const response = await fetch(modelsUrl);
-		const data = await response.json();
 		
-		if (Array.isArray(data)) {
-			return data.map((model: any) => model.id);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch models: ${response.status}`);
 		}
 		
-		return [];
+		const data: any = await response.json();
+		
+		// Handle both formats:
+		// 1. llm7.io: [{id: "string", ...}]
+		// 2. local endpoint: {object: "list", data: [{id: string | object, ...}]}
+		const modelsList = Array.isArray(data) ? data : (data.data || []);
+		
+		return modelsList
+			.map((model: any) => {
+				// Handle both string and object id formats
+				if (typeof model.id === 'string') {
+					return model.id;
+				} else if (typeof model.id === 'object' && model.id.name) {
+					// Local endpoint format - only return models with tool support
+					return model.id.tools ? model.id.name : null;
+				}
+				return null;
+			})
+			.filter((id: string | null): id is string => id !== null);
 	} catch (error) {
-		console.error('Failed to fetch models:', error);
-		return [];
+		console.error('Error fetching models:', error);
+		return ['openai', 'deepseek', 'gemini', 'mistral']; // Fallback
 	}
 }
