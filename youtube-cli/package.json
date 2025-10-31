@@ -32,6 +32,7 @@
 	"devDependencies": {
 		"@babel/cli": "^7.21.0",
 		"@babel/preset-react": "^7.18.6",
+		"@types/node": "^24.9.2",
 		"@vdemedes/prettier-config": "^2.0.1",
 		"@vitest/ui": "^4.0.5",
 		"ava": "^5.2.0",
@@ -42,6 +43,7 @@
 		"import-jsx": "^5.0.0",
 		"ink-testing-library": "^3.0.0",
 		"prettier": "^2.8.7",
+		"tsx": "^4.20.6",
 		"typescript": "^5.9.3",
 		"vitest": "^4.0.5",
 		"xo": "^0.53.1"
