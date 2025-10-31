@@ -1,120 +1,118 @@
 import React, { useState } from 'react';
-import { Box, useApp } from 'ink';
-import { ModernHeader } from './components/ModernHeader.js';
-import { BeautifulTimeline, type Message } from './components/BeautifulTimeline.js';
-import { ModernInput } from './components/ModernInput.js';
-import { BeautifulConfigScreen } from './components/BeautifulConfigScreen.js';
+import { Box } from 'ink';
+import { ElegantHeader } from './components/ElegantHeader.js';
+import { ElegantTimeline, type Message } from './components/ElegantTimeline.js';
+import { ElegantInput } from './components/ElegantInput.js';
+import { ElegantConfigScreen } from './components/ElegantConfigScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { sendMessage } from './llm-service.js';
 
 type Screen = 'chat' | 'config';
 
 export default function App() {
-	const { exit } = useApp();
 	const [screen, setScreen] = useState<Screen>('chat');
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [isProcessing, setIsProcessing] = useState(false);
 
+	const config = getConfig();
+
 	const handleSendMessage = async (userMessage: string) => {
+		// Add user message
+		setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 		setIsProcessing(true);
 
-		const userMsgId = Date.now().toString();
-		const userMsg: Message = {
-			id: userMsgId,
-			role: 'user',
-			content: userMessage,
-		};
-
-		setMessages((prev) => [...prev, userMsg]);
-
-		const assistantMsgId = (Date.now() + 1).toString();
-		let assistantMsg: Message = {
-			id: assistantMsgId,
-			role: 'assistant',
-			content: '',
-		};
-
-		setMessages((prev) => [...prev, assistantMsg]);
-
 		try {
+			let toolMessageIndex: number | null = null;
+
 			const response = await sendMessage(
 				userMessage,
 				(toolName, query) => {
-					assistantMsg.toolCall = {
-						name: toolName,
-						query,
-						status: 'running',
+					// Tool started
+					const toolMsg: Message = {
+						role: 'tool',
+						content: '',
+						toolCall: {
+							name: toolName,
+							query,
+							status: 'running',
+						},
 					};
-					setMessages((prev) =>
-						prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
-					);
+					setMessages(prev => {
+						toolMessageIndex = prev.length;
+						return [...prev, toolMsg];
+					});
 				},
 				(result) => {
-					if (assistantMsg.toolCall) {
-						assistantMsg.toolCall.status = 'complete';
-						assistantMsg.toolCall.result = {
-							totalVideos: result.totalVideos,
-							totalComments: result.totalComments,
-						};
+					// Tool completed
+					if (toolMessageIndex !== null) {
+						setMessages(prev => {
+							const updated = [...prev];
+							const toolMsg = updated[toolMessageIndex!];
+							if (toolMsg && toolMsg.toolCall) {
+								toolMsg.toolCall.status = 'complete';
+								toolMsg.toolCall.result = {
+									totalVideos: result.totalVideos,
+									totalComments: result.totalComments,
+								};
+							}
+							return updated;
+						});
 					}
-					setMessages((prev) =>
-						prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
-					);
 				}
 			);
 
-			assistantMsg.content = response;
-			setMessages((prev) =>
-				prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
-			);
+			// Add assistant response
+			setMessages(prev => [...prev, { role: 'assistant', content: response }]);
 		} catch (error) {
-			assistantMsg.content = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-			setMessages((prev) =>
-				prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
-			);
+			setMessages(prev => [
+				...prev,
+				{
+					role: 'assistant',
+					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				},
+			]);
 		} finally {
 			setIsProcessing(false);
 		}
 	};
 
-	const handleConfigSave = (endpoint: string, apiKey: string, model: string) => {
-		setConfig({ endpoint, apiKey, model });
+	const handleSaveConfig = (
+		endpoint: string,
+		apiKey: string,
+		model: string,
+		maxVideos: number,
+		maxCommentsPerVideo: number
+	) => {
+		setConfig({ endpoint, apiKey, model, maxVideos, maxCommentsPerVideo });
 		setScreen('chat');
-	};
-
-	const handleConfigCancel = () => {
-		setScreen('chat');
-	};
-
-	const handleExit = () => {
-		exit();
 	};
 
 	if (screen === 'config') {
-		const config = getConfig();
 		return (
-			<Box flexDirection="column" height="100%">
-				<BeautifulConfigScreen
-					onSave={handleConfigSave}
-					onCancel={handleConfigCancel}
-					currentEndpoint={config.endpoint}
-					currentApiKey={config.apiKey}
-					currentModel={config.model}
-				/>
-			</Box>
+			<ElegantConfigScreen
+				onSave={handleSaveConfig}
+				onCancel={() => setScreen('chat')}
+				currentEndpoint={config.endpoint}
+				currentApiKey={config.apiKey}
+				currentModel={config.model}
+				currentMaxVideos={config.maxVideos}
+				currentMaxComments={config.maxCommentsPerVideo}
+			/>
 		);
 	}
 
 	return (
 		<Box flexDirection="column" height="100%">
-			<ModernHeader model={getConfig().model} messageCount={Math.floor(messages.length / 2)} />
-			<Box flexGrow={1}>
-				<BeautifulTimeline messages={messages} />
+			<ElegantHeader model={config.model} messageCount={messages.filter(m => m.role === 'user').length} />
+			
+			<Box flexGrow={1} flexDirection="column">
+				<ElegantTimeline messages={messages} />
 			</Box>
-			<ModernInput
+
+			<ElegantInput
 				onSendMessage={handleSendMessage}
 				onConfigCommand={() => setScreen('config')}
-				onExitCommand={handleExit}
+				onExitCommand={() => process.exit(0)}
 				isProcessing={isProcessing}
 			/>
 		</Box>

@@ -1,4 +1,5 @@
 import { scrapeYouTubeData } from './scraper.js';
+import { getConfig } from './llm-config.js';
 import type { ScraperResult } from './types.js';
 
 export interface YouTubeToolResult {
@@ -18,7 +19,12 @@ export interface YouTubeToolResult {
 
 export async function executeYouTubeTool(query: string): Promise<YouTubeToolResult> {
 	try {
-		const result: ScraperResult = await scrapeYouTubeData(query);
+		const config = getConfig();
+		const result: ScraperResult = await scrapeYouTubeData(
+			query,
+			config.maxVideos,
+			config.maxCommentsPerVideo
+		);
 		
 		// Flatten all comments with video context
 		const allComments = result.videos.flatMap((videoData) =>

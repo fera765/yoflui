@@ -45,6 +45,13 @@ export async function sendMessage(
 		});
 
 		const assistantMessage = response.choices[0]?.message;
+		
+		// Debug logging
+		console.log('[DEBUG] LLM Response:', {
+			hasToolCalls: !!assistantMessage?.tool_calls,
+			toolCallsLength: assistantMessage?.tool_calls?.length || 0,
+			content: assistantMessage?.content?.substring(0, 100),
+		});
 
 		// Check if tool was called
 		if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -97,9 +104,14 @@ export async function sendMessage(
 				});
 
 				// Second API call with tool results
+				console.log('[DEBUG] Sending tool results to LLM...');
 				const finalResponse = await openai.chat.completions.create({
 					model: config.model,
 					messages,
+				});
+
+				console.log('[DEBUG] Final response received:', {
+					length: finalResponse.choices[0]?.message?.content?.length || 0
 				});
 
 				return finalResponse.choices[0]?.message?.content || 'No response';

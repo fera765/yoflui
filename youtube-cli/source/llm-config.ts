@@ -2,12 +2,16 @@ export interface LLMConfig {
 	endpoint: string;
 	apiKey: string;
 	model: string;
+	maxVideos: number;
+	maxCommentsPerVideo: number;
 }
 
 let config: LLMConfig = {
 	endpoint: 'https://api.llm7.io/v1',
 	apiKey: '',
 	model: 'gpt-4.1-nano-2025-04-14',
+	maxVideos: 10,
+	maxCommentsPerVideo: 100,
 };
 
 export function getConfig(): LLMConfig {

@@ -22,7 +22,7 @@ const MAX_CONCURRENCY = 3;
 /**
  * Searches for top 10 YouTube videos based on query
  */
-export async function searchVideos(query: string): Promise<any[]> {
+export async function searchVideos(query: string, maxVideos: number = 10): Promise<any[]> {
 	if (!query || query.trim().length === 0) {
 		throw new Error('Query cannot be empty');
 	}
@@ -34,7 +34,7 @@ export async function searchVideos(query: string): Promise<any[]> {
 			throw new Error('Invalid response from YouTube scraper');
 		}
 
-		return results.videos.slice(0, 10);
+		return results.videos.slice(0, maxVideos);
 	} catch (error) {
 		throw new Error(`Failed to search videos: ${error instanceof Error ? error.message : String(error)}`);
 	}
@@ -71,7 +71,7 @@ async function retryWithBackoff<T>(
 /**
  * Fetches comments for a single video using YouTubeI.js with retry logic
  */
-export async function fetchVideoComments(videoId: string): Promise<any[]> {
+export async function fetchVideoComments(videoId: string, maxComments: number = 100): Promise<any[]> {
 	if (!videoId || videoId.trim().length === 0) {
 		throw new Error('Video ID cannot be empty');
 	}
@@ -121,7 +121,7 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 		
 		// Get initial comments
 		for (const commentThread of commentsList.contents) {
-			if (comments.length >= 500) break;
+			if (comments.length >= maxComments) break;
 			
 			// Extract the actual comment from the thread
 			const commentObj = (commentThread as any).comment;
@@ -143,7 +143,7 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 		}
 
 		// Continue fetching if we need more (with rate limiting)
-		while (comments.length < 500 && commentsList.has_continuation) {
+		while (comments.length < maxComments && commentsList.has_continuation) {
 			try {
 				// Add delay between pagination requests
 				await delay(500);
@@ -155,7 +155,7 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 				);
 				
 				for (const commentThread of commentsList.contents) {
-					if (comments.length >= 500) break;
+					if (comments.length >= maxComments) break;
 					
 					// Extract the actual comment from the thread
 					const commentObj = (commentThread as any).comment;
@@ -181,13 +181,8 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 			}
 		}
 
-		// Return between 200-500 comments (or whatever we got)
-		if (comments.length < 200 && comments.length > 0) {
-			// If we have some comments but less than 200, return what we have
-			return comments;
-		}
-		
-		return comments.slice(0, 500);
+		// Return up to maxComments
+		return comments.slice(0, maxComments);
 	} catch (error) {
 		console.error(`Failed to fetch comments for video ${videoId}:`, error);
 		return [];
@@ -224,7 +219,11 @@ function normalizeComment(rawComment: any): any {
 /**
  * Main scraper function: searches videos and fetches comments with concurrency control
  */
-export async function scrapeYouTubeData(query: string): Promise<ScraperResult> {
+export async function scrapeYouTubeData(
+	query: string,
+	maxVideos: number = 10,
+	maxCommentsPerVideo: number = 100
+): Promise<ScraperResult> {
 	// Step 1: Search for videos
 	const rawVideos = await searchVideos(query);
 
@@ -241,7 +240,7 @@ export async function scrapeYouTubeData(query: string): Promise<ScraperResult> {
 		rawVideos.map(rawVideo => async () => {
 			try {
 				const normalizedVideo = normalizeVideo(rawVideo);
-				const rawComments = await fetchVideoComments(rawVideo.id);
+				const rawComments = await fetchVideoComments(rawVideo.id, maxCommentsPerVideo);
 
 			// Normalize comments
 			const normalizedComments = rawComments
@@ -267,8 +266,8 @@ export async function scrapeYouTubeData(query: string): Promise<ScraperResult> {
 		})
 	);
 
-	// Step 3: Ensure we have exactly 10 videos (or as many as possible)
-	const finalVideos = videosWithComments.slice(0, 10);
+	// Step 3: Ensure we have up to maxVideos
+	const finalVideos = videosWithComments.slice(0, maxVideos);
 
 	if (finalVideos.length === 0) {
 		throw new Error('No videos with comments found');
