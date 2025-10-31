@@ -13,7 +13,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:e2e": "tsx test-e2e.ts",
-		"start": "tsx source/cli.tsx"
+		"start": "tsx source/cli.tsx",
+		"prompt": "tsx source/cli.tsx --prompt"
 	},
 	"files": [
 		"dist"

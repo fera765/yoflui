@@ -1,35 +1,37 @@
 #!/usr/bin/env node
 import React from 'react';
 import { render } from 'ink';
-import meow from 'meow';
 import App from './app.js';
+import { runNonInteractive } from './non-interactive.js';
+import { setConfig } from './llm-config.js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-const cli = meow(
-	`
-	Usage
-	  $ youtube-cli
+// Parse command line arguments
+const args = process.argv.slice(2);
+const promptIndex = args.indexOf('--prompt');
 
-	Options
-		--help     Show this help message
-
-	Examples
-	  $ youtube-cli
-	  
-	Description
-	  Interactive CLI for searching YouTube videos and scraping comments.
-	  - Enter a search query
-	  - Get top 10 videos
-	  - Scrape 200-500 comments per video
-	  
-	Exit Codes
-	  0 = Success
-	  1 = Validation error
-	  2 = Runtime error
-`,
-	{
-		importMeta: import.meta,
-		flags: {},
+// Check if --prompt flag exists
+if (promptIndex !== -1 && args[promptIndex + 1]) {
+	const prompt = args[promptIndex + 1];
+	runNonInteractive(prompt);
+} else {
+	// Interactive mode - load config.json if exists
+	try {
+		const configPath = join(process.cwd(), 'config.json');
+		const configData = readFileSync(configPath, 'utf-8');
+		const config = JSON.parse(configData);
+		setConfig({
+			endpoint: config.endpoint || 'https://api.llm7.io/v1',
+			apiKey: config.apiKey || '',
+			model: config.model || 'gpt-4.1-nano-2025-04-14',
+			maxVideos: config.maxVideos || 10,
+			maxCommentsPerVideo: config.maxCommentsPerVideo || 100,
+		});
+	} catch (error) {
+		// Config file doesn't exist, use defaults
 	}
-);
 
-render(<App />);
+	// Render interactive CLI
+	render(<App />);
+}
