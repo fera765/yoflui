@@ -45,6 +45,11 @@ export async function sendMessage(
 		});
 
 		const assistantMessage = response.choices[0]?.message;
+		
+		// Debug: Log tool calls
+		if (process.env.DEBUG === 'true') {
+			console.log('Assistant message:', JSON.stringify(assistantMessage, null, 2));
+		}
 
 		// Check if tool was called
 		if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
