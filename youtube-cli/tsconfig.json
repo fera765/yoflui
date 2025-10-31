@@ -14,7 +14,7 @@
 		"resolveJsonModule": true,
 		"outDir": "dist",
 		"rootDir": "source",
-		"types": ["node"],
+		"typeRoots": ["./node_modules/@types"],
 		"allowSyntheticDefaultImports": true,
 		"noImplicitAny": false
 	},
