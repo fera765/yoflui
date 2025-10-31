@@ -7,19 +7,21 @@ import {
 	clearQwenCredentials,
 	getQwenConfig,
 } from '../qwen-oauth.js';
+import { QwenModelSelector } from './QwenModelSelector.js';
 
 interface Props {
 	onComplete: (endpoint: string, apiKey: string, model: string) => void;
 	onBack: () => void;
 }
 
-type Step = 'check-auth' | 'show-url' | 'polling' | 'success' | 'error';
+type Step = 'check-auth' | 'show-url' | 'polling' | 'success' | 'select-model' | 'error';
 
 export const QwenOAuthScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 	const [step, setStep] = useState<Step>('check-auth');
 	const [authUrl, setAuthUrl] = useState('');
 	const [error, setError] = useState('');
 	const [isAuthenticating, setIsAuthenticating] = useState(false);
+	const [accessToken, setAccessToken] = useState('');
 
 	useInput((input, key) => {
 		if (key.escape) {
@@ -51,13 +53,13 @@ export const QwenOAuthScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 
 		try {
 			const creds = await authenticateWithQwen();
-			const config = getQwenConfig();
 			
+			setAccessToken(creds.access_token);
 			setStep('success');
 			
 			// Wait a moment to show success message
 			setTimeout(() => {
-				onComplete(config.endpoint, creds.access_token, config.model);
+				setStep('select-model');
 			}, 1500);
 			
 		} catch (err) {
@@ -76,6 +78,22 @@ export const QwenOAuthScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 		clearQwenCredentials();
 		onBack();
 	};
+
+	const handleModelSelect = (model: string) => {
+		const config = getQwenConfig();
+		onComplete(config.endpoint, accessToken, model);
+	};
+
+	// Show model selector after successful auth
+	if (step === 'select-model') {
+		return (
+			<QwenModelSelector
+				accessToken={accessToken}
+				onSelect={handleModelSelect}
+				onBack={onBack}
+			/>
+		);
+	}
 
 	return (
 		<Box flexDirection="column" padding={2}>

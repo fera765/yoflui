@@ -370,6 +370,38 @@ export function getQwenConfig() {
 }
 
 /**
+ * Fetch available Qwen models
+ */
+export async function fetchQwenModels(accessToken: string): Promise<string[]> {
+	try {
+		const response = await fetch(`${QWEN_API_ENDPOINT}/models`, {
+			headers: {
+				'Authorization': `Bearer ${accessToken}`,
+				'Accept': 'application/json',
+			},
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to fetch models: ${response.status}`);
+		}
+
+		const data: any = await response.json();
+		
+		// Parse models from response
+		if (data.data && Array.isArray(data.data)) {
+			return data.data.map((m: any) => m.id || m.name).filter(Boolean);
+		}
+		
+		// Fallback models
+		return ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-long'];
+	} catch (error) {
+		console.error('Failed to fetch Qwen models:', error);
+		// Return default models
+		return ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-long'];
+	}
+}
+
+/**
  * Get valid access token (refresh if needed)
  */
 export async function getValidAccessToken(): Promise<string | null> {
@@ -402,9 +434,11 @@ export async function getValidAccessToken(): Promise<string | null> {
 				return newCreds.access_token;
 			} catch (error) {
 				console.error('Failed to refresh token:', error);
+				clearQwenCredentials();
 				return null;
 			}
 		}
+		clearQwenCredentials();
 		return null;
 	}
 
