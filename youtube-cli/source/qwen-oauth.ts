@@ -364,7 +364,7 @@ export async function authenticateWithQwen(): Promise<QwenCredentials> {
 export function getQwenConfig() {
 	return {
 		endpoint: QWEN_API_ENDPOINT,
-		model: 'qwen-max',
+		model: 'qwen3-coder-plus',
 		provider: 'qwen',
 	};
 }
@@ -392,12 +392,12 @@ export async function fetchQwenModels(accessToken: string): Promise<string[]> {
 			return data.data.map((m: any) => m.id || m.name).filter(Boolean);
 		}
 		
-		// Fallback models
-		return ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-long'];
+		// Fallback models (from official Qwen Code)
+		return ['qwen3-coder-plus', 'qwen-max', 'qwen-plus', 'qwen-turbo'];
 	} catch (error) {
 		console.error('Failed to fetch Qwen models:', error);
-		// Return default models
-		return ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-long'];
+		// Return default models (from official Qwen Code)
+		return ['qwen3-coder-plus', 'qwen-max', 'qwen-plus', 'qwen-turbo'];
 	}
 }
 
