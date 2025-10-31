@@ -4,12 +4,12 @@
   "description": "A simple Node.js project with a hello function",
   "main": "hello.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node --loader @swc-node/register/esm source/cli.tsx",
-    "dev": "tsx source/cli.tsx",
-    "test": "tsx test-autonomous.ts",
-    "test:e2e": "tsx test-e2e.ts",
-    "test:full": "tsx test-full-system.ts"
+    "build": "npx tsc",
+    "start": "node dist/cli.js",
+    "dev": "npx tsx source/cli.tsx",
+    "test": "npx tsx test-autonomous.ts",
+    "test:e2e": "npx tsx test-e2e.ts",
+    "test:full": "npx tsx test-full-system.ts"
   },
   "keywords": [
     "hello",
