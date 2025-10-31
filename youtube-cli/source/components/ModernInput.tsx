@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 
-interface ChatInputProps {
+interface ModernInputProps {
 	onSendMessage: (message: string) => void;
 	onConfigCommand: () => void;
 	onExitCommand: () => void;
 	isProcessing: boolean;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({
+export const ModernInput: React.FC<ModernInputProps> = ({
 	onSendMessage,
 	onConfigCommand,
 	onExitCommand,
@@ -18,8 +18,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 	const [message, setMessage] = useState('');
 
 	useInput((input, key) => {
-		if (key.escape) {
-			// Esc key handling could be added here if needed
+		if (key.escape && !isProcessing) {
+			// Clear input on Esc
+			setMessage('');
 		}
 	});
 
@@ -29,7 +30,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 		const trimmed = message.trim();
 		if (!trimmed) return;
 
-		// Check for commands
+		// Commands
 		if (trimmed === '/llm') {
 			onConfigCommand();
 			setMessage('');
@@ -41,54 +42,69 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 			return;
 		}
 
-		// Send normal message
+		// Normal message
 		onSendMessage(trimmed);
 		setMessage('');
 	};
 
 	return (
 		<Box flexDirection="column">
-			{/* Command hints */}
-			<Box
-				borderStyle="round"
-				borderColor="gray"
-				paddingX={2}
-				paddingY={0}
-				marginBottom={1}
-			>
-				<Text color="gray" dimColor>
-					Commands: /llm (config) ? /exit (quit) ? Esc (cancel)
+			{/* Hints */}
+			<Box paddingX={2} marginBottom={1}>
+				<Text color="#6B7280">
+					/llm
+				</Text>
+				<Text color="#4B5563">
+					{' '}config
+				</Text>
+				<Text color="#374151">
+					{' '}? {' '}
+				</Text>
+				<Text color="#6B7280">
+					/exit
+				</Text>
+				<Text color="#4B5563">
+					{' '}quit
+				</Text>
+				<Text color="#374151">
+					{' '}? {' '}
+				</Text>
+				<Text color="#6B7280">
+					esc
+				</Text>
+				<Text color="#4B5563">
+					{' '}clear
 				</Text>
 			</Box>
 
-			{/* Input box */}
+			{/* Input Box */}
 			<Box
-				borderStyle="bold"
-				borderColor={isProcessing ? 'yellow' : 'magenta'}
 				paddingX={2}
 				paddingY={1}
+				borderStyle="round"
+				borderColor={isProcessing ? '#F59E0B' : '#8B5CF6'}
 			>
 				<Box flexDirection="column" width="100%">
-					<Box marginBottom={1}>
-						<Text color="magenta" bold>
-							?? Message
-						</Text>
-					</Box>
 					{isProcessing ? (
-						<Text color="yellow">
-							Processing your request... Please wait
-						</Text>
+						<>
+							<Text color="#F59E0B">
+								? Processing...
+							</Text>
+							<Text color="#9CA3AF">
+								Please wait while I analyze your request
+							</Text>
+						</>
 					) : (
 						<>
 							<Box>
-								<Text color="magenta" bold>
-									{'? '}
+								<Text color="#8B5CF6" bold>
+									?{' '}
 								</Text>
 								<TextInput
 									value={message}
 									onChange={setMessage}
 									onSubmit={handleSubmit}
-									placeholder="Ask me anything about YouTube trends..."
+									placeholder="Ask me anything about YouTube..."
 								/>
 							</Box>
 						</>

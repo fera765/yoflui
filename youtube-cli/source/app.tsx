@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Text, useApp } from 'ink';
-import { LLMConfigScreen } from './components/LLMConfigScreen.js';
-import { ChatTimeline, type ChatMessageData } from './components/ChatTimeline.js';
-import { ChatInput } from './components/ChatInput.js';
+import { Box, useApp } from 'ink';
+import { ModernHeader } from './components/ModernHeader.js';
+import { BeautifulTimeline, type Message } from './components/BeautifulTimeline.js';
+import { ModernInput } from './components/ModernInput.js';
+import { BeautifulConfigScreen } from './components/BeautifulConfigScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { sendMessage } from './llm-service.js';
 
@@ -11,15 +12,14 @@ type Screen = 'chat' | 'config';
 export default function App() {
 	const { exit } = useApp();
 	const [screen, setScreen] = useState<Screen>('chat');
-	const [messages, setMessages] = useState<ChatMessageData[]>([]);
+	const [messages, setMessages] = useState<Message[]>([]);
 	const [isProcessing, setIsProcessing] = useState(false);
 
 	const handleSendMessage = async (userMessage: string) => {
 		setIsProcessing(true);
 
-		// Add user message
 		const userMsgId = Date.now().toString();
-		const userMsg: ChatMessageData = {
+		const userMsg: Message = {
 			id: userMsgId,
 			role: 'user',
 			content: userMessage,
@@ -27,9 +27,8 @@ export default function App() {
 
 		setMessages((prev) => [...prev, userMsg]);
 
-		// Create assistant message with potential tool call
 		const assistantMsgId = (Date.now() + 1).toString();
-		let assistantMsg: ChatMessageData = {
+		let assistantMsg: Message = {
 			id: assistantMsgId,
 			role: 'assistant',
 			content: '',
@@ -40,7 +39,6 @@ export default function App() {
 		try {
 			const response = await sendMessage(
 				userMessage,
-				// onToolCall
 				(toolName, query) => {
 					assistantMsg.toolCall = {
 						name: toolName,
@@ -51,7 +49,6 @@ export default function App() {
 						prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
 					);
 				},
-				// onToolComplete
 				(result) => {
 					if (assistantMsg.toolCall) {
 						assistantMsg.toolCall.status = 'complete';
@@ -66,7 +63,6 @@ export default function App() {
 				}
 			);
 
-			// Update with final response
 			assistantMsg.content = response;
 			setMessages((prev) =>
 				prev.map((m) => (m.id === assistantMsgId ? { ...assistantMsg } : m))
@@ -98,7 +94,7 @@ export default function App() {
 		const config = getConfig();
 		return (
 			<Box flexDirection="column" height="100%">
-				<LLMConfigScreen
+				<BeautifulConfigScreen
 					onSave={handleConfigSave}
 					onCancel={handleConfigCancel}
 					currentEndpoint={config.endpoint}
@@ -111,31 +107,16 @@ export default function App() {
 
 	return (
 		<Box flexDirection="column" height="100%">
-			{/* Header */}
-			<Box borderStyle="bold" borderColor="magenta" paddingX={2} paddingY={0}>
-				<Text color="magenta" bold>
-					? AI YOUTUBE ANALYST
-				</Text>
-				<Text color="gray" dimColor>
-					{' '}
-					? Model: {getConfig().model}
-				</Text>
-			</Box>
-
-			{/* Chat Timeline */}
+			<ModernHeader model={getConfig().model} messageCount={Math.floor(messages.length / 2)} />
 			<Box flexGrow={1}>
-				<ChatTimeline messages={messages} />
+				<BeautifulTimeline messages={messages} />
 			</Box>
-
-			{/* Chat Input */}
-			<Box>
-				<ChatInput
-					onSendMessage={handleSendMessage}
-					onConfigCommand={() => setScreen('config')}
-					onExitCommand={handleExit}
-					isProcessing={isProcessing}
-				/>
-			</Box>
+			<ModernInput
+				onSendMessage={handleSendMessage}
+				onConfigCommand={() => setScreen('config')}
+				onExitCommand={handleExit}
+				isProcessing={isProcessing}
+			/>
 		</Box>
 	);
 }

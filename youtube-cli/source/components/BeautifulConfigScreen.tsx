@@ -4,7 +4,7 @@ import TextInput from 'ink-text-input';
 import SelectInput from 'ink-select-input';
 import { fetchAvailableModels } from '../llm-config.js';
 
-interface LLMConfigScreenProps {
+interface BeautifulConfigScreenProps {
 	onSave: (endpoint: string, apiKey: string, model: string) => void;
 	onCancel: () => void;
 	currentEndpoint: string;
@@ -12,9 +12,9 @@ interface LLMConfigScreenProps {
 	currentModel: string;
 }
 
-type InputField = 'endpoint' | 'apiKey' | 'model' | 'buttons';
+type Field = 'endpoint' | 'apiKey' | 'model' | 'buttons';
 
-export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
+export const BeautifulConfigScreen: React.FC<BeautifulConfigScreenProps> = ({
 	onSave,
 	onCancel,
 	currentEndpoint,
@@ -26,7 +26,7 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 	const [model, setModel] = useState(currentModel);
 	const [availableModels, setAvailableModels] = useState<string[]>([]);
 	const [loading, setLoading] = useState(false);
-	const [activeField, setActiveField] = useState<InputField>('endpoint');
+	const [activeField, setActiveField] = useState<Field>('endpoint');
 
 	useEffect(() => {
 		loadModels();
@@ -43,19 +43,12 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 		setLoading(false);
 	};
 
-	const handleEndpointSubmit = () => {
-		setActiveField('apiKey');
-	};
-
-	const handleApiKeySubmit = () => {
-		setActiveField('model');
-	};
-
+	const handleEndpointSubmit = () => setActiveField('apiKey');
+	const handleApiKeySubmit = () => setActiveField('model');
 	const handleModelSelect = (item: { value: string }) => {
 		setModel(item.value);
 		setActiveField('buttons');
 	};
-
 	const handleButtonSelect = (item: { value: string }) => {
 		if (item.value === 'save') {
 			onSave(endpoint, apiKey, model);
@@ -65,37 +58,37 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 	};
 
 	return (
-		<Box flexDirection="column" padding={1}>
+		<Box flexDirection="column" padding={2}>
 			{/* Header */}
 			<Box
-				borderStyle="bold"
-				borderColor="cyan"
 				paddingX={2}
 				paddingY={1}
-				marginBottom={1}
+				borderStyle="round"
+				borderColor="#8B5CF6"
+				marginBottom={2}
 			>
 				<Box flexDirection="column" width="100%">
-					<Text color="cyan" bold>
-						??  LLM CONFIGURATION
+					<Text color="#A78BFA" bold>
+						? LLM Configuration
 					</Text>
-					<Text color="gray" dimColor>
+					<Text color="#6B7280">
 						Configure your AI endpoint and model
 					</Text>
 				</Box>
 			</Box>
 
-			{/* Endpoint Input */}
+			{/* Endpoint */}
 			<Box marginBottom={1}>
 				<Box
-					borderStyle="round"
-					borderColor={activeField === 'endpoint' ? 'yellow' : 'gray'}
 					paddingX={2}
 					paddingY={1}
+					borderStyle="round"
+					borderColor={activeField === 'endpoint' ? '#8B5CF6' : '#374151'}
 					width="100%"
 				>
 					<Box flexDirection="column" width="100%">
-						<Text color="white" bold>
-							Endpoint URL:
+						<Text color="#9CA3AF">
+							Endpoint
 						</Text>
 						{activeField === 'endpoint' ? (
 							<TextInput
@@ -105,24 +98,24 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 								placeholder="https://api.llm7.io/v1"
 							/>
 						) : (
-							<Text color="cyan">{endpoint}</Text>
+							<Text color="#D1D5DB">{endpoint}</Text>
 						)}
 					</Box>
 				</Box>
 			</Box>
 
-			{/* API Key Input */}
+			{/* API Key */}
 			<Box marginBottom={1}>
 				<Box
-					borderStyle="round"
-					borderColor={activeField === 'apiKey' ? 'yellow' : 'gray'}
 					paddingX={2}
 					paddingY={1}
+					borderStyle="round"
+					borderColor={activeField === 'apiKey' ? '#8B5CF6' : '#374151'}
 					width="100%"
 				>
 					<Box flexDirection="column" width="100%">
-						<Text color="white" bold>
-							API Key:
+						<Text color="#9CA3AF">
+							API Key
 						</Text>
 						{activeField === 'apiKey' ? (
 							<>
@@ -130,14 +123,14 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 									value={apiKey}
 									onChange={setApiKey}
 									onSubmit={handleApiKeySubmit}
-									placeholder="(optional - leave empty if not needed)"
+									placeholder="(optional)"
 								/>
-								<Text color="gray" dimColor>
+								<Text color="#6B7280">
 									Press Enter to continue
 								</Text>
 							</>
 						) : (
-							<Text color="cyan">
+							<Text color="#D1D5DB">
 								{apiKey || '(not set)'}
 							</Text>
 						)}
@@ -145,21 +138,21 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 				</Box>
 			</Box>
 
-			{/* Model Selection */}
-			<Box marginBottom={1}>
+			{/* Model */}
+			<Box marginBottom={2}>
 				<Box
-					borderStyle="round"
-					borderColor={activeField === 'model' ? 'yellow' : 'gray'}
 					paddingX={2}
 					paddingY={1}
+					borderStyle="round"
+					borderColor={activeField === 'model' ? '#8B5CF6' : '#374151'}
 					width="100%"
 				>
 					<Box flexDirection="column" width="100%">
-						<Text color="white" bold>
-							Model:
+						<Text color="#9CA3AF">
+							Model
 						</Text>
 						{loading ? (
-							<Text color="yellow">Loading models...</Text>
+							<Text color="#F59E0B">Loading models...</Text>
 						) : activeField === 'model' && availableModels.length > 0 ? (
 							<SelectInput
 								items={availableModels.map((m) => ({
@@ -169,7 +162,7 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 								onSelect={handleModelSelect}
 							/>
 						) : (
-							<Text color="cyan">{model}</Text>
+							<Text color="#D1D5DB">{model}</Text>
 						)}
 					</Box>
 				</Box>
@@ -177,28 +170,26 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({
 
 			{/* Buttons */}
 			{activeField === 'buttons' && (
-				<Box>
-					<Box
-						borderStyle="bold"
-						borderColor="green"
-						paddingX={2}
-						paddingY={1}
-					>
-						<SelectInput
-							items={[
-								{ label: '? Save Configuration', value: 'save' },
-								{ label: '? Cancel', value: 'cancel' },
-							]}
-							onSelect={handleButtonSelect}
-						/>
-					</Box>
+				<Box
+					paddingX={2}
+					paddingY={1}
+					borderStyle="round"
+					borderColor="#10B981"
+				>
+					<SelectInput
+						items={[
+							{ label: '? Save Configuration', value: 'save' },
+							{ label: '? Cancel', value: 'cancel' },
+						]}
+						onSelect={handleButtonSelect}
+					/>
 				</Box>
 			)}
 
-			{/* Help Text */}
-			<Box marginTop={1}>
-				<Text color="gray" dimColor>
-					Press Esc to cancel ? Use ?? to navigate ? Enter to confirm
+			{/* Footer */}
+			<Box marginTop={1} paddingX={2}>
+				<Text color="#6B7280">
+					Use ?? to navigate ? Enter to confirm ? Esc to cancel
 				</Text>
 			</Box>
 		</Box>
