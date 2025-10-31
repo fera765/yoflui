@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Box, Text, useApp } from 'ink';
-import { CommandInput } from './components/CommandInput.js';
-import { ProgressBox } from './components/ProgressBox.js';
-import { CleanTimeline } from './components/CleanTimeline.js';
+import { NewCommandInput } from './components/NewCommandInput.js';
+import { ModernProgressBox } from './components/ModernProgressBox.js';
+import { ModernTimeline } from './components/ModernTimeline.js';
 import { scrapeYouTubeData } from './scraper.js';
 import type { ScrapedSession } from './types.js';
 
@@ -12,14 +12,15 @@ export default function App() {
 	const [progress, setProgress] = useState(0);
 	const [showProgress, setShowProgress] = useState(false);
 	const [isComplete, setIsComplete] = useState(false);
+	const [currentVideo, setCurrentVideo] = useState<string>('');
 	const [currentResult, setCurrentResult] = useState<{
 		totalVideos: number;
 		totalComments: number;
 	} | null>(null);
 
-	// Storage for all scraped data (in memory)
 	const [scrapedSessions, setScrapedSessions] = useState<ScrapedSession[]>([]);
 	const [lastQuery, setLastQuery] = useState('');
+	const [totalCommentsAllTime, setTotalCommentsAllTime] = useState(0);
 
 	const handleCommand = async (command: string, args: string) => {
 		if (command === '/exit') {
@@ -29,7 +30,6 @@ export default function App() {
 
 		if (command === '/ytube') {
 			if (!args.trim()) {
-				// Could show error, but for now just return
 				return;
 			}
 
@@ -38,32 +38,30 @@ export default function App() {
 			setIsComplete(false);
 			setProgress(0);
 			setLastQuery(args);
+			setCurrentVideo('');
 
-			// Simulate progress updates
+			// Enhanced progress simulation
 			const progressInterval = setInterval(() => {
 				setProgress((prev) => {
-					if (prev >= 95) {
+					if (prev >= 90) {
 						clearInterval(progressInterval);
-						return 95;
+						return 90;
 					}
-					return prev + 5;
+					return prev + Math.random() * 8;
 				});
-			}, 500);
+			}, 800);
 
 			try {
 				const result = await scrapeYouTubeData(args);
 
-				// Complete progress
 				clearInterval(progressInterval);
 				setProgress(100);
 
-				// Calculate totals
 				const totalComments = result.videos.reduce(
 					(sum, v) => sum + v.comments.length,
 					0
 				);
 
-				// Store in memory
 				const session: ScrapedSession = {
 					query: args,
 					scrapedAt: result.scrapedAt,
@@ -73,6 +71,7 @@ export default function App() {
 				};
 
 				setScrapedSessions((prev) => [...prev, session]);
+				setTotalCommentsAllTime((prev) => prev + totalComments);
 				setCurrentResult({
 					totalVideos: result.videos.length,
 					totalComments,
@@ -81,7 +80,6 @@ export default function App() {
 				setIsComplete(true);
 			} catch (error) {
 				clearInterval(progressInterval);
-				// Error handling - could add error state
 				setShowProgress(false);
 			} finally {
 				setIsProcessing(false);
@@ -93,50 +91,47 @@ export default function App() {
 		setShowProgress(false);
 		setIsComplete(false);
 		setCurrentResult(null);
+		setCurrentVideo('');
 	};
 
 	return (
 		<Box flexDirection="column" height="100%" width="100%">
-			{/* Header */}
-			<Box
-				borderStyle="double"
-				borderColor="cyan"
-				paddingX={2}
-				paddingY={0}
-				width="100%"
-			>
-				<Text color="cyan" bold>
-					?? YouTube Comment Scraper CLI
+			{/* Modern Header */}
+			<Box borderStyle="bold" borderColor="magenta" paddingX={2} paddingY={0}>
+				<Text color="magenta" bold>
+					? YT SCRAPER
 				</Text>
 				<Text color="gray" dimColor>
 					{' '}
-					| Sessions: {scrapedSessions.length}
+					? Sessions: {scrapedSessions.length} ? Total: {totalCommentsAllTime.toLocaleString()} comments
 				</Text>
 			</Box>
 
-			{/* Timeline Area - Clean and Empty */}
-			<Box flexGrow={1} flexDirection="column">
-				<CleanTimeline
+			{/* Modern Timeline */}
+			<Box flexGrow={1}>
+				<ModernTimeline
 					totalScraped={scrapedSessions.length}
 					lastQuery={lastQuery}
+					totalComments={totalCommentsAllTime}
 				/>
 			</Box>
 
-			{/* Progress Box (above input) */}
+			{/* Progress Box */}
 			{showProgress && currentResult && (
-				<ProgressBox
+				<ModernProgressBox
 					isActive={showProgress}
 					progress={progress}
 					isComplete={isComplete}
 					totalComments={currentResult.totalComments}
 					totalVideos={currentResult.totalVideos}
+					currentVideo={currentVideo}
 					onTimeout={handleProgressTimeout}
 				/>
 			)}
 
-			{/* Command Input (Fixed at bottom) */}
-			<Box width="100%">
-				<CommandInput
+			{/* New Command Input with Keyboard Navigation */}
+			<Box>
+				<NewCommandInput
 					onCommand={handleCommand}
 					isDisabled={isProcessing}
 				/>

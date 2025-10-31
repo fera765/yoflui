@@ -41,7 +41,35 @@ export async function searchVideos(query: string): Promise<any[]> {
 }
 
 /**
- * Fetches comments for a single video using YouTubeI.js
+ * Delay helper for rate limiting
+ */
+function delay(ms: number): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Retry wrapper with exponential backoff
+ */
+async function retryWithBackoff<T>(
+	fn: () => Promise<T>,
+	maxRetries = 3,
+	baseDelay = 1000
+): Promise<T> {
+	for (let i = 0; i < maxRetries; i++) {
+		try {
+			return await fn();
+		} catch (error) {
+			if (i === maxRetries - 1) throw error;
+			
+			const delayMs = baseDelay * Math.pow(2, i);
+			await delay(delayMs);
+		}
+	}
+	throw new Error('Max retries exceeded');
+}
+
+/**
+ * Fetches comments for a single video using YouTubeI.js with retry logic
  */
 export async function fetchVideoComments(videoId: string): Promise<any[]> {
 	if (!videoId || videoId.trim().length === 0) {
@@ -49,16 +77,27 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 	}
 
 	try {
-		const youtube = await Innertube.create();
+		// Add small delay to avoid rate limiting
+		await delay(300);
+		
+		const youtube = await retryWithBackoff(
+			() => Innertube.create(),
+			2,
+			500
+		);
 		
 		const comments: any[] = [];
 		
-		// Try to get comments directly using getComments
+		// Try to get comments directly using getComments with retry
 		let commentsList;
 		try {
-			commentsList = await youtube.getComments(videoId);
+			commentsList = await retryWithBackoff(
+				() => youtube.getComments(videoId),
+				2,
+				1000
+			);
 		} catch (commErr) {
-			// Comments may be disabled for this video
+			// Comments may be disabled or rate limited
 			return [];
 		}
 
@@ -89,10 +128,18 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 			}
 		}
 
-		// Continue fetching if we need more
+		// Continue fetching if we need more (with rate limiting)
 		while (comments.length < 500 && commentsList.has_continuation) {
 			try {
-				commentsList = await commentsList.getContinuation();
+				// Add delay between pagination requests
+				await delay(500);
+				
+				commentsList = await retryWithBackoff(
+					() => commentsList.getContinuation(),
+					2,
+					1000
+				);
+				
 				for (const commentThread of commentsList.contents) {
 					if (comments.length >= 500) break;
 					
@@ -115,7 +162,7 @@ export async function fetchVideoComments(videoId: string): Promise<any[]> {
 					}
 				}
 			} catch (contError) {
-				// No more comments available
+				// No more comments available or rate limited
 				break;
 			}
 		}
