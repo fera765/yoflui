@@ -18,6 +18,7 @@ import { searchTextToolDefinition, executeSearchTextTool } from './search-text.j
 import { readFolderToolDefinition, executeReadFolderTool } from './read-folder.js';
 import { kanbanToolDefinition, executeKanbanTool, type KanbanTask } from './kanban.js';
 import { webFetchToolDefinition, executeWebFetchTool } from './web-fetch.js';
+import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 
 export const ALL_TOOL_DEFINITIONS = [
 	editToolDefinition,
@@ -29,6 +30,7 @@ export const ALL_TOOL_DEFINITIONS = [
 	readFolderToolDefinition,
 	kanbanToolDefinition,
 	webFetchToolDefinition,
+	youtubeToolDefinition,
 ];
 
 export async function executeToolCall(toolName: string, args: any, workDir: string): Promise<string> {
@@ -51,6 +53,18 @@ export async function executeToolCall(toolName: string, args: any, workDir: stri
 			return executeKanbanTool(args.tasks, workDir);
 		case 'web_fetch':
 			return executeWebFetchTool(args.url);
+		case 'search_youtube_comments': {
+			const result = await executeYouTubeTool(args.query);
+			if (!result.success) {
+				return `Error: ${result.error}`;
+			}
+			return JSON.stringify({
+				query: result.query,
+				totalVideos: result.totalVideos,
+				totalComments: result.totalComments,
+				comments: result.comments.slice(0, 50), // Limit to first 50 for response
+			}, null, 2);
+		}
 		default:
 			return `Unknown tool: ${toolName}`;
 	}

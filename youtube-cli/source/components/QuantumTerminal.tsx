@@ -96,6 +96,7 @@ const QuantumTool: React.FC<{
 			case 'read_folder': return '[FOLDER]';
 			case 'update_kanban': return '[KANBAN]';
 			case 'web_fetch': return '[FETCH]';
+			case 'search_youtube_comments': return '[YOUTUBE]';
 			default: return '[TOOL]';
 		}
 	};
