@@ -32,3 +32,12 @@ export type Comment = z.infer<typeof CommentSchema>;
 export type Video = z.infer<typeof VideoSchema>;
 export type VideoWithComments = z.infer<typeof VideoWithCommentsSchema>;
 export type ScraperResult = z.infer<typeof ScraperResultSchema>;
+
+// Storage type for scraped data
+export interface ScrapedSession {
+	query: string;
+	scrapedAt: string;
+	totalVideos: number;
+	totalComments: number;
+	data: VideoWithComments[];
+}
