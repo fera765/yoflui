@@ -46,7 +46,7 @@ export async function executeKanbanTool(tasks: KanbanTask[], workDir: string): P
 			return acc;
 		}, {} as Record<string, number>);
 		
-		return `? Kanban updated: ${summary.todo || 0} todo, ${summary.in_progress || 0} in progress, ${summary.done || 0} done`;
+		return `[+] Kanban updated: ${summary.todo || 0} todo, ${summary.in_progress || 0} in progress, ${summary.done || 0} done`;
 	} catch (error) {
 		return `Error: ${error instanceof Error ? error.message : 'Failed to update kanban'}`;
 	}

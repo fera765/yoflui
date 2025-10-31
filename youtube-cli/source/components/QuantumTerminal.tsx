@@ -42,48 +42,38 @@ const UserMessage: React.FC<{ text: string }> = ({ text }) => (
 );
 
 const QuantumKanban: React.FC<{ tasks: KanbanTask[] }> = ({ tasks }) => {
-	const todoTasks = tasks.filter(t => t.status === 'todo');
-	const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+	// Order tasks: done first, then in_progress, then todo
 	const doneTasks = tasks.filter(t => t.status === 'done');
+	const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+	const todoTasks = tasks.filter(t => t.status === 'todo');
+	
+	const orderedTasks = [...doneTasks, ...inProgressTasks, ...todoTasks];
+
+	const getTaskIcon = (status: string) => {
+		if (status === 'done') return '?'; // Filled circle
+		if (status === 'in_progress') return '?'; // Filled circle
+		return '?'; // Empty circle
+	};
+
+	const getTaskColor = (status: string) => {
+		if (status === 'done') return MONOKAI.green;
+		if (status === 'in_progress') return MONOKAI.orange;
+		return MONOKAI.fg; // white/default
+	};
 
 	return (
 		<Box borderStyle="round" borderColor={MONOKAI.border} paddingX={2} paddingY={1} flexDirection="column" marginY={1}>
 			<Box marginBottom={1}>
-				<Text color={MONOKAI.blue} bold>?? TASK BOARD</Text>
+				<Text color={MONOKAI.blue} bold>[TASK BOARD]</Text>
+				<Text color={MONOKAI.comment}> {doneTasks.length}/{tasks.length} completed</Text>
 			</Box>
 			
-			{todoTasks.length > 0 && (
-				<Box flexDirection="column" marginBottom={1}>
-					<Text color={MONOKAI.yellow} bold>? PENDING ({todoTasks.length})</Text>
-					{todoTasks.map(task => (
-						<Box key={task.id} marginLeft={2}>
-							<Text color={MONOKAI.fg}>  ? {task.title}</Text>
-						</Box>
-					))}
+			{orderedTasks.map(task => (
+				<Box key={task.id} marginLeft={1}>
+					<Text color={getTaskColor(task.status)}>{getTaskIcon(task.status)} </Text>
+					<Text color={getTaskColor(task.status)}>{task.title}</Text>
 				</Box>
-			)}
-
-			{inProgressTasks.length > 0 && (
-				<Box flexDirection="column" marginBottom={1}>
-					<Text color={MONOKAI.orange} bold>?? IN PROGRESS ({inProgressTasks.length})</Text>
-					{inProgressTasks.map(task => (
-						<Box key={task.id} marginLeft={2}>
-							<Text color={MONOKAI.orange}>  ? {task.title}</Text>
-						</Box>
-					))}
-				</Box>
-			)}
-
-			{doneTasks.length > 0 && (
-				<Box flexDirection="column">
-					<Text color={MONOKAI.green} bold>? COMPLETED ({doneTasks.length})</Text>
-					{doneTasks.map(task => (
-						<Box key={task.id} marginLeft={2}>
-							<Text color={MONOKAI.green}>  ? {task.title}</Text>
-						</Box>
-					))}
-				</Box>
-			)}
+			))}
 		</Box>
 	);
 };
@@ -97,23 +87,23 @@ const QuantumTool: React.FC<{
 }> = ({ name, args, status, result, progress }) => {
 	const getIcon = () => {
 		switch (name) {
-			case 'write_file': return '??';
-			case 'read_file': return '??';
-			case 'edit_file': return '??';
-			case 'execute_shell': return '??';
-			case 'find_files': return '??';
-			case 'search_text': return '??';
-			case 'read_folder': return '??';
-			case 'update_kanban': return '??';
-			case 'web_fetch': return '??';
-			default: return '??';
+			case 'write_file': return '[WRITE]';
+			case 'read_file': return '[READ]';
+			case 'edit_file': return '[EDIT]';
+			case 'execute_shell': return '[SHELL]';
+			case 'find_files': return '[FIND]';
+			case 'search_text': return '[SEARCH]';
+			case 'read_folder': return '[FOLDER]';
+			case 'update_kanban': return '[KANBAN]';
+			case 'web_fetch': return '[FETCH]';
+			default: return '[TOOL]';
 		}
 	};
 
 	const getStatusIcon = () => {
-		if (status === 'running') return '?';
-		if (status === 'complete') return '?';
-		return '?';
+		if (status === 'running') return '>';
+		if (status === 'complete') return '+';
+		return 'x';
 	};
 
 	const getColor = () => {
@@ -136,8 +126,8 @@ const QuantumTool: React.FC<{
 		const empty = 20 - filled;
 		return (
 			<Box marginLeft={2} marginTop={1}>
-				<Text color={MONOKAI.green}>{'?'.repeat(filled)}</Text>
-				<Text color={MONOKAI.comment}>{'?'.repeat(empty)}</Text>
+				<Text color={MONOKAI.green}>{'='.repeat(filled)}</Text>
+				<Text color={MONOKAI.comment}>{'-'.repeat(empty)}</Text>
 				<Text color={MONOKAI.purple}> {prog}%</Text>
 			</Box>
 		);
@@ -167,7 +157,7 @@ const QuantumTool: React.FC<{
 			{/* Args */}
 			{Object.entries(args).slice(0, 2).map(([key, value]) => (
 				<Box key={key} marginLeft={1} marginTop={0.5}>
-					<Text color={MONOKAI.comment}>? {key}: </Text>
+					<Text color={MONOKAI.comment}>  {key}: </Text>
 					<Text color={MONOKAI.purple}>{formatArgValue(value)}</Text>
 				</Box>
 			))}
@@ -205,7 +195,7 @@ export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages })
 	if (messages.length === 0) {
 		return (
 			<Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1} paddingY={5}>
-				<Text color={MONOKAI.blue} bold>?</Text>
+				<Text color={MONOKAI.blue} bold>[ READY ]</Text>
 			</Box>
 		);
 	}

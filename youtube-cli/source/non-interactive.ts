@@ -24,11 +24,11 @@ function loadConfig(): ConfigFile {
 		const configData = readFileSync(configPath, 'utf-8');
 		const config = JSON.parse(configData) as ConfigFile;
 		
-		console.log('\n?? Loaded configuration:');
-		console.log(`   Endpoint: ${config.endpoint}`);
-		console.log(`   Model: ${config.model}`);
-		console.log(`   Max Videos: ${config.maxVideos}`);
-		console.log(`   Max Comments/Video: ${config.maxCommentsPerVideo}`);
+		console.log('\n[+] Loaded configuration:');
+		console.log(`    Endpoint: ${config.endpoint}`);
+		console.log(`    Model: ${config.model}`);
+		console.log(`    Max Videos: ${config.maxVideos}`);
+		console.log(`    Max Comments/Video: ${config.maxCommentsPerVideo}`);
 		console.log('');
 		
 		return config;
@@ -36,8 +36,8 @@ function loadConfig(): ConfigFile {
 		// Try to load Qwen credentials
 		const qwenCreds = loadQwenCredentials();
 		if (qwenCreds?.access_token) {
-			console.log('\n?? Using Qwen OAuth credentials');
-			console.log(`   Resource: ${qwenCreds.resource_url}`);
+			console.log('\n[+] Using Qwen OAuth credentials');
+			console.log(`    Resource: ${qwenCreds.resource_url}`);
 			console.log('');
 			
 			return {
@@ -49,8 +49,8 @@ function loadConfig(): ConfigFile {
 			};
 		}
 		
-		console.error('? Failed to load config.json and no Qwen credentials found');
-		console.log('??  Using default configuration...\n');
+		console.error('[!] Failed to load config.json and no Qwen credentials found');
+		console.log('[*] Using default configuration...\n');
 		
 		return {
 			endpoint: 'http://localhost:4000/v1',
@@ -63,9 +63,9 @@ function loadConfig(): ConfigFile {
 }
 
 export async function runNonInteractive(prompt: string): Promise<void> {
-	console.log('???????????????????????????????????????????');
-	console.log('??  AUTONOMOUS AI AGENT - NON-INTERACTIVE');
-	console.log('???????????????????????????????????????????\n');
+	console.log('===========================================');
+	console.log('[*] AUTONOMOUS AI AGENT - NON-INTERACTIVE');
+	console.log('===========================================\n');
 
 	// Load and apply config
 	const config = loadConfig();
@@ -77,10 +77,10 @@ export async function runNonInteractive(prompt: string): Promise<void> {
 		maxCommentsPerVideo: config.maxCommentsPerVideo,
 	});
 
-	console.log('?? User Task:');
-	console.log(`   "${prompt}"\n`);
+	console.log('[>] User Task:');
+	console.log(`    "${prompt}"\n`);
 
-	console.log('??  Processing...\n');
+	console.log('[*] Processing...\n');
 
 	try {
 		const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
@@ -90,54 +90,54 @@ export async function runNonInteractive(prompt: string): Promise<void> {
 			userMessage: prompt,
 			workDir,
 			onProgress: (message) => {
-				console.log(`?? ${message}`);
+				console.log(`    ${message}`);
 			},
 			onKanbanUpdate: (tasks) => {
 				currentKanban = tasks;
-				console.log('\n?? TASK BOARD UPDATE:');
+				console.log('\n[TASK BOARD UPDATE]');
 				const todo = tasks.filter(t => t.status === 'todo').length;
 				const inProgress = tasks.filter(t => t.status === 'in_progress').length;
 				const done = tasks.filter(t => t.status === 'done').length;
-				console.log(`   ? Pending: ${todo} | ?? In Progress: ${inProgress} | ? Done: ${done}`);
+				console.log(`    o Pending: ${todo} | o In Progress: ${inProgress} | + Done: ${done}`);
 				console.log('');
 			},
 			onToolExecute: (toolName, args) => {
-				console.log(`\n???  TOOL: ${toolName.toUpperCase()}`);
-				console.log(`   Args: ${JSON.stringify(args).substring(0, 100)}...`);
+				console.log(`\n[>] TOOL: ${toolName.toUpperCase()}`);
+				console.log(`    Args: ${JSON.stringify(args).substring(0, 100)}...`);
 			},
 			onToolComplete: (toolName, args, result, error) => {
 				if (error) {
-					console.log(`   ? Error: ${result.substring(0, 100)}`);
+					console.log(`    [x] Error: ${result.substring(0, 100)}`);
 				} else {
-					console.log(`   ? Success`);
+					console.log(`    [+] Success`);
 				}
 			},
 		});
 
-		console.log('\n???????????????????????????????????????????');
-		console.log('??  FINAL RESULTS');
-		console.log('???????????????????????????????????????????\n');
+		console.log('\n===========================================');
+		console.log('[+] FINAL RESULTS');
+		console.log('===========================================\n');
 
 		if (currentKanban.length > 0) {
-			console.log('?? Task Summary:');
+			console.log('[TASK SUMMARY]');
 			const done = currentKanban.filter(t => t.status === 'done').length;
 			const total = currentKanban.length;
-			console.log(`   ? Completed: ${done}/${total} tasks\n`);
+			console.log(`    [+] Completed: ${done}/${total} tasks\n`);
 		}
 
-		console.log('?? AI Response:\n');
+		console.log('[AI RESPONSE]\n');
 		console.log(response);
 		console.log('\n');
 
-		console.log(`?? Work Directory: ${workDir}\n`);
+		console.log(`[*] Work Directory: ${workDir}\n`);
 
-		console.log('???????????????????????????????????????????');
-		console.log('?  TASK COMPLETE');
-		console.log('???????????????????????????????????????????\n');
+		console.log('===========================================');
+		console.log('[+] TASK COMPLETE');
+		console.log('===========================================\n');
 
 		process.exit(0);
 	} catch (error) {
-		console.error('\n? Error:');
+		console.error('\n[!] Error:');
 		console.error(error);
 		console.log('');
 		process.exit(1);

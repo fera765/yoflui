@@ -20,7 +20,7 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	// Create work directory
 	mkdirSync(workDir, { recursive: true });
 
-	onProgress?.('?? Analyzing task and creating Kanban...');
+	onProgress?.('[*] Analyzing task and creating Kanban...');
 
 	const config = getConfig();
 	const qwenCreds = loadQwenCredentials();
@@ -45,7 +45,7 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	if (existsSync(fluiPath)) {
 		try {
 			fluiContext = readFileSync(fluiPath, 'utf-8');
-			onProgress?.('?? Loaded .flui.md context');
+			onProgress?.('[+] Loaded .flui.md context');
 		} catch (error) {
 			// Ignore errors loading .flui.md
 		}
