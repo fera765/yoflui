@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { getConfig } from './llm-config.js';
 import { executeYouTubeTool, youtubeToolDefinition } from './youtube-tool.js';
+import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 
 export interface ChatMessage {
 	role: 'user' | 'assistant' | 'system';
@@ -12,6 +13,24 @@ export interface ChatMessage {
 	};
 }
 
+/**
+ * Get proper API endpoint from resource_url
+ */
+function getApiEndpoint(resourceUrl?: string): string {
+	if (!resourceUrl) {
+		return 'https://chat.qwen.ai/api/v1';
+	}
+	
+	// Normalize URL: add protocol if missing, ensure /v1 suffix
+	const normalizedUrl = resourceUrl.startsWith('http')
+		? resourceUrl
+		: `https://${resourceUrl}`;
+	
+	return normalizedUrl.endsWith('/v1')
+		? normalizedUrl
+		: `${normalizedUrl}/v1`;
+}
+
 export async function sendMessage(
 	userMessage: string,
 	onToolCall?: (toolName: string, query: string) => void,
@@ -19,9 +38,27 @@ export async function sendMessage(
 ): Promise<string> {
 	const config = getConfig();
 	
+	// Check if using Qwen OAuth
+	const qwenCreds = loadQwenCredentials();
+	let endpoint = config.endpoint;
+	let apiKey = config.apiKey || 'not-needed';
+	
+	if (qwenCreds && qwenCreds.access_token) {
+		// Use Qwen OAuth credentials
+		const validToken = await getValidAccessToken();
+		if (validToken) {
+			apiKey = validToken;
+			endpoint = getApiEndpoint(qwenCreds.resource_url);
+			console.log('[DEBUG] Using Qwen OAuth:', {
+				endpoint,
+				tokenLength: validToken.length,
+			});
+		}
+	}
+	
 	const openai = new OpenAI({
-		baseURL: config.endpoint,
-		apiKey: config.apiKey || 'not-needed',
+		baseURL: endpoint,
+		apiKey,
 	});
 
 	const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
