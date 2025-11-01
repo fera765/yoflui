@@ -34,6 +34,8 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 			endpoint = qwenCreds.resource_url?.startsWith('http')
 				? `${qwenCreds.resource_url}/v1`
 				: `https://${qwenCreds.resource_url}/v1`;
+		} else {
+			throw new Error('OAuth token expired. Please run /llm to re-authenticate.');
 		}
 	}
 
