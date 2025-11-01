@@ -1,5 +1,14 @@
-import React, { useState, useCallback } from 'react';
-import { Box, useInput, Text } from 'ink';
+/**
+ * App.tsx - REESCRITO DO ZERO
+ * 
+ * Vers?o limpa sem problemas de:
+ * - Duplica??o de mensagens
+ * - Re-renderiza??es excessivas
+ * - Multiplica??o ao digitar
+ */
+
+import React, { useState, useCallback, useRef } from 'react';
+import { Box, useInput } from 'ink';
 import { OptimizedTimeline, type Message } from './components/OptimizedTimeline.js';
 import { InputField } from './components/InputField.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
@@ -10,298 +19,214 @@ import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
 import { join } from 'path';
 
-type Screen = 'chat' | 'auth' | 'config' | 'tools';
+type AppScreen = 'chat' | 'auth' | 'config' | 'tools';
 
 export default function App() {
-	const [screen, setScreen] = useState<Screen>('chat');
-	const [messages, setMessages] = useState<Message[]>([]);
-	const [inputValue, setInputValue] = useState('');
-	const [isProcessing, setIsProcessing] = useState(false);
-	const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
+	// Estados principais
+	const [currentScreen, setCurrentScreen] = useState<AppScreen>('chat');
+	const [messagesList, setMessagesList] = useState<Message[]>([]);
+	const [textInput, setTextInput] = useState('');
+	const [processing, setProcessing] = useState(false);
+	const [showCommands, setShowCommands] = useState(false);
 	
-	// Prote??o contra m?ltiplas chamadas simult?neas
-	const submittingRef = React.useRef(false);
-	// Contador para garantir IDs absolutamente únicos
-	const messageCounterRef = React.useRef(0);
-
-	const config = getConfig();
+	// Refs para controle
+	const isSubmitting = useRef(false);
+	const msgCounter = useRef(0);
 	
-	// Debug: Log quando messages mudar (sem causar re-renders)
-	React.useEffect(() => {
-		if (process.env.DEBUG_MESSAGES === 'true') {
-			console.error(`[DEBUG] Messages array changed. Length: ${messages.length}`);
-		}
-	}, [messages.length]); // Apenas quando o tamanho mudar, não o conteúdo
-
+	const appConfig = getConfig();
+	
+	// Handler para ESC key
 	useInput((input, key) => {
-		if (key.escape && inputValue.length > 0) {
-			setInputValue('');
-			setShowCommandSuggestions(false);
+		if (key.escape && textInput.length > 0) {
+			setTextInput('');
+			setShowCommands(false);
 		}
 	});
-
-	const handleInputChange = useCallback((value: string) => {
-		setInputValue(value);
-		// Show suggestions only when input is exactly '/'
-		// Hide suggestions when user types more characters
-		if (value === '/') {
-			setShowCommandSuggestions(true);
-		} else {
-			setShowCommandSuggestions(false);
-		}
+	
+	// Handler otimizado para mudan?as no input
+	const onInputChange = useCallback((newValue: string) => {
+		setTextInput(newValue);
+		setShowCommands(newValue === '/');
 	}, []);
-
-	const handleCommandSelect = (command: string) => {
-		setInputValue('');
-		setShowCommandSuggestions(false);
-
-		if (command === '/llm') {
-			setScreen('auth');
-		} else if (command === '/config') {
-			setScreen('config');
-		} else if (command === '/tools') {
-			setScreen('tools');
-		} else if (command === '/exit') {
-			process.exit(0);
-		}
-	};
-
-	const handleSubmit = async () => {
-		if (!inputValue.trim() || isProcessing) return;
+	
+	// Handler para sele??o de comando
+	const onCommandSelect = useCallback((cmd: string) => {
+		setTextInput('');
+		setShowCommands(false);
 		
-		// Prote??o contra m?ltiplas chamadas simult?neas
-		if (submittingRef.current) {
-			console.error('[HANDLE_SUBMIT] ??  BLOQUEADO - J? est? processando outra mensagem');
-			return;
-		}
+		if (cmd === '/llm') setCurrentScreen('auth');
+		else if (cmd === '/config') setCurrentScreen('config');
+		else if (cmd === '/tools') setCurrentScreen('tools');
+		else if (cmd === '/exit') process.exit(0);
+	}, []);
+	
+	// Handler para submit de mensagem
+	const onMessageSubmit = useCallback(async () => {
+		// Valida??es
+		if (!textInput.trim() || processing || isSubmitting.current) return;
 		
-		submittingRef.current = true;
-
-		const msg = inputValue.trim();
-		console.error(`\n\n${'='.repeat(80)}`);
-		console.error(`[HANDLE_SUBMIT CALLED] Message: "${msg}"`);
-		console.error(`[HANDLE_SUBMIT] Current messages length: ${messages.length}`);
-		console.error(`[HANDLE_SUBMIT] Is processing: ${isProcessing}`);
-		console.error('='.repeat(80) + '\n');
+		const userText = textInput.trim();
 		
-		setInputValue('');
-		setShowCommandSuggestions(false);
-
-		// Check if message starts with a command
-		// Commands MUST be at the start and exact, no text before or after
-		if (msg.startsWith('/')) {
-			// Extract command (first word)
-			const command = msg.split(/\s+/)[0];
-			
-			// Only execute if message is EXACTLY the command (no text after)
-			if (msg === command) {
-				if (command === '/llm') {
-					setScreen('auth');
-					return;
-				}
-				if (command === '/config') {
-					setScreen('config');
-					return;
-				}
-				if (command === '/tools') {
-					setScreen('tools');
-					return;
-				}
-				if (command === '/exit') {
-					process.exit(0);
-					return;
-				}
+		// Verificar se ? comando
+		if (userText.startsWith('/')) {
+			const cmd = userText.split(/\s+/)[0];
+			if (userText === cmd) {
+				// Comando exato - executar
+				onCommandSelect(cmd);
+				return;
 			}
-			// If command has text after it, or is not recognized, ignore the command
-			// and treat as normal message (fall through)
 		}
-
-		// Add user message to timeline (only if not a command)
-		// Use unique ID to prevent React key conflicts
-		// Combina: timestamp + contador + random para garantir unicidade ABSOLUTA
-		messageCounterRef.current += 1;
-		const userMessageId = `user-${Date.now()}-${messageCounterRef.current}-${Math.random().toString(36).substring(2, 9)}`;
-		if (process.env.DEBUG_MESSAGES === 'true') {
-			console.error(`[DEBUG] handleSubmit: Adding user message with ID: ${userMessageId}`);
-			console.error(`[DEBUG] handleSubmit: Message content: "${msg}"`);
-			console.error(`[DEBUG] handleSubmit: Message counter: ${messageCounterRef.current}`);
-		}
-		setMessages(prev => {
-			if (process.env.DEBUG_MESSAGES === 'true') {
-				console.error(`[DEBUG] setMessages (user): prev.length = ${prev.length}`);
-				// Verificar se ID j? existe
-				const existingIds = prev.map(m => m.id);
-				if (existingIds.includes(userMessageId)) {
-					console.error(`[DEBUG] ??  WARNING: ID duplicado detectado! ${userMessageId}`);
-				}
-			}
-			return [...prev, { role: 'user', content: msg, id: userMessageId }];
-		});
-		setIsProcessing(true);
-
+		
+		// Marcar como processando
+		isSubmitting.current = true;
+		setTextInput('');
+		setShowCommands(false);
+		
+		// Criar ID ?nico
+		msgCounter.current += 1;
+		const msgId = `msg-${Date.now()}-${msgCounter.current}`;
+		
+		// Adicionar mensagem do usu?rio
+		setMessagesList(prev => [...prev, {
+			role: 'user',
+			content: userText,
+			id: msgId
+		}]);
+		
+		setProcessing(true);
+		
 		try {
-			// Create work directory
-			const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
-
-			const response = await runAutonomousAgent({
-				userMessage: msg,
-				workDir,
-				onProgress: (progress) => {
-					// Silent in interactive mode - visual feedback via timeline
-				},
+			const workFolder = join(process.cwd(), 'work', `task-${Date.now()}`);
+			
+			const aiResponse = await runAutonomousAgent({
+				userMessage: userText,
+				workDir: workFolder,
+				onProgress: () => {},
 				onKanbanUpdate: (tasks) => {
-					if (process.env.DEBUG_MESSAGES === 'true') {
-						console.error(`[DEBUG] onKanbanUpdate called`);
-					}
-					setMessages(prev => {
-						const filtered = prev.filter(m => m.role !== 'kanban');
-						messageCounterRef.current += 1;
-						const kanbanId = `kanban-${Date.now()}-${messageCounterRef.current}`;
-						if (process.env.DEBUG_MESSAGES === 'true') {
-							console.error(`[DEBUG] setMessages (kanban): filtered.length = ${filtered.length}, adding kanban with ID: ${kanbanId}`);
-						}
-						return [...filtered, { role: 'kanban', content: '', kanban: tasks, id: kanbanId }];
+					setMessagesList(prev => {
+						const withoutKanban = prev.filter(m => m.role !== 'kanban');
+						msgCounter.current += 1;
+						return [...withoutKanban, {
+							role: 'kanban',
+							content: '',
+							id: `kanban-${Date.now()}-${msgCounter.current}`,
+							kanban: tasks
+						}];
 					});
 				},
 				onToolExecute: (toolName, args) => {
-					messageCounterRef.current += 1;
-					const toolId = `tool-${toolName}-${Date.now()}-${messageCounterRef.current}-${Math.random().toString(36).substring(2, 9)}`;
-					if (process.env.DEBUG_MESSAGES === 'true') {
-						console.error(`[DEBUG] onToolExecute: ${toolName}, ID: ${toolId}`);
-					}
-					setMessages(prev => {
-						if (process.env.DEBUG_MESSAGES === 'true') {
-							console.error(`[DEBUG] setMessages (tool): prev.length = ${prev.length}`);
-						}
-						return [
-							...prev,
-							{
-								role: 'tool',
-								content: '',
-								toolCall: { name: toolName, args, status: 'running' },
-								id: toolId,
-							},
-						];
-					});
+					msgCounter.current += 1;
+					setMessagesList(prev => [...prev, {
+						role: 'tool',
+						content: '',
+						id: `tool-${Date.now()}-${msgCounter.current}`,
+						toolCall: { name: toolName, args, status: 'running' }
+					}]);
 				},
 				onToolComplete: (toolName, args, result, error) => {
-					setMessages(prev => {
+					setMessagesList(prev => {
 						const updated = [...prev];
-						// Find the last tool message with matching name and running status
 						for (let i = updated.length - 1; i >= 0; i--) {
-							if (
-								updated[i]?.role === 'tool' &&
-								updated[i]?.toolCall?.name === toolName &&
-								updated[i]?.toolCall?.status === 'running'
-							) {
-								// Atualizar mantendo o ID existente
-								const existingId = updated[i].id;
+							if (updated[i].role === 'tool' && 
+								updated[i].toolCall?.name === toolName &&
+								updated[i].toolCall?.status === 'running') {
 								updated[i] = {
-									role: 'tool',
-									content: '',
-									id: existingId,  // Manter ID original
+									...updated[i],
 									toolCall: {
 										name: toolName,
 										args,
 										status: error ? 'error' : 'complete',
-										result,
-									},
+										result
+									}
 								};
 								break;
 							}
 						}
 						return updated;
 					});
-				},
-			});
-
-			messageCounterRef.current += 1;
-			const assistantMessageId = `assistant-${Date.now()}-${messageCounterRef.current}-${Math.random().toString(36).substring(2, 9)}`;
-			if (process.env.DEBUG_MESSAGES === 'true') {
-				console.error(`[DEBUG] Adding assistant response with ID: ${assistantMessageId}`);
-			}
-			setMessages(prev => {
-				if (process.env.DEBUG_MESSAGES === 'true') {
-					console.error(`[DEBUG] setMessages (assistant): prev.length = ${prev.length}`);
 				}
-				return [...prev, { role: 'assistant', content: response, id: assistantMessageId }];
 			});
-		} catch (error) {
-			messageCounterRef.current += 1;
-			const errorMessageId = `assistant-error-${Date.now()}-${messageCounterRef.current}`;
-			setMessages(prev => [
-				...prev,
-				{
-					role: 'assistant',
-					content: `**Error:** ${error instanceof Error ? error.message : 'Unknown error'}`,
-					id: errorMessageId,
-				},
-			]);
+			
+			// Adicionar resposta do assistente
+			msgCounter.current += 1;
+			setMessagesList(prev => [...prev, {
+				role: 'assistant',
+				content: aiResponse,
+				id: `assist-${Date.now()}-${msgCounter.current}`
+			}]);
+			
+		} catch (err) {
+			msgCounter.current += 1;
+			setMessagesList(prev => [...prev, {
+				role: 'assistant',
+				content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+				id: `error-${Date.now()}-${msgCounter.current}`
+			}]);
 		} finally {
-			setIsProcessing(false);
-			submittingRef.current = false;  // Liberar prote??o
+			setProcessing(false);
+			isSubmitting.current = false;
 		}
-	};
-
-	const handleAuthComplete = (mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
+	}, [textInput, processing, onCommandSelect]);
+	
+	// Handlers de navega??o
+	const onAuthComplete = useCallback((mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
 		setConfig({ endpoint, apiKey, model });
-		setScreen('chat');
-	};
-
-	const handleConfigSave = (maxVideos: number, maxCommentsPerVideo: number) => {
+		setCurrentScreen('chat');
+	}, []);
+	
+	const onConfigSave = useCallback((maxVideos: number, maxCommentsPerVideo: number) => {
 		setConfig({ maxVideos, maxCommentsPerVideo });
-		setScreen('chat');
-	};
-
-	if (screen === 'auth') {
+		setCurrentScreen('chat');
+	}, []);
+	
+	// Renderiza??o condicional de telas
+	if (currentScreen === 'auth') {
 		return (
 			<NewAuthScreen
-				onComplete={handleAuthComplete}
-				onCancel={() => setScreen('chat')}
+				onComplete={onAuthComplete}
+				onCancel={() => setCurrentScreen('chat')}
 				currentMode="custom"
-				currentEndpoint={config.endpoint}
-				currentApiKey={config.apiKey}
-				currentModel={config.model}
+				currentEndpoint={appConfig.endpoint}
+				currentApiKey={appConfig.apiKey}
+				currentModel={appConfig.model}
 			/>
 		);
 	}
-
-	if (screen === 'config') {
+	
+	if (currentScreen === 'config') {
 		return (
 			<ConfigScreen
-				onSave={handleConfigSave}
-				onCancel={() => setScreen('chat')}
-				currentMaxVideos={config.maxVideos}
-				currentMaxComments={config.maxCommentsPerVideo}
+				onSave={onConfigSave}
+				onCancel={() => setCurrentScreen('chat')}
+				currentMaxVideos={appConfig.maxVideos}
+				currentMaxComments={appConfig.maxCommentsPerVideo}
 			/>
 		);
 	}
-
-	if (screen === 'tools') {
-		return <ToolsScreen onClose={() => setScreen('chat')} />;
+	
+	if (currentScreen === 'tools') {
+		return <ToolsScreen onClose={() => setCurrentScreen('chat')} />;
 	}
-
+	
+	// Tela principal de chat
 	return (
 		<Box flexDirection="column" minHeight={0}>
-			{/* Timeline otimizada ocupa todo espaço disponível */}
 			<Box flexDirection="column" flexGrow={1} minHeight={0}>
-				<OptimizedTimeline messages={messages} />
+				<OptimizedTimeline messages={messagesList} />
 			</Box>
-
-			{/* Sugestões de comandos */}
-			{showCommandSuggestions && (
+			
+			{showCommands && (
 				<Box paddingX={2} paddingBottom={1}>
-					<CommandSuggestions onSelect={handleCommandSelect} />
+					<CommandSuggestions onSelect={onCommandSelect} />
 				</Box>
 			)}
-
-			{/* Input box na parte inferior - Componente isolado */}
+			
 			<Box flexShrink={0}>
 				<InputField
-					value={inputValue}
-					onChange={handleInputChange}
-					onSubmit={handleSubmit}
-					isProcessing={isProcessing}
+					value={textInput}
+					onChange={onInputChange}
+					onSubmit={onMessageSubmit}
+					isProcessing={processing}
 				/>
 			</Box>
 		</Box>
