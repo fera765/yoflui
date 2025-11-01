@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, useInput, Text } from 'ink';
-import { Timeline, type Message } from './components/Timeline.js';
+import { OptimizedTimeline, type Message } from './components/OptimizedTimeline.js';
 import { InputField } from './components/InputField.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
@@ -286,9 +286,9 @@ export default function App() {
 
 	return (
 		<Box flexDirection="column" minHeight={0}>
-			{/* Timeline ocupa todo espaço disponível */}
+			{/* Timeline otimizada ocupa todo espaço disponível */}
 			<Box flexDirection="column" flexGrow={1} minHeight={0}>
-				<Timeline messages={messages} />
+				<OptimizedTimeline messages={messages} />
 			</Box>
 
 			{/* Sugestões de comandos */}
