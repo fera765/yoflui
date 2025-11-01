@@ -105,6 +105,14 @@ export function loadQwenCredentials(): QwenCredentials | null {
 		const localPath = join(process.cwd(), 'qwen-credentials.json');
 		if (existsSync(localPath)) {
 			const data = readFileSync(localPath, 'utf-8');
+			
+			// Validate file is not empty
+			if (!data || data.trim().length === 0) {
+				console.log('??  Credentials file is empty, deleting...');
+				clearQwenCredentials();
+				return null;
+			}
+			
 			const creds = JSON.parse(data) as QwenCredentials;
 			
 			// Check if token is expired
@@ -122,6 +130,14 @@ export function loadQwenCredentials(): QwenCredentials | null {
 			return null;
 		}
 		const data = readFileSync(path, 'utf-8');
+		
+		// Validate file is not empty
+		if (!data || data.trim().length === 0) {
+			console.log('??  Credentials file is empty, deleting...');
+			clearQwenCredentials();
+			return null;
+		}
+		
 		const creds = JSON.parse(data) as QwenCredentials;
 		
 		// Check if token is expired
@@ -135,6 +151,8 @@ export function loadQwenCredentials(): QwenCredentials | null {
 		return creds;
 	} catch (error) {
 		console.error('Error loading credentials:', error);
+		// Clear potentially corrupted credentials
+		clearQwenCredentials();
 		return null;
 	}
 }
@@ -162,18 +180,28 @@ export function saveQwenCredentials(creds: QwenCredentials): void {
  */
 export function clearQwenCredentials(): void {
 	try {
-		// Clear from default location
+		const { unlinkSync } = require('fs');
+		
+		// Clear from default location - DELETE file completely
 		const path = getCredentialsPath();
 		if (existsSync(path)) {
-			writeFileSync(path, '', 'utf-8');
-			console.log('???  Credentials cleared from home directory');
+			try {
+				unlinkSync(path);
+				console.log('???  Credentials deleted from home directory');
+			} catch (err) {
+				// Ignore if already deleted
+			}
 		}
 		
-		// Also clear from local directory (if exists)
+		// Also clear from local directory - DELETE file completely
 		const localPath = join(process.cwd(), 'qwen-credentials.json');
 		if (existsSync(localPath)) {
-			writeFileSync(localPath, '', 'utf-8');
-			console.log('???  Credentials cleared from local directory');
+			try {
+				unlinkSync(localPath);
+				console.log('???  Credentials deleted from local directory');
+			} catch (err) {
+				// Ignore if already deleted
+			}
 		}
 	} catch (error) {
 		console.error('Error clearing credentials:', error);
