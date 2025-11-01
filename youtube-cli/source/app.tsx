@@ -312,7 +312,7 @@ export default function App() {
 					>
 						{isProcessing ? (
 							<Box>
-								<Text color="#fd971f">⏳</Text>
+								<Text color="#fd971f">[...]</Text>
 								<Text color="#75715e"> Processing...</Text>
 							</Box>
 						) : (
