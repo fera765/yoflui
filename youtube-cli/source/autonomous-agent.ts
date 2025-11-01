@@ -172,8 +172,7 @@ CRITICAL: Greetings = NO tools, Simple = tools only, Complex = Kanban`;
 
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
-			// Save conversation to context
-			addToConversation('user', userMessage, cwd);
+			// Save assistant response to context (user message already in context)
 			addToConversation('assistant', assistantMsg.content, cwd);
 			
 			return assistantMsg.content;
