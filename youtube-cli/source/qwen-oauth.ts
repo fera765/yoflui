@@ -418,7 +418,7 @@ export async function authenticateWithQwen(): Promise<QwenCredentials> {
 export function getQwenConfig() {
 	return {
 		endpoint: QWEN_API_ENDPOINT,
-		model: 'qwen3-coder-plus',
+		model: 'qwen3-coder-plus',  // Modelo correto e testado
 		provider: 'qwen',
 	};
 }
