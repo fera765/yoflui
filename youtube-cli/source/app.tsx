@@ -26,15 +26,12 @@ export default function App() {
 
 	const config = getConfig();
 	
-	// Debug: Log quando messages mudar
+	// Debug: Log quando messages mudar (sem causar re-renders)
 	React.useEffect(() => {
 		if (process.env.DEBUG_MESSAGES === 'true') {
 			console.error(`[DEBUG] Messages array changed. Length: ${messages.length}`);
-			messages.forEach((msg, idx) => {
-				console.error(`[DEBUG]   [${idx}] ${msg.role}: ${msg.content?.substring(0, 40) || '(no content)'} | ID: ${msg.id || 'no-id'}`);
-			});
 		}
-	}, [messages]);
+	}, [messages.length]); // Apenas quando o tamanho mudar, não o conteúdo
 
 	useInput((input, key) => {
 		if (key.escape && inputValue.length > 0) {
