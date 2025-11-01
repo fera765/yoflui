@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, useInput, Text } from 'ink';
-import TextInput from 'ink-text-input';
-import { Timeline, InputBox, type Message } from './components/Timeline.js';
+import { Timeline, type Message } from './components/Timeline.js';
+import { InputField } from './components/InputField.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
@@ -11,47 +11,6 @@ import { runAutonomousAgent } from './autonomous-agent.js';
 import { join } from 'path';
 
 type Screen = 'chat' | 'auth' | 'config' | 'tools';
-
-// Componente de input memoizado para evitar re-renderizações desnecessárias
-const InputComponent = React.memo<{
-	value: string;
-	onChange: (val: string) => void;
-	onSubmit: () => void;
-	isProcessing: boolean;
-}>(({ value, onChange, onSubmit, isProcessing }) => {
-	return (
-		<Box flexDirection="column" width="100%">
-			<Box
-				borderStyle="round"
-				borderColor="#3e3d32"
-				paddingX={2}
-				paddingY={1}
-				marginX={1}
-				marginBottom={1}
-				width="100%"
-			>
-				{isProcessing ? (
-					<Box>
-						<Text color="#fd971f">[...]</Text>
-						<Text color="#75715e"> Processing...</Text>
-					</Box>
-				) : (
-					<Box width="100%">
-						<Text color="#f92672" bold>&gt; </Text>
-						<Box flexGrow={1}>
-							<TextInput
-								value={value}
-								onChange={onChange}
-								onSubmit={onSubmit}
-								placeholder=""
-							/>
-						</Box>
-					</Box>
-				)}
-			</Box>
-		</Box>
-	);
-});
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
@@ -339,9 +298,9 @@ export default function App() {
 				</Box>
 			)}
 
-			{/* Input box na parte inferior - Componente memoizado */}
+			{/* Input box na parte inferior - Componente isolado */}
 			<Box flexShrink={0}>
-				<InputComponent
+				<InputField
 					value={inputValue}
 					onChange={handleInputChange}
 					onSubmit={handleSubmit}
