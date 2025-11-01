@@ -7,6 +7,7 @@ import type { KanbanTask } from '../tools/kanban.js';
 export interface Message {
 	role: 'user' | 'assistant' | 'tool' | 'kanban';
 	content: string;
+	id?: string;  // Unique ID to prevent React key conflicts
 	toolCall?: {
 		name: string;
 		args: any;
@@ -205,8 +206,8 @@ export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages })
 	return (
 		<Box flexDirection="column" paddingX={2} paddingY={1}>
 			{messages.map((msg, idx) => {
-				// Use stable keys to prevent flickering
-				const key = `${msg.role}-${idx}`;
+				// Use unique ID if available, fallback to role-idx
+				const key = msg.id || `${msg.role}-${idx}`;
 				
 				if (msg.role === 'user') {
 					return <UserMessage key={key} text={msg.content} />;

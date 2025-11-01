@@ -90,7 +90,9 @@ export default function App() {
 		}
 
 		// Add user message to timeline (only if not a command)
-		setMessages(prev => [...prev, { role: 'user', content: msg }]);
+		// Use unique ID to prevent React key conflicts
+		const userMessageId = `user-${Date.now()}-${Math.random()}`;
+		setMessages(prev => [...prev, { role: 'user', content: msg, id: userMessageId }]);
 		setIsProcessing(true);
 
 		try {
@@ -107,16 +109,19 @@ export default function App() {
 					setMessages(prev => {
 						// Remove previous kanban and add new one
 						const filtered = prev.filter(m => m.role !== 'kanban');
-						return [...filtered, { role: 'kanban', content: '', kanban: tasks }];
+						const kanbanId = `kanban-${Date.now()}`;
+						return [...filtered, { role: 'kanban', content: '', kanban: tasks, id: kanbanId }];
 					});
 				},
 				onToolExecute: (toolName, args) => {
+					const toolId = `tool-${toolName}-${Date.now()}-${Math.random()}`;
 					setMessages(prev => [
 						...prev,
 						{
 							role: 'tool',
 							content: '',
 							toolCall: { name: toolName, args, status: 'running' },
+							id: toolId,
 						},
 					]);
 				},
@@ -148,13 +153,16 @@ export default function App() {
 				},
 			});
 
-			setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+			const assistantMessageId = `assistant-${Date.now()}-${Math.random()}`;
+			setMessages(prev => [...prev, { role: 'assistant', content: response, id: assistantMessageId }]);
 		} catch (error) {
+			const errorMessageId = `assistant-error-${Date.now()}`;
 			setMessages(prev => [
 				...prev,
 				{
 					role: 'assistant',
 					content: `**Error:** ${error instanceof Error ? error.message : 'Unknown error'}`,
+					id: errorMessageId,
 				},
 			]);
 		} finally {
