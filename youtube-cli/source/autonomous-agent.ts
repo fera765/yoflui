@@ -27,6 +27,9 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	const context = loadOrCreateContext(userMessage, cwd);
 	const contextPrompt = generateContextPrompt(context);
 	
+	// Save user message to conversation history BEFORE processing
+	addToConversation('user', userMessage, cwd);
+	
 	// Save context immediately
 	saveContext(context, cwd);
 
