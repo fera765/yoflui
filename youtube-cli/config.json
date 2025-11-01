@@ -1,7 +1,7 @@
 {
-  "endpoint": "https://portal.qwen.ai/v1",
-  "apiKey": "Un0IgYbXi3vY4IKcOQicvZJhzcgpRbWvm-oJyEMM92O2GFqfP5GthSjHeoe4ZGnucCUhQYqnBdeoTNQoCKo7WA",
-  "model": "qwen3-coder-plus",
+  "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "apiKey": "YOUR_DASHSCOPE_API_KEY_HERE",
+  "model": "qwen-plus",
   "maxVideos": 10,
   "maxCommentsPerVideo": 100
 }

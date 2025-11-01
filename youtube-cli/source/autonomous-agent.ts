@@ -2,7 +2,6 @@ import OpenAI from 'openai';
 import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
-import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask } from './tools/index.js';
 
 interface AgentOptions {
@@ -23,21 +22,8 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	onProgress?.('[*] Analyzing task and creating Kanban...');
 
 	const config = getConfig();
-	const qwenCreds = loadQwenCredentials();
-	let endpoint = config.endpoint;
-	let apiKey = config.apiKey || 'not-needed';
-
-	if (qwenCreds?.access_token) {
-		const validToken = await getValidAccessToken();
-		if (validToken) {
-			apiKey = validToken;
-			endpoint = qwenCreds.resource_url?.startsWith('http')
-				? `${qwenCreds.resource_url}/v1`
-				: `https://${qwenCreds.resource_url}/v1`;
-		} else {
-			throw new Error('OAuth token expired. Please run /llm to re-authenticate.');
-		}
-	}
+	const endpoint = config.endpoint;
+	const apiKey = config.apiKey || 'not-needed';
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
