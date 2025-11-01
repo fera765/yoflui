@@ -126,7 +126,9 @@ export function loadQwenCredentials(): QwenCredentials | null {
 		
 		// Check if token is expired
 		if (creds.expiry_date && Date.now() > creds.expiry_date) {
-			console.log('??  Token expired, needs refresh or re-auth');
+			console.log('??  Token expired, clearing credentials...');
+			// Limpar credenciais expiradas
+			clearQwenCredentials();
 			return null;
 		}
 		
@@ -160,10 +162,18 @@ export function saveQwenCredentials(creds: QwenCredentials): void {
  */
 export function clearQwenCredentials(): void {
 	try {
+		// Clear from default location
 		const path = getCredentialsPath();
 		if (existsSync(path)) {
 			writeFileSync(path, '', 'utf-8');
-			console.log('???  Credentials cleared');
+			console.log('???  Credentials cleared from home directory');
+		}
+		
+		// Also clear from local directory (if exists)
+		const localPath = join(process.cwd(), 'qwen-credentials.json');
+		if (existsSync(localPath)) {
+			writeFileSync(localPath, '', 'utf-8');
+			console.log('???  Credentials cleared from local directory');
 		}
 	} catch (error) {
 		console.error('Error clearing credentials:', error);

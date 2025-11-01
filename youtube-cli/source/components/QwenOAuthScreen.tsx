@@ -34,15 +34,13 @@ export const QwenOAuthScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 	}, []);
 
 	const checkExistingAuth = async () => {
-		const existingCreds = loadQwenCredentials();
+		// SEMPRE limpar sess?o antiga ao entrar na tela de OAuth
+		// Isso garante que fazemos um novo login sempre
+		clearQwenCredentials();
+		console.log('?? Starting fresh OAuth login...');
 		
-		if (existingCreds) {
-			console.log('? Already authenticated with Qwen');
-			const config = getQwenConfig();
-			onComplete(config.endpoint, existingCreds.access_token, config.model);
-		} else {
-			startAuthFlow();
-		}
+		// Iniciar novo fluxo de autentica??o
+		startAuthFlow();
 	};
 
 	const startAuthFlow = async () => {

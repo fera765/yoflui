@@ -60,25 +60,36 @@ export default function App() {
 		setInputValue('');
 		setShowCommandSuggestions(false);
 
-		// Handle commands
-		if (msg === '/llm') {
-			setScreen('auth');
-			return;
-		}
-		if (msg === '/config') {
-			setScreen('config');
-			return;
-		}
-		if (msg === '/tools') {
-			setScreen('tools');
-			return;
-		}
-		if (msg === '/exit') {
-			process.exit(0);
-			return;
+		// Check if message starts with a command
+		// Commands MUST be at the start and exact, no text before or after
+		if (msg.startsWith('/')) {
+			// Extract command (first word)
+			const command = msg.split(/\s+/)[0];
+			
+			// Only execute if message is EXACTLY the command (no text after)
+			if (msg === command) {
+				if (command === '/llm') {
+					setScreen('auth');
+					return;
+				}
+				if (command === '/config') {
+					setScreen('config');
+					return;
+				}
+				if (command === '/tools') {
+					setScreen('tools');
+					return;
+				}
+				if (command === '/exit') {
+					process.exit(0);
+					return;
+				}
+			}
+			// If command has text after it, or is not recognized, ignore the command
+			// and treat as normal message (fall through)
 		}
 
-		// Send message - autonomous agent
+		// Add user message to timeline (only if not a command)
 		setMessages(prev => [...prev, { role: 'user', content: msg }]);
 		setIsProcessing(true);
 
