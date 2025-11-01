@@ -82,7 +82,7 @@ const ToolMessage: React.FC<{
 				)}
 				{!isRunning && (
 					<Text color={color} bold>
-						{isError ? '?' : '?'}{' '}
+						{isError ? '[X]' : '[OK]'}{' '}
 					</Text>
 				)}
 				<Text color={color} bold>{name}</Text>
@@ -103,13 +103,13 @@ const KanbanMessage: React.FC<{
 }> = ({ tasks, id }) => (
 	<Box key={id} marginY={1} flexDirection="column" borderStyle="round" borderColor={COLORS.kanban} paddingX={2} paddingY={1}>
 		<Box marginBottom={1}>
-			<Text color={COLORS.kanban} bold>?? Tasks</Text>
+			<Text color={COLORS.kanban} bold>[TASKS]</Text>
 		</Box>
 		{tasks.map((task) => {
 			const icon =
-				task.status === 'completed' ? '?' :
-				task.status === 'in-progress' ? '?' :
-				'?';
+				task.status === 'completed' ? '[V]' :
+				task.status === 'in-progress' ? '[>]' :
+				'[ ]';
 			const color =
 				task.status === 'completed' ? COLORS.toolSuccess :
 				task.status === 'in-progress' ? COLORS.tool :
