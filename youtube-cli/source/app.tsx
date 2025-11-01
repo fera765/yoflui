@@ -20,6 +20,8 @@ export default function App() {
 	
 	// Prote??o contra m?ltiplas chamadas simult?neas
 	const submittingRef = React.useRef(false);
+	// Contador para garantir IDs absolutamente únicos
+	const messageCounterRef = React.useRef(0);
 
 	const config = getConfig();
 	
@@ -118,14 +120,22 @@ export default function App() {
 
 		// Add user message to timeline (only if not a command)
 		// Use unique ID to prevent React key conflicts
-		const userMessageId = `user-${Date.now()}-${Math.random()}`;
+		// Combina: timestamp + contador + random para garantir unicidade ABSOLUTA
+		messageCounterRef.current += 1;
+		const userMessageId = `user-${Date.now()}-${messageCounterRef.current}-${Math.random().toString(36).substring(2, 9)}`;
 		if (process.env.DEBUG_MESSAGES === 'true') {
 			console.error(`[DEBUG] handleSubmit: Adding user message with ID: ${userMessageId}`);
 			console.error(`[DEBUG] handleSubmit: Message content: "${msg}"`);
+			console.error(`[DEBUG] handleSubmit: Message counter: ${messageCounterRef.current}`);
 		}
 		setMessages(prev => {
 			if (process.env.DEBUG_MESSAGES === 'true') {
 				console.error(`[DEBUG] setMessages (user): prev.length = ${prev.length}`);
+				// Verificar se ID j? existe
+				const existingIds = prev.map(m => m.id);
+				if (existingIds.includes(userMessageId)) {
+					console.error(`[DEBUG] ??  WARNING: ID duplicado detectado! ${userMessageId}`);
+				}
 			}
 			return [...prev, { role: 'user', content: msg, id: userMessageId }];
 		});
@@ -147,7 +157,8 @@ export default function App() {
 					}
 					setMessages(prev => {
 						const filtered = prev.filter(m => m.role !== 'kanban');
-						const kanbanId = `kanban-${Date.now()}`;
+						messageCounterRef.current += 1;
+						const kanbanId = `kanban-${Date.now()}-${messageCounterRef.current}`;
 						if (process.env.DEBUG_MESSAGES === 'true') {
 							console.error(`[DEBUG] setMessages (kanban): filtered.length = ${filtered.length}, adding kanban with ID: ${kanbanId}`);
 						}
@@ -155,7 +166,8 @@ export default function App() {
 					});
 				},
 				onToolExecute: (toolName, args) => {
-					const toolId = `tool-${toolName}-${Date.now()}-${Math.random()}`;
+					messageCounterRef.current += 1;
+					const toolId = `tool-${toolName}-${Date.now()}-${messageCounterRef.current}-${Math.random().toString(36).substring(2, 9)}`;
 					if (process.env.DEBUG_MESSAGES === 'true') {
 						console.error(`[DEBUG] onToolExecute: ${toolName}, ID: ${toolId}`);
 					}
@@ -202,7 +214,8 @@ export default function App() {
 				},
 			});
 
-			const assistantMessageId = `assistant-${Date.now()}-${Math.random()}`;
+			messageCounterRef.current += 1;
+			const assistantMessageId = `assistant-${Date.now()}-${messageCounterRef.current}-${Math.random().toString(36).substring(2, 9)}`;
 			if (process.env.DEBUG_MESSAGES === 'true') {
 				console.error(`[DEBUG] Adding assistant response with ID: ${assistantMessageId}`);
 			}
@@ -213,7 +226,8 @@ export default function App() {
 				return [...prev, { role: 'assistant', content: response, id: assistantMessageId }];
 			});
 		} catch (error) {
-			const errorMessageId = `assistant-error-${Date.now()}`;
+			messageCounterRef.current += 1;
+			const errorMessageId = `assistant-error-${Date.now()}-${messageCounterRef.current}`;
 			setMessages(prev => [
 				...prev,
 				{
