@@ -12,6 +12,47 @@ import { join } from 'path';
 
 type Screen = 'chat' | 'auth' | 'config' | 'tools';
 
+// Componente de input memoizado para evitar re-renderizações desnecessárias
+const InputComponent = React.memo<{
+	value: string;
+	onChange: (val: string) => void;
+	onSubmit: () => void;
+	isProcessing: boolean;
+}>(({ value, onChange, onSubmit, isProcessing }) => {
+	return (
+		<Box flexDirection="column" width="100%">
+			<Box
+				borderStyle="round"
+				borderColor="#3e3d32"
+				paddingX={2}
+				paddingY={1}
+				marginX={1}
+				marginBottom={1}
+				width="100%"
+			>
+				{isProcessing ? (
+					<Box>
+						<Text color="#fd971f">[...]</Text>
+						<Text color="#75715e"> Processing...</Text>
+					</Box>
+				) : (
+					<Box width="100%">
+						<Text color="#f92672" bold>&gt; </Text>
+						<Box flexGrow={1}>
+							<TextInput
+								value={value}
+								onChange={onChange}
+								onSubmit={onSubmit}
+								placeholder=""
+							/>
+						</Box>
+					</Box>
+				)}
+			</Box>
+		</Box>
+	);
+});
+
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -298,38 +339,14 @@ export default function App() {
 				</Box>
 			)}
 
-			{/* Input box na parte inferior */}
+			{/* Input box na parte inferior - Componente memoizado */}
 			<Box flexShrink={0}>
-				<Box flexDirection="column" width="100%">
-					<Box
-						borderStyle="round"
-						borderColor="#3e3d32"
-						paddingX={2}
-						paddingY={1}
-						marginX={1}
-						marginBottom={1}
-						width="100%"
-					>
-						{isProcessing ? (
-							<Box>
-								<Text color="#fd971f">[...]</Text>
-								<Text color="#75715e"> Processing...</Text>
-							</Box>
-						) : (
-							<Box width="100%">
-								<Text color="#f92672" bold>&gt; </Text>
-								<Box flexGrow={1}>
-									<TextInput
-										value={inputValue}
-										onChange={handleInputChange}
-										onSubmit={handleSubmit}
-										placeholder=""
-									/>
-								</Box>
-							</Box>
-						)}
-					</Box>
-				</Box>
+				<InputComponent
+					value={inputValue}
+					onChange={handleInputChange}
+					onSubmit={handleSubmit}
+					isProcessing={isProcessing}
+				/>
 			</Box>
 		</Box>
 	);
