@@ -5,6 +5,7 @@
 
 import { setConfig, getConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
+import { loadQwenCredentials } from './qwen-oauth.js';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import type { KanbanTask } from './tools/kanban.js';
@@ -32,7 +33,24 @@ function loadConfig(): ConfigFile {
 		
 		return config;
 	} catch (error) {
-		console.error('[!] Failed to load config.json');
+		// Try to load Qwen OAuth credentials
+		const qwenCreds = loadQwenCredentials();
+		if (qwenCreds?.access_token) {
+			console.log('\n[+] Using Qwen OAuth credentials');
+			console.log(`    Expires: ${new Date(qwenCreds.expiry_date || 0).toLocaleString()}`);
+			console.log('');
+			
+			const resourceUrl = qwenCreds.resource_url || 'portal.qwen.ai';
+			return {
+				endpoint: `https://${resourceUrl}/v1`,
+				apiKey: qwenCreds.access_token,
+				model: 'qwen3-coder-plus',
+				maxVideos: 7,
+				maxCommentsPerVideo: 10,
+			};
+		}
+		
+		console.error('[!] Failed to load config.json and no Qwen credentials found');
 		console.log('[*] Using default configuration...\n');
 		
 		return {

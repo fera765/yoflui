@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
+import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask } from './tools/index.js';
 
 interface AgentOptions {
@@ -22,8 +23,20 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	onProgress?.('[*] Analyzing task and creating Kanban...');
 
 	const config = getConfig();
-	const endpoint = config.endpoint;
-	const apiKey = config.apiKey || 'not-needed';
+	const qwenCreds = loadQwenCredentials();
+	let endpoint = config.endpoint;
+	let apiKey = config.apiKey || 'not-needed';
+
+	// Use Qwen OAuth if available
+	if (qwenCreds?.access_token) {
+		const validToken = await getValidAccessToken();
+		if (validToken) {
+			apiKey = validToken;
+			// Use the resource_url from OAuth response
+			const resourceUrl = qwenCreds.resource_url || 'portal.qwen.ai';
+			endpoint = `https://${resourceUrl}/v1`;
+		}
+	}
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
