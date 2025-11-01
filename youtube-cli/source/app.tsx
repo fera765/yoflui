@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Box, useInput, Text } from 'ink';
 import { OptimizedTimeline, type Message } from './components/OptimizedTimeline.js';
 import { InputField } from './components/InputField.js';
@@ -40,7 +40,7 @@ export default function App() {
 		}
 	});
 
-	const handleInputChange = (value: string) => {
+	const handleInputChange = useCallback((value: string) => {
 		setInputValue(value);
 		// Show suggestions only when input is exactly '/'
 		// Hide suggestions when user types more characters
@@ -49,7 +49,7 @@ export default function App() {
 		} else {
 			setShowCommandSuggestions(false);
 		}
-	};
+	}, []);
 
 	const handleCommandSelect = (command: string) => {
 		setInputValue('');
