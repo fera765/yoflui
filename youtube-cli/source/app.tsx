@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, useInput, Text } from 'ink';
-import { QuantumTimeline, QuantumInput, type Message } from './components/QuantumTerminal.js';
+import TextInput from 'ink-text-input';
+import { Timeline, InputBox, type Message } from './components/Timeline.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
@@ -196,9 +197,12 @@ export default function App() {
 								updated[i]?.toolCall?.name === toolName &&
 								updated[i]?.toolCall?.status === 'running'
 							) {
+								// Atualizar mantendo o ID existente
+								const existingId = updated[i].id;
 								updated[i] = {
 									role: 'tool',
 									content: '',
+									id: existingId,  // Manter ID original
 									toolCall: {
 										name: toolName,
 										args,
@@ -282,23 +286,50 @@ export default function App() {
 
 	return (
 		<Box flexDirection="column" minHeight={0}>
+			{/* Timeline ocupa todo espaço disponível */}
 			<Box flexDirection="column" flexGrow={1} minHeight={0}>
-				<QuantumTimeline messages={messages} />
+				<Timeline messages={messages} />
 			</Box>
 
+			{/* Sugestões de comandos */}
 			{showCommandSuggestions && (
 				<Box paddingX={2} paddingBottom={1}>
 					<CommandSuggestions onSelect={handleCommandSelect} />
 				</Box>
 			)}
 
+			{/* Input box na parte inferior */}
 			<Box flexShrink={0}>
-				<QuantumInput
-					value={inputValue}
-					onChange={handleInputChange}
-					onSubmit={handleSubmit}
-					isProcessing={isProcessing}
-				/>
+				<Box flexDirection="column" width="100%">
+					<Box
+						borderStyle="round"
+						borderColor="#3e3d32"
+						paddingX={2}
+						paddingY={1}
+						marginX={1}
+						marginBottom={1}
+						width="100%"
+					>
+						{isProcessing ? (
+							<Box>
+								<Text color="#fd971f">⏳</Text>
+								<Text color="#75715e"> Processing...</Text>
+							</Box>
+						) : (
+							<Box width="100%">
+								<Text color="#f92672" bold>&gt; </Text>
+								<Box flexGrow={1}>
+									<TextInput
+										value={inputValue}
+										onChange={handleInputChange}
+										onSubmit={handleSubmit}
+										placeholder=""
+									/>
+								</Box>
+							</Box>
+						)}
+					</Box>
+				</Box>
 			</Box>
 		</Box>
 	);
