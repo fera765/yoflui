@@ -9,6 +9,11 @@ export * from './read-folder.js';
 export * from './kanban.js';
 export * from './web-fetch.js';
 export * from './memory.js';
+export * from './agent.js';
+
+// Re-export loadKanban for external use
+import { loadKanban } from './kanban.js';
+export { loadKanban };
 
 import { editToolDefinition, executeEditTool } from './edit.js';
 import { readFileToolDefinition, executeReadFileTool } from './read-file.js';
@@ -21,6 +26,7 @@ import { kanbanToolDefinition, executeKanbanTool, type KanbanTask } from './kanb
 import { webFetchToolDefinition, executeWebFetchTool } from './web-fetch.js';
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 import { memoryToolDefinition, executeSaveMemoryTool, loadMemories } from './memory.js';
+import { delegateAgentToolDefinition, executeDelegateAgent } from './agent.js';
 
 export const ALL_TOOL_DEFINITIONS = [
 	editToolDefinition,
@@ -34,6 +40,7 @@ export const ALL_TOOL_DEFINITIONS = [
 	webFetchToolDefinition,
 	youtubeToolDefinition,
 	memoryToolDefinition,
+	delegateAgentToolDefinition,
 ];
 
 export async function executeToolCall(toolName: string, args: any, workDir: string): Promise<string> {
@@ -70,6 +77,8 @@ export async function executeToolCall(toolName: string, args: any, workDir: stri
 		}
 		case 'save_memory':
 			return executeSaveMemoryTool(args.content, args.category, workDir);
+		case 'delegate_to_agent':
+			return executeDelegateAgent(args.task, workDir, args.kanban_task_id);
 		default:
 			return `Unknown tool: ${toolName}`;
 	}

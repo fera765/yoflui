@@ -5,6 +5,7 @@ import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
 import { saveConversationHistory, loadConversationHistory, type MemoryEntry } from './tools/memory.js';
+import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversation } from './context-manager.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -21,7 +22,13 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	// Create work directory
 	mkdirSync(workDir, { recursive: true });
 
-	onProgress?.('[*] Analyzing task and creating Kanban...');
+	// Load or create context (silently scans folder structure)
+	const cwd = process.cwd();
+	const context = loadOrCreateContext(userMessage, cwd);
+	const contextPrompt = generateContextPrompt(context);
+	
+	// Save context immediately
+	saveContext(context, cwd);
 
 	const config = getConfig();
 	const qwenCreds = loadQwenCredentials();
@@ -41,37 +48,16 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
-	// Load conversation history
-	const conversationHistory = loadConversationHistory(workDir);
-	
 	// Load saved memories
 	const savedMemories = loadMemories(workDir);
 	const memoryContext = savedMemories.length > 0 
 		? `\n## SAVED MEMORIES:\n${savedMemories.map(m => `- [${m.category}] ${m.content}`).join('\n')}\n`
 		: '';
 
-	// Check if .flui.md exists and load it
-	let fluiContext = '';
-	const fluiPath = join(process.cwd(), '.flui.md');
-	if (existsSync(fluiPath)) {
-		try {
-			fluiContext = readFileSync(fluiPath, 'utf-8');
-			onProgress?.('[+] Loaded .flui.md context');
-		} catch (error) {
-			// Ignore errors loading .flui.md
-		}
-	}
-
-	if (savedMemories.length > 0) {
-		onProgress?.(`[+] Loaded ${savedMemories.length} saved memories`);
-	}
-
-	if (conversationHistory.length > 0) {
-		onProgress?.(`[+] Loaded ${conversationHistory.length} previous messages`);
-	}
-
 	const systemPrompt = `You are an AUTONOMOUS AI AGENT that helps users complete tasks efficiently.
-${fluiContext ? `\n## PROJECT CONTEXT FROM .flui.md:\n${fluiContext}\n` : ''}${memoryContext}
+
+${contextPrompt}
+${memoryContext}
 
 Work directory: ${workDir}
 
@@ -107,13 +93,13 @@ IMPORTANT:
 - Always ACTUALLY execute the tools to complete tasks
 - Provide clear, concise responses about what was done`;
 
-	// Build messages with history
+	// Build messages with context history
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{ role: 'system', content: systemPrompt },
 	];
 
-	// Add conversation history (last 10 messages to keep context manageable)
-	const recentHistory = conversationHistory.slice(-10);
+	// Add recent conversation from context (last 5 messages)
+	const recentHistory = context.conversationHistory.slice(-5);
 	for (const entry of recentHistory) {
 		messages.push({
 			role: entry.role,
@@ -187,22 +173,9 @@ IMPORTANT:
 
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
-			// Save conversation to history
-			const newEntries: MemoryEntry[] = [
-				...conversationHistory,
-				{
-					timestamp: Date.now(),
-					role: 'user',
-					content: userMessage,
-				},
-				{
-					timestamp: Date.now(),
-					role: 'assistant',
-					content: assistantMsg.content,
-				},
-			];
-			
-			saveConversationHistory(`session-${Date.now()}`, newEntries, workDir);
+			// Save conversation to context
+			addToConversation('user', userMessage, cwd);
+			addToConversation('assistant', assistantMsg.content, cwd);
 			
 			return assistantMsg.content;
 		}

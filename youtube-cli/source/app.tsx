@@ -29,7 +29,13 @@ export default function App() {
 
 	const handleInputChange = (value: string) => {
 		setInputValue(value);
-		setShowCommandSuggestions(value === '/');
+		// Show suggestions only when input is exactly '/'
+		// Hide suggestions when user types more characters
+		if (value === '/') {
+			setShowCommandSuggestions(true);
+		} else {
+			setShowCommandSuggestions(false);
+		}
 	};
 
 	const handleCommandSelect = (command: string) => {

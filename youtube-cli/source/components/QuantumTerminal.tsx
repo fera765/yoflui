@@ -245,23 +245,25 @@ export const QuantumInput: React.FC<{
 	onSubmit: () => void;
 	isProcessing: boolean;
 }> = ({ value, onChange, onSubmit, isProcessing }) => (
-	<Box flexDirection="column">
-		<Box borderStyle="round" borderColor={MONOKAI.border} paddingX={2} paddingY={1} marginX={2} marginBottom={1}>
+	<Box flexDirection="column" width="100%">
+		<Box borderStyle="round" borderColor={MONOKAI.border} paddingX={2} paddingY={1} marginX={1} marginBottom={1} width="100%">
 			{isProcessing ? (
 				<>
 					<Text color={MONOKAI.orange}><Spinner type="dots" /></Text>
 					<Text color={MONOKAI.comment}> Processing...</Text>
 				</>
 			) : (
-				<>
+				<Box width="100%">
 					<Text color={MONOKAI.pink} bold>&gt; </Text>
-					<TextInput
-						value={value}
-						onChange={onChange}
-						onSubmit={onSubmit}
-						placeholder=""
-					/>
-				</>
+					<Box flexGrow={1}>
+						<TextInput
+							value={value}
+							onChange={onChange}
+							onSubmit={onSubmit}
+							placeholder=""
+						/>
+					</Box>
+				</Box>
 			)}
 		</Box>
 	</Box>
