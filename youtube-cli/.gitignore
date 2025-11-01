@@ -5,3 +5,5 @@ config.json
 work/
 *.log
 .DS_Store
+.flui-memory.json
+.flui-history.json

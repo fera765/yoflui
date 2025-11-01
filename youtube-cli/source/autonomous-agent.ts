@@ -3,7 +3,8 @@ import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
-import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask } from './tools/index.js';
+import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
+import { saveConversationHistory, loadConversationHistory, type MemoryEntry } from './tools/memory.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -40,6 +41,15 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
+	// Load conversation history
+	const conversationHistory = loadConversationHistory(workDir);
+	
+	// Load saved memories
+	const savedMemories = loadMemories(workDir);
+	const memoryContext = savedMemories.length > 0 
+		? `\n## SAVED MEMORIES:\n${savedMemories.map(m => `- [${m.category}] ${m.content}`).join('\n')}\n`
+		: '';
+
 	// Check if .flui.md exists and load it
 	let fluiContext = '';
 	const fluiPath = join(process.cwd(), '.flui.md');
@@ -52,8 +62,16 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 		}
 	}
 
+	if (savedMemories.length > 0) {
+		onProgress?.(`[+] Loaded ${savedMemories.length} saved memories`);
+	}
+
+	if (conversationHistory.length > 0) {
+		onProgress?.(`[+] Loaded ${conversationHistory.length} previous messages`);
+	}
+
 	const systemPrompt = `You are an AUTONOMOUS AI AGENT that helps users complete tasks efficiently.
-${fluiContext ? `\n## PROJECT CONTEXT FROM .flui.md:\n${fluiContext}\n` : ''}
+${fluiContext ? `\n## PROJECT CONTEXT FROM .flui.md:\n${fluiContext}\n` : ''}${memoryContext}
 
 Work directory: ${workDir}
 
@@ -68,6 +86,7 @@ Available tools:
 - update_kanban: Update task board (ONLY use for multi-step tasks with 3+ steps)
 - web_fetch: Fetch URLs
 - search_youtube_comments: Search YouTube videos and extract comments
+- save_memory: Save important context/learnings for future reference
 
 TASK CLASSIFICATION:
 - **Simple task (1-2 steps)**: Just execute the tool(s) and respond. NO Kanban needed.
@@ -88,10 +107,22 @@ IMPORTANT:
 - Always ACTUALLY execute the tools to complete tasks
 - Provide clear, concise responses about what was done`;
 
+	// Build messages with history
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{ role: 'system', content: systemPrompt },
-		{ role: 'user', content: userMessage },
 	];
+
+	// Add conversation history (last 10 messages to keep context manageable)
+	const recentHistory = conversationHistory.slice(-10);
+	for (const entry of recentHistory) {
+		messages.push({
+			role: entry.role,
+			content: entry.content,
+		});
+	}
+
+	// Add current user message
+	messages.push({ role: 'user', content: userMessage });
 
 	let iterations = 0;
 	const maxIterations = 15;
@@ -156,6 +187,23 @@ IMPORTANT:
 
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
+			// Save conversation to history
+			const newEntries: MemoryEntry[] = [
+				...conversationHistory,
+				{
+					timestamp: Date.now(),
+					role: 'user',
+					content: userMessage,
+				},
+				{
+					timestamp: Date.now(),
+					role: 'assistant',
+					content: assistantMsg.content,
+				},
+			];
+			
+			saveConversationHistory(`session-${Date.now()}`, newEntries, workDir);
+			
 			return assistantMsg.content;
 		}
 
