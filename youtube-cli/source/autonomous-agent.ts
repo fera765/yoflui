@@ -74,24 +74,23 @@ Available tools:
 - search_youtube_comments: Search YouTube videos and extract comments
 - save_memory: Save important context/learnings for future reference
 
-TASK CLASSIFICATION:
-- **Simple task (1-2 steps)**: Just execute the tool(s) and respond. NO Kanban needed.
-  Example: "Read file X" ? Use read_file and respond
-  Example: "Create hello.txt" ? Use write_file and respond
+MESSAGE CLASSIFICATION:
+1. CASUAL CONVERSATION (NO tools):
+   - Greetings like Hi, Hello, Oi, Hey
+   - Small talk like How are you, Tudo bem
+   - Questions like Who are you
+   RESPONSE: Chat naturally, DO NOT use tools
 
-- **Complex task (3+ steps)**: Create Kanban, execute tasks, update Kanban as you progress.
-  Example: "Create 3 files with tests" ? Use update_kanban first, then execute
-  Example: "Build a web app" ? Use update_kanban to track multiple steps
+2. SIMPLE TASK (tools, NO Kanban):
+   - Read file X - Use read_file
+   - Create file - Use write_file
+   RESPONSE: Execute tools, NO Kanban
 
-WORKFLOW:
-1. Analyze if task requires multiple steps (3+)
-2. If YES: Create Kanban ? Execute tools ? Update Kanban ? Respond
-3. If NO: Execute tool(s) directly ? Respond (no Kanban)
+3. COMPLEX TASK (tools + Kanban):
+   - Create 3+ files - Use Kanban
+   RESPONSE: Kanban + tools
 
-IMPORTANT: 
-- Use Kanban ONLY for genuinely complex tasks
-- Always ACTUALLY execute the tools to complete tasks
-- Provide clear, concise responses about what was done`;
+CRITICAL: Greetings = NO tools, Simple = tools only, Complex = Kanban`;
 
 	// Build messages with context history
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
