@@ -17,82 +17,67 @@ export interface Message {
 	kanban?: KanbanTask[];
 }
 
-// ???????????????????????????????????????????????????????????????
-// QUANTUM TERMINAL HEADER
-// ???????????????????????????????????????????????????????????????
-export const QuantumHeader: React.FC<{ model: string; count: number }> = ({ model, count }) => (
-	<Box borderStyle="double" borderColor="#30363D" paddingX={2} paddingY={0} width="100%">
-		<Box width="100%" justifyContent="center">
-			<Text bold color="#00C6FF">? QUANTUM TERMINAL v1.0 ?</Text>
-		</Box>
-	</Box>
-);
+// Monokai Dark Colors
+const MONOKAI = {
+	bg: '#272822',
+	bg2: '#1e1f1c',
+	fg: '#f8f8f2',
+	comment: '#75715e',
+	yellow: '#e6db74',
+	orange: '#fd971f',
+	pink: '#f92672',
+	purple: '#ae81ff',
+	blue: '#66d9ef',
+	green: '#a6e22e',
+	border: '#3e3d32',
+};
 
-// ???????????????????????????????????????????????????????????????
-// USER MESSAGE
-// ???????????????????????????????????????????????????????????????
 const UserMessage: React.FC<{ text: string }> = ({ text }) => (
 	<Box flexDirection="column" marginTop={1} marginBottom={1}>
 		<Box>
-			<Text color="#58A6FF" bold>&gt; </Text>
-			<Text color="#C9D1D9">{text}</Text>
+			<Text color={MONOKAI.blue} bold>&gt; </Text>
+			<Text color={MONOKAI.fg}>{text}</Text>
 		</Box>
 	</Box>
 );
 
-// ???????????????????????????????????????????????????????????????
-// KANBAN BOARD
-// ???????????????????????????????????????????????????????????????
 const QuantumKanban: React.FC<{ tasks: KanbanTask[] }> = ({ tasks }) => {
-	const todoTasks = tasks.filter(t => t.status === 'todo');
-	const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+	// Order tasks: done first, then in_progress, then todo
 	const doneTasks = tasks.filter(t => t.status === 'done');
+	const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+	const todoTasks = tasks.filter(t => t.status === 'todo');
+	
+	const orderedTasks = [...doneTasks, ...inProgressTasks, ...todoTasks];
+
+	const getTaskIcon = (status: string) => {
+		if (status === 'done') return '?'; // Filled circle
+		if (status === 'in_progress') return '?'; // Filled circle
+		return '?'; // Empty circle
+	};
+
+	const getTaskColor = (status: string) => {
+		if (status === 'done') return MONOKAI.green;
+		if (status === 'in_progress') return MONOKAI.orange;
+		return MONOKAI.fg; // white/default
+	};
 
 	return (
-		<Box borderStyle="round" borderColor="#30363D" paddingX={2} paddingY={1} flexDirection="column" marginY={1}>
+		<Box borderStyle="round" borderColor={MONOKAI.border} paddingX={2} paddingY={1} flexDirection="column" marginY={1}>
 			<Box marginBottom={1}>
-				<Text color="#00C6FF" bold>?? TASK BOARD</Text>
+				<Text color={MONOKAI.blue} bold>[TASK BOARD]</Text>
+				<Text color={MONOKAI.comment}> {doneTasks.length}/{tasks.length} completed</Text>
 			</Box>
 			
-			{todoTasks.length > 0 && (
-				<Box flexDirection="column" marginBottom={1}>
-					<Text color="#F0C674" bold>? PENDING ({todoTasks.length})</Text>
-					{todoTasks.map(task => (
-						<Box key={task.id} marginLeft={2}>
-							<Text color="#C9D1D9">  ? {task.title}</Text>
-						</Box>
-					))}
+			{orderedTasks.map(task => (
+				<Box key={task.id} marginLeft={1}>
+					<Text color={getTaskColor(task.status)}>{getTaskIcon(task.status)} </Text>
+					<Text color={getTaskColor(task.status)}>{task.title}</Text>
 				</Box>
-			)}
-
-			{inProgressTasks.length > 0 && (
-				<Box flexDirection="column" marginBottom={1}>
-					<Text color="#F0C674" bold>?? IN PROGRESS ({inProgressTasks.length})</Text>
-					{inProgressTasks.map(task => (
-						<Box key={task.id} marginLeft={2}>
-							<Text color="#F0C674">  ? {task.title}</Text>
-						</Box>
-					))}
-				</Box>
-			)}
-
-			{doneTasks.length > 0 && (
-				<Box flexDirection="column">
-					<Text color="#56D364" bold>? COMPLETED ({doneTasks.length})</Text>
-					{doneTasks.map(task => (
-						<Box key={task.id} marginLeft={2}>
-							<Text color="#56D364">  ? {task.title}</Text>
-						</Box>
-					))}
-				</Box>
-			)}
+			))}
 		</Box>
 	);
 };
 
-// ???????????????????????????????????????????????????????????????
-// TOOL EXECUTION BOX
-// ???????????????????????????????????????????????????????????????
 const QuantumTool: React.FC<{
 	name: string;
 	args: any;
@@ -102,49 +87,50 @@ const QuantumTool: React.FC<{
 }> = ({ name, args, status, result, progress }) => {
 	const getIcon = () => {
 		switch (name) {
-			case 'write_file': return '??';
-			case 'read_file': return '??';
-			case 'edit_file': return '??';
-			case 'execute_shell': return '??';
-			case 'find_files': return '??';
-			case 'search_text': return '??';
-			case 'read_folder': return '??';
-			case 'update_kanban': return '??';
-			case 'web_fetch': return '??';
-			default: return '??';
+			case 'write_file': return '[WRITE]';
+			case 'read_file': return '[READ]';
+			case 'edit_file': return '[EDIT]';
+			case 'execute_shell': return '[SHELL]';
+			case 'find_files': return '[FIND]';
+			case 'search_text': return '[SEARCH]';
+			case 'read_folder': return '[FOLDER]';
+			case 'update_kanban': return '[KANBAN]';
+			case 'web_fetch': return '[FETCH]';
+			case 'search_youtube_comments': return '[YOUTUBE]';
+			case 'save_memory': return '[MEMORY]';
+			default: return '[TOOL]';
 		}
 	};
 
 	const getStatusIcon = () => {
-		if (status === 'running') return '?';
-		if (status === 'complete') return '?';
-		return '?';
+		if (status === 'running') return '>';
+		if (status === 'complete') return '+';
+		return 'x';
 	};
 
 	const getColor = () => {
-		if (status === 'running') return '#F0C674';
-		if (status === 'complete') return '#56D364';
-		return '#F85149';
+		if (status === 'running') return MONOKAI.orange;
+		if (status === 'complete') return MONOKAI.green;
+		return MONOKAI.pink;
 	};
 
 	const getStatusText = () => {
-		if (status === 'running') return 'Executando...';
-		if (status === 'complete') return 'Conclu?do';
-		return 'Erro';
+		if (status === 'running') return 'RUNNING';
+		if (status === 'complete') return 'DONE';
+		return 'ERROR';
 	};
 
 	// Progress bar
 	const renderProgressBar = () => {
 		if (status !== 'running') return null;
 		const prog = progress || 50;
-		const filled = Math.floor((prog / 100) * 10);
-		const empty = 10 - filled;
+		const filled = Math.floor((prog / 100) * 20);
+		const empty = 20 - filled;
 		return (
 			<Box marginLeft={2} marginTop={1}>
-				<Text color="#C9D1D9">  ? Status: </Text>
-				<Text color="#56D364">{'?'.repeat(filled)}</Text>
-				<Text color="#30363D">{'?'.repeat(empty)}</Text>
-				<Text color="#C9D1D9"> {prog}%</Text>
+				<Text color={MONOKAI.green}>{'='.repeat(filled)}</Text>
+				<Text color={MONOKAI.comment}>{'-'.repeat(empty)}</Text>
+				<Text color={MONOKAI.purple}> {prog}%</Text>
 			</Box>
 		);
 	};
@@ -163,18 +149,18 @@ const QuantumTool: React.FC<{
 	};
 
 	return (
-		<Box flexDirection="column" marginY={1}>
+		<Box borderStyle="round" borderColor={getColor()} paddingX={2} paddingY={1} flexDirection="column" marginY={1}>
 			<Box>
 				<Text color={getColor()} bold>
-					[Tool {getIcon()}: {name.replace('_', ' ').toUpperCase()}]  {getStatusIcon()} {getStatusText()}
+					{getIcon()} {name.replace('_', ' ').toUpperCase()}  {getStatusIcon()} {getStatusText()}
 				</Text>
 			</Box>
 
 			{/* Args */}
 			{Object.entries(args).slice(0, 2).map(([key, value]) => (
-				<Box key={key} marginLeft={2}>
-					<Text color="#C9D1D9">  ? {key}: </Text>
-					<Text color="#A5D6FF">{formatArgValue(value)}</Text>
+				<Box key={key} marginLeft={1} marginTop={0.5}>
+					<Text color={MONOKAI.comment}>  {key}: </Text>
+					<Text color={MONOKAI.purple}>{formatArgValue(value)}</Text>
 				</Box>
 			))}
 
@@ -182,41 +168,36 @@ const QuantumTool: React.FC<{
 			{renderProgressBar()}
 
 			{/* Output lines */}
-			{result && getOutputLines().map((line, idx) => (
-				<Box key={idx} marginLeft={2}>
-					<Text color={status === 'error' ? '#F85149' : '#C9D1D9'}>  {line}</Text>
+			{result && getOutputLines().length > 0 && (
+				<Box flexDirection="column" marginTop={1} borderStyle="single" borderColor={MONOKAI.border} paddingX={1}>
+					{getOutputLines().map((line, idx) => (
+						<Box key={idx}>
+							<Text color={status === 'error' ? MONOKAI.pink : MONOKAI.yellow}>{line}</Text>
+						</Box>
+					))}
 				</Box>
-			))}
+			)}
 
 			{result && result.split('\n').length > 5 && status === 'complete' && (
-				<Box marginLeft={2}>
-					<Text color="#6B7280" dimColor>    ( +{result.split('\n').length - 5} linhas anteriores omitidas )</Text>
+				<Box marginLeft={1} marginTop={0.5}>
+					<Text color={MONOKAI.comment} dimColor>... +{result.split('\n').length - 5} more lines</Text>
 				</Box>
 			)}
 		</Box>
 	);
 };
 
-// ???????????????????????????????????????????????????????????????
-// AI RESPONSE
-// ???????????????????????????????????????????????????????????????
 const AIResponse: React.FC<{ text: string }> = ({ text }) => (
 	<Box flexDirection="column" marginY={1} paddingX={1}>
-		<Text color="#A5D6FF">{text}</Text>
+		<Text color={MONOKAI.blue}>{text}</Text>
 	</Box>
 );
 
-// ???????????????????????????????????????????????????????????????
-// TIMELINE
-// ???????????????????????????????????????????????????????????????
 export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages }) => {
 	if (messages.length === 0) {
 		return (
-			<Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1} paddingY={5}>
-				<Text color="#00C6FF" bold>?</Text>
-				<Box marginTop={1}>
-					<Text color="#6B7280">Quantum Terminal ready. Type your command below.</Text>
-				</Box>
+			<Box flexDirection="column" alignItems="center" justifyContent="center" paddingY={5}>
+				<Text color={MONOKAI.blue} bold>[ READY ]</Text>
 			</Box>
 		);
 	}
@@ -224,18 +205,21 @@ export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages })
 	return (
 		<Box flexDirection="column" paddingX={2} paddingY={1}>
 			{messages.map((msg, idx) => {
+				// Use stable keys to prevent flickering
+				const key = `${msg.role}-${idx}`;
+				
 				if (msg.role === 'user') {
-					return <UserMessage key={idx} text={msg.content} />;
+					return <UserMessage key={key} text={msg.content} />;
 				}
 
 				if (msg.role === 'kanban' && msg.kanban) {
-					return <QuantumKanban key={idx} tasks={msg.kanban} />;
+					return <QuantumKanban key={key} tasks={msg.kanban} />;
 				}
 
 				if (msg.role === 'tool' && msg.toolCall) {
 					return (
 						<QuantumTool
-							key={idx}
+							key={key}
 							name={msg.toolCall.name}
 							args={msg.toolCall.args}
 							status={msg.toolCall.status}
@@ -246,7 +230,7 @@ export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages })
 				}
 
 				if (msg.role === 'assistant') {
-					return <AIResponse key={idx} text={msg.content} />;
+					return <AIResponse key={key} text={msg.content} />;
 				}
 
 				return null;
@@ -255,9 +239,6 @@ export const QuantumTimeline: React.FC<{ messages: Message[] }> = ({ messages })
 	);
 };
 
-// ???????????????????????????????????????????????????????????????
-// INPUT BOX
-// ???????????????????????????????????????????????????????????????
 export const QuantumInput: React.FC<{
 	value: string;
 	onChange: (val: string) => void;
@@ -265,23 +246,15 @@ export const QuantumInput: React.FC<{
 	isProcessing: boolean;
 }> = ({ value, onChange, onSubmit, isProcessing }) => (
 	<Box flexDirection="column">
-		<Box borderStyle="single" borderColor="#30363D" width="100%" paddingX={1}>
-			<Box width="100%" justifyContent="center">
-				<Text color="#6B7280" dimColor>????????????????????????????????????????????????????????????????????????</Text>
-			</Box>
-		</Box>
-		<Box paddingX={2} paddingY={1}>
-			<Text color="#6B7280" dimColor>??  Digite seu comando abaixo...</Text>
-		</Box>
-		<Box borderStyle="round" borderColor="#30363D" paddingX={2} paddingY={1} marginX={2}>
+		<Box borderStyle="round" borderColor={MONOKAI.border} paddingX={2} paddingY={1} marginX={2} marginBottom={1}>
 			{isProcessing ? (
 				<>
-					<Text color="#F0C674"><Spinner type="dots" /></Text>
-					<Text color="#6B7280"> Processando...</Text>
+					<Text color={MONOKAI.orange}><Spinner type="dots" /></Text>
+					<Text color={MONOKAI.comment}> Processing...</Text>
 				</>
 			) : (
 				<>
-					<Text color="#58A6FF" bold>&gt; </Text>
+					<Text color={MONOKAI.pink} bold>&gt; </Text>
 					<TextInput
 						value={value}
 						onChange={onChange}
@@ -290,9 +263,6 @@ export const QuantumInput: React.FC<{
 					/>
 				</>
 			)}
-		</Box>
-		<Box paddingX={2} paddingBottom={1}>
-			<Text color="#6B7280" dimColor>[Enter ? enviar | ?? hist?rico | Ctrl+C sair]</Text>
 		</Box>
 	</Box>
 );

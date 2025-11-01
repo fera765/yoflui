@@ -1,0 +1,7 @@
+{
+  "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "apiKey": "YOUR_DASHSCOPE_API_KEY_HERE",
+  "model": "qwen-plus",
+  "maxVideos": 10,
+  "maxCommentsPerVideo": 100
+}

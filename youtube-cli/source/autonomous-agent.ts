@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
-import { mkdirSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
-import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask } from './tools/index.js';
+import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
+import { saveConversationHistory, loadConversationHistory, type MemoryEntry } from './tools/memory.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -20,33 +21,57 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	// Create work directory
 	mkdirSync(workDir, { recursive: true });
 
-	onProgress?.('?? Analyzing task and creating Kanban...');
+	onProgress?.('[*] Analyzing task and creating Kanban...');
 
 	const config = getConfig();
 	const qwenCreds = loadQwenCredentials();
 	let endpoint = config.endpoint;
 	let apiKey = config.apiKey || 'not-needed';
 
+	// Use Qwen OAuth if available
 	if (qwenCreds?.access_token) {
 		const validToken = await getValidAccessToken();
 		if (validToken) {
 			apiKey = validToken;
-			endpoint = qwenCreds.resource_url?.startsWith('http')
-				? `${qwenCreds.resource_url}/v1`
-				: `https://${qwenCreds.resource_url}/v1`;
+			// Use the resource_url from OAuth response
+			const resourceUrl = qwenCreds.resource_url || 'portal.qwen.ai';
+			endpoint = `https://${resourceUrl}/v1`;
 		}
 	}
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
-	const systemPrompt = `You are an AUTONOMOUS AI AGENT that MUST complete ALL tasks given to you.
+	// Load conversation history
+	const conversationHistory = loadConversationHistory(workDir);
+	
+	// Load saved memories
+	const savedMemories = loadMemories(workDir);
+	const memoryContext = savedMemories.length > 0 
+		? `\n## SAVED MEMORIES:\n${savedMemories.map(m => `- [${m.category}] ${m.content}`).join('\n')}\n`
+		: '';
 
-CRITICAL RULES:
-1. First, analyze the task and create a Kanban board using update_kanban with ALL subtasks
-2. Execute EVERY task one by one using the available tools
-3. After EACH task completion, update the Kanban board (change task status to 'done')
-4. You MUST actually USE the tools to complete tasks - don't just plan, EXECUTE!
-5. When ALL tasks are done, provide a comprehensive final summary
+	// Check if .flui.md exists and load it
+	let fluiContext = '';
+	const fluiPath = join(process.cwd(), '.flui.md');
+	if (existsSync(fluiPath)) {
+		try {
+			fluiContext = readFileSync(fluiPath, 'utf-8');
+			onProgress?.('[+] Loaded .flui.md context');
+		} catch (error) {
+			// Ignore errors loading .flui.md
+		}
+	}
+
+	if (savedMemories.length > 0) {
+		onProgress?.(`[+] Loaded ${savedMemories.length} saved memories`);
+	}
+
+	if (conversationHistory.length > 0) {
+		onProgress?.(`[+] Loaded ${conversationHistory.length} previous messages`);
+	}
+
+	const systemPrompt = `You are an AUTONOMOUS AI AGENT that helps users complete tasks efficiently.
+${fluiContext ? `\n## PROJECT CONTEXT FROM .flui.md:\n${fluiContext}\n` : ''}${memoryContext}
 
 Work directory: ${workDir}
 
@@ -58,26 +83,46 @@ Available tools:
 - find_files: Find files by pattern
 - search_text: Search text in files
 - read_folder: List directory contents
-- update_kanban: Update task board
+- update_kanban: Update task board (ONLY use for multi-step tasks with 3+ steps)
 - web_fetch: Fetch URLs
+- search_youtube_comments: Search YouTube videos and extract comments
+- save_memory: Save important context/learnings for future reference
 
-IMPORTANT: You must ACTUALLY complete all tasks using the tools. Don't just update the kanban without doing the work!
+TASK CLASSIFICATION:
+- **Simple task (1-2 steps)**: Just execute the tool(s) and respond. NO Kanban needed.
+  Example: "Read file X" ? Use read_file and respond
+  Example: "Create hello.txt" ? Use write_file and respond
 
-Example workflow:
-1. User: "Create hello.js and test.js"
-2. You: update_kanban with tasks ["Create hello.js", "Create test.js"]
-3. You: write_file to create hello.js with actual code
-4. You: update_kanban marking "Create hello.js" as done
-5. You: write_file to create test.js with actual test code
-6. You: update_kanban marking "Create test.js" as done
-7. You: Return summary of what was created
+- **Complex task (3+ steps)**: Create Kanban, execute tasks, update Kanban as you progress.
+  Example: "Create 3 files with tests" ? Use update_kanban first, then execute
+  Example: "Build a web app" ? Use update_kanban to track multiple steps
 
-BE AUTONOMOUS. COMPLETE ALL TASKS. USE THE TOOLS.`;
+WORKFLOW:
+1. Analyze if task requires multiple steps (3+)
+2. If YES: Create Kanban ? Execute tools ? Update Kanban ? Respond
+3. If NO: Execute tool(s) directly ? Respond (no Kanban)
 
+IMPORTANT: 
+- Use Kanban ONLY for genuinely complex tasks
+- Always ACTUALLY execute the tools to complete tasks
+- Provide clear, concise responses about what was done`;
+
+	// Build messages with history
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{ role: 'system', content: systemPrompt },
-		{ role: 'user', content: userMessage },
 	];
+
+	// Add conversation history (last 10 messages to keep context manageable)
+	const recentHistory = conversationHistory.slice(-10);
+	for (const entry of recentHistory) {
+		messages.push({
+			role: entry.role,
+			content: entry.content,
+		});
+	}
+
+	// Add current user message
+	messages.push({ role: 'user', content: userMessage });
 
 	let iterations = 0;
 	const maxIterations = 15;
@@ -109,9 +154,27 @@ BE AUTONOMOUS. COMPLETE ALL TASKS. USE THE TOOLS.`;
 				const toolName = func.name;
 				const args = JSON.parse(func.arguments);
 
-				onProgress?.(`?? Executing: ${toolName}`);
+				// Notify UI that tool execution started
+				onToolExecute?.(toolName, args);
 
-				const result = await executeToolCall(toolName, args, workDir);
+				let result: string;
+				let hasError = false;
+
+				try {
+					result = await executeToolCall(toolName, args, workDir);
+					
+					// Special handling for kanban updates
+					if (toolName === 'update_kanban') {
+						const kanban = loadKanban(workDir);
+						onKanbanUpdate?.(kanban);
+					}
+				} catch (error) {
+					result = error instanceof Error ? error.message : String(error);
+					hasError = true;
+				}
+
+				// Notify UI that tool execution completed
+				onToolComplete?.(toolName, args, result, hasError);
 
 				messages.push({
 					role: 'tool',
@@ -124,6 +187,23 @@ BE AUTONOMOUS. COMPLETE ALL TASKS. USE THE TOOLS.`;
 
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
+			// Save conversation to history
+			const newEntries: MemoryEntry[] = [
+				...conversationHistory,
+				{
+					timestamp: Date.now(),
+					role: 'user',
+					content: userMessage,
+				},
+				{
+					timestamp: Date.now(),
+					role: 'assistant',
+					content: assistantMsg.content,
+				},
+			];
+			
+			saveConversationHistory(`session-${Date.now()}`, newEntries, workDir);
+			
 			return assistantMsg.content;
 		}
 

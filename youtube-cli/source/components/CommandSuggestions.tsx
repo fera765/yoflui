@@ -8,6 +8,7 @@ interface Props {
 
 export const CommandSuggestions: React.FC<Props> = ({ onSelect }) => {
 	const commands = [
+		{ label: '??  /tools - List all available tools', value: '/tools' },
 		{ label: '??  /config - Configure scraping settings', value: '/config' },
 		{ label: '?? /llm - Configure LLM authentication', value: '/llm' },
 		{ label: '?? /exit - Exit application', value: '/exit' },

@@ -16,6 +16,9 @@ if (promptIndex !== -1 && args[promptIndex + 1]) {
 	const prompt = args[promptIndex + 1];
 	runNonInteractive(prompt);
 } else {
+	// Clear terminal before starting interactive mode
+	console.clear();
+	
 	// Interactive mode - load config.json if exists
 	try {
 		const configPath = join(process.cwd(), 'config.json');

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Box, useInput, Text } from 'ink';
-import { QuantumHeader, QuantumTimeline, QuantumInput, type Message } from './components/QuantumTerminal.js';
+import { QuantumTimeline, QuantumInput, type Message } from './components/QuantumTerminal.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
+import { ToolsScreen } from './components/ToolsScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
 import { join } from 'path';
 
-type Screen = 'chat' | 'auth' | 'config';
+type Screen = 'chat' | 'auth' | 'config' | 'tools';
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
@@ -39,6 +40,8 @@ export default function App() {
 			setScreen('auth');
 		} else if (command === '/config') {
 			setScreen('config');
+		} else if (command === '/tools') {
+			setScreen('tools');
 		} else if (command === '/exit') {
 			process.exit(0);
 		}
@@ -60,6 +63,10 @@ export default function App() {
 			setScreen('config');
 			return;
 		}
+		if (msg === '/tools') {
+			setScreen('tools');
+			return;
+		}
 		if (msg === '/exit') {
 			process.exit(0);
 			return;
@@ -77,7 +84,7 @@ export default function App() {
 				userMessage: msg,
 				workDir,
 				onProgress: (progress) => {
-					console.log(`[AGENT] ${progress}`);
+					// Silent in interactive mode - visual feedback via timeline
 				},
 				onKanbanUpdate: (tasks) => {
 					setMessages(prev => {
@@ -172,14 +179,13 @@ export default function App() {
 		);
 	}
 
-	return (
-		<Box flexDirection="column" height="100%">
-			<QuantumHeader
-				model={config.model}
-				count={messages.filter(m => m.role === 'user').length}
-			/>
+	if (screen === 'tools') {
+		return <ToolsScreen onClose={() => setScreen('chat')} />;
+	}
 
-			<Box flexGrow={1} flexDirection="column">
+	return (
+		<Box flexDirection="column" minHeight={0}>
+			<Box flexDirection="column" flexGrow={1} minHeight={0}>
 				<QuantumTimeline messages={messages} />
 			</Box>
 
@@ -189,12 +195,14 @@ export default function App() {
 				</Box>
 			)}
 
-			<QuantumInput
-				value={inputValue}
-				onChange={handleInputChange}
-				onSubmit={handleSubmit}
-				isProcessing={isProcessing}
-			/>
+			<Box flexShrink={0}>
+				<QuantumInput
+					value={inputValue}
+					onChange={handleInputChange}
+					onSubmit={handleSubmit}
+					isProcessing={isProcessing}
+				/>
+			</Box>
 		</Box>
 	);
 }
