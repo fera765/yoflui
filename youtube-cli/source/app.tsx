@@ -17,8 +17,21 @@ export default function App() {
 	const [inputValue, setInputValue] = useState('');
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
+	
+	// Prote??o contra m?ltiplas chamadas simult?neas
+	const submittingRef = React.useRef(false);
 
 	const config = getConfig();
+	
+	// Debug: Log quando messages mudar
+	React.useEffect(() => {
+		if (process.env.DEBUG_MESSAGES === 'true') {
+			console.error(`[DEBUG] Messages array changed. Length: ${messages.length}`);
+			messages.forEach((msg, idx) => {
+				console.error(`[DEBUG]   [${idx}] ${msg.role}: ${msg.content?.substring(0, 40) || '(no content)'} | ID: ${msg.id || 'no-id'}`);
+			});
+		}
+	}, [messages]);
 
 	useInput((input, key) => {
 		if (key.escape && inputValue.length > 0) {
@@ -55,8 +68,22 @@ export default function App() {
 
 	const handleSubmit = async () => {
 		if (!inputValue.trim() || isProcessing) return;
+		
+		// Prote??o contra m?ltiplas chamadas simult?neas
+		if (submittingRef.current) {
+			console.error('[HANDLE_SUBMIT] ??  BLOQUEADO - J? est? processando outra mensagem');
+			return;
+		}
+		
+		submittingRef.current = true;
 
 		const msg = inputValue.trim();
+		console.error(`\n\n${'='.repeat(80)}`);
+		console.error(`[HANDLE_SUBMIT CALLED] Message: "${msg}"`);
+		console.error(`[HANDLE_SUBMIT] Current messages length: ${messages.length}`);
+		console.error(`[HANDLE_SUBMIT] Is processing: ${isProcessing}`);
+		console.error('='.repeat(80) + '\n');
+		
 		setInputValue('');
 		setShowCommandSuggestions(false);
 
@@ -92,7 +119,16 @@ export default function App() {
 		// Add user message to timeline (only if not a command)
 		// Use unique ID to prevent React key conflicts
 		const userMessageId = `user-${Date.now()}-${Math.random()}`;
-		setMessages(prev => [...prev, { role: 'user', content: msg, id: userMessageId }]);
+		if (process.env.DEBUG_MESSAGES === 'true') {
+			console.error(`[DEBUG] handleSubmit: Adding user message with ID: ${userMessageId}`);
+			console.error(`[DEBUG] handleSubmit: Message content: "${msg}"`);
+		}
+		setMessages(prev => {
+			if (process.env.DEBUG_MESSAGES === 'true') {
+				console.error(`[DEBUG] setMessages (user): prev.length = ${prev.length}`);
+			}
+			return [...prev, { role: 'user', content: msg, id: userMessageId }];
+		});
 		setIsProcessing(true);
 
 		try {
@@ -106,24 +142,37 @@ export default function App() {
 					// Silent in interactive mode - visual feedback via timeline
 				},
 				onKanbanUpdate: (tasks) => {
+					if (process.env.DEBUG_MESSAGES === 'true') {
+						console.error(`[DEBUG] onKanbanUpdate called`);
+					}
 					setMessages(prev => {
-						// Remove previous kanban and add new one
 						const filtered = prev.filter(m => m.role !== 'kanban');
 						const kanbanId = `kanban-${Date.now()}`;
+						if (process.env.DEBUG_MESSAGES === 'true') {
+							console.error(`[DEBUG] setMessages (kanban): filtered.length = ${filtered.length}, adding kanban with ID: ${kanbanId}`);
+						}
 						return [...filtered, { role: 'kanban', content: '', kanban: tasks, id: kanbanId }];
 					});
 				},
 				onToolExecute: (toolName, args) => {
 					const toolId = `tool-${toolName}-${Date.now()}-${Math.random()}`;
-					setMessages(prev => [
-						...prev,
-						{
-							role: 'tool',
-							content: '',
-							toolCall: { name: toolName, args, status: 'running' },
-							id: toolId,
-						},
-					]);
+					if (process.env.DEBUG_MESSAGES === 'true') {
+						console.error(`[DEBUG] onToolExecute: ${toolName}, ID: ${toolId}`);
+					}
+					setMessages(prev => {
+						if (process.env.DEBUG_MESSAGES === 'true') {
+							console.error(`[DEBUG] setMessages (tool): prev.length = ${prev.length}`);
+						}
+						return [
+							...prev,
+							{
+								role: 'tool',
+								content: '',
+								toolCall: { name: toolName, args, status: 'running' },
+								id: toolId,
+							},
+						];
+					});
 				},
 				onToolComplete: (toolName, args, result, error) => {
 					setMessages(prev => {
@@ -154,7 +203,15 @@ export default function App() {
 			});
 
 			const assistantMessageId = `assistant-${Date.now()}-${Math.random()}`;
-			setMessages(prev => [...prev, { role: 'assistant', content: response, id: assistantMessageId }]);
+			if (process.env.DEBUG_MESSAGES === 'true') {
+				console.error(`[DEBUG] Adding assistant response with ID: ${assistantMessageId}`);
+			}
+			setMessages(prev => {
+				if (process.env.DEBUG_MESSAGES === 'true') {
+					console.error(`[DEBUG] setMessages (assistant): prev.length = ${prev.length}`);
+				}
+				return [...prev, { role: 'assistant', content: response, id: assistantMessageId }];
+			});
 		} catch (error) {
 			const errorMessageId = `assistant-error-${Date.now()}`;
 			setMessages(prev => [
@@ -167,6 +224,7 @@ export default function App() {
 			]);
 		} finally {
 			setIsProcessing(false);
+			submittingRef.current = false;  // Liberar prote??o
 		}
 	};
 
