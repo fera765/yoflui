@@ -65,7 +65,6 @@ export default function App() {
 		if (key.escape) {
 			setInput('');
 			setCmds(false);
-			setShowAutomations(false);
 		}
 	});
 	
@@ -216,7 +215,77 @@ export default function App() {
 			});
 			setBusy(false);
 		}
-	}, [addMessage, executeLLMCoordinatedAutomation]);
+	}, []);
+	
+	const executeLLMCoordinatedAutomation = useCallback(async (
+		automation: any, 
+		workDir: string, 
+		webhookData?: any
+	) => {
+		setBusy(true);
+		
+		addMessage({
+			id: generateId('assistant'),
+			role: 'assistant',
+			content: `?? Executing automation: ${automation.metadata.name}...\n${automation.metadata.description}`
+		});
+		
+		// Create new LLM coordinator
+		llmCoordinator = new LLMAutomationCoordinator();
+		
+		const result = await llmCoordinator.executeAutomation({
+			automation,
+			workDir,
+			webhookData,
+			onStepExecute: (stepInfo) => {
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: `??  ${stepInfo}`
+				});
+			},
+			onStepComplete: (stepInfo, result) => {
+				addMessage({
+					id: generateId('tool'),
+					role: 'tool',
+					content: '',
+					toolCall: {
+						name: stepInfo,
+						args: {},
+						status: 'complete',
+						result: result.substring(0, 500)
+					}
+				});
+			},
+			onProgress: (message) => {
+				if (message && message.trim()) {
+					addMessage({
+						id: generateId('assistant'),
+						role: 'assistant',
+						content: message
+					});
+				}
+			}
+		});
+		
+		addMessage({
+			id: generateId('assistant'),
+			role: 'assistant',
+			content: `? Automation completed!\n\n${result}`
+		});
+		
+		setBusy(false);
+	}, [addMessage]);
+	
+	const addMessage = useCallback((msg: ChatMessage) => {
+		setMsgs(prev => {
+			const updated = [...prev, msg];
+			if (updated.length > MAX_MESSAGES_IN_MEMORY) {
+				return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
+			}
+			return updated;
+		});
+	}, []);
 	
 	const submitMsg = useCallback(async () => {
 		if (!input.trim() || busy) return;
@@ -230,7 +299,6 @@ export default function App() {
 		
 		setInput('');
 		setCmds(false);
-		setShowAutomations(false);
 		
 		const userMsgId = generateId('user');
 		addMessage({ id: userMsgId, role: 'user', content: txt });
@@ -240,26 +308,56 @@ export default function App() {
 		try {
 			const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
 			
-			// If LLM coordinator exists (from previous automation), continue conversation
-			if (llmCoordinator) {
-				const reply = await llmCoordinator.continueConversation(txt);
+			// ?? Check if message matches an automation
+			const automation = automationManager.findAutomation(txt);
+			
+			if (automation) {
+				// Execute automation
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: `?? Executing automation: ${automation.metadata.name}...`
+				});
+				
+				const result = await automationManager.executeAutomation(automation, {
+					workDir,
+					onProgress: (step, stepResult) => {
+						if (step.type === 'log' && stepResult.result) {
+							addMessage({
+								id: generateId('assistant'),
+								role: 'assistant',
+								content: String(stepResult.result)
+							});
+						}
+					},
+					onStepComplete: (step, stepResult) => {
+						if (step.type === 'tool') {
+							addMessage({
+								id: generateId('tool'),
+								role: 'tool',
+								content: '',
+								toolCall: {
+									name: step.toolName || 'tool',
+									args: step.toolArgs || {},
+									status: stepResult.success ? 'complete' : 'error',
+									result: stepResult.result || stepResult.error
+								}
+							});
+						}
+					}
+				});
+				
+				const finalMsg = result.success
+					? `? Automation completed successfully in ${(result.duration / 1000).toFixed(1)}s`
+					: `? Automation failed: ${result.finalState.errors[0]?.message || 'Unknown error'}`;
 				
 				addMessage({
 					id: generateId('assistant'),
 					role: 'assistant',
-					content: reply
+					content: finalMsg
 				});
 				
 				setBusy(false);
-				return;
-			}
-			
-			// Check if message matches an automation trigger
-			const automation = automationManager.findAutomation(txt);
-			
-			if (automation) {
-				// Execute automation coordinated by LLM
-				await executeLLMCoordinatedAutomation(automation, workDir);
 				return;
 			}
 			
@@ -325,7 +423,7 @@ export default function App() {
 		} finally {
 			setBusy(false);
 		}
-	}, [input, busy, selectCmd, addMessage, executeLLMCoordinatedAutomation]);
+	}, [input, busy, selectCmd, addMessage]);
 	
 	const onAuthComplete = useCallback((mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
 		setConfig({ endpoint, apiKey, model });
