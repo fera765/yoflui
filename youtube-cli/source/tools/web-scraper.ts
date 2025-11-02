@@ -496,13 +496,12 @@ async function createFetchWithProxy(
 	const urlObj = new URL(url);
 	const domain = urlObj.hostname.toLowerCase();
 	if (establishSessionFirst && (domain.includes('stackoverflow.com') || domain.includes('reddit.com'))) {
-		// Use faster timeout for navigation simulation
-		const originalTimeout = TIMEOUT_CONFIG.HTTP_REQUEST;
-		TIMEOUT_CONFIG.HTTP_REQUEST = 20000; // 20 seconds for navigation
+		// Use extended timeout for navigation simulation
+		const extendedTimeout = 20000; // 20 seconds for navigation
 		try {
 			await simulateCompleteNavigation(url, headers);
-		} finally {
-			TIMEOUT_CONFIG.HTTP_REQUEST = originalTimeout;
+		} catch {
+			// Continue anyway
 		}
 	} else if (establishSessionFirst && strategy === 'stealth') {
 		await establishAdvancedSession(url, headers);

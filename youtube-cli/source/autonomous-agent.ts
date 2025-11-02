@@ -117,7 +117,7 @@ Available tools:
 - search_text: Search text in files
 - read_folder: List directory contents
 - update_kanban: Update task board (ONLY use for multi-step tasks with 3+ steps)
-- web_fetch: Fetch URLs
+- web_scraper: Scrape web pages with advanced anti-detection
 - search_youtube_comments: Search YouTube videos and extract comments
 - save_memory: Save important context/learnings for future reference
 

@@ -7,7 +7,6 @@ export * from './find-files.js';
 export * from './search-text.js';
 export * from './read-folder.js';
 export * from './kanban.js';
-export * from './web-fetch.js';
 export * from './web-search.js';
 export * from './web-scraper.js';
 export * from './memory.js';
@@ -36,7 +35,6 @@ import { findFilesToolDefinition, executeFindFilesTool } from './find-files.js';
 import { searchTextToolDefinition, executeSearchTextTool } from './search-text.js';
 import { readFolderToolDefinition, executeReadFolderTool } from './read-folder.js';
 import { kanbanToolDefinition, executeKanbanTool, type KanbanTask } from './kanban.js';
-import { webFetchToolDefinition, executeWebFetchTool } from './web-fetch.js';
 import { webSearchToolDefinition, executeWebSearchTool } from './web-search.js';
 import { webScraperToolDefinition, executeWebScraperTool } from './web-scraper.js';
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
@@ -56,7 +54,6 @@ export function getAllToolDefinitions() {
 		searchTextToolDefinition,
 		readFolderToolDefinition,
 		kanbanToolDefinition,
-		webFetchToolDefinition,
 		webSearchToolDefinition,
 		webScraperToolDefinition,
 		youtubeToolDefinition,
@@ -113,12 +110,10 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeReadFolderTool(args.path);
 		case 'update_kanban':
 			return executeKanbanTool(args.tasks, workDir);
-		case 'web_fetch':
-			return executeWebFetchTool(args.url);
-		case 'web_search':
-			return executeWebSearchTool(args.query, args.engine || 'duckduckgo', args.maxResults || 100);
 		case 'web_scraper':
 			return executeWebScraperTool(args.url);
+		case 'web_search':
+			return executeWebSearchTool(args.query, args.engine || 'duckduckgo', args.maxResults || 100);
 		case 'search_youtube_comments': {
 			const result = await executeYouTubeTool(args.query);
 			if (!result.success) {

@@ -590,26 +590,26 @@ function parseBingResults(html: string, maxResults: number = 100): SearchResult[
 		
 		if (title && url && url.startsWith('http')) {
 			// Decode HTML entities
-			const decodeHtml = (str: string) => {
-				return str
-					.replace(/&amp;/g, '&')
-					.replace(/&lt;/g, '<')
-					.replace(/&gt;/g, '>')
-					.replace(/&quot;/g, '"')
-					.replace(/&#39;/g, "'")
-					.replace(/&nbsp;/g, ' ')
-					.replace(/&amp;#[0-9]+;/g, '');
-			};
-			
-			url = decodeHtml(url);
-			title = decodeHtml(title);
-			description = decodeHtml(description);
-			
-			results.push({
-				title: title.substring(0, 200),
-				description: description.substring(0, 500),
-				url: url.substring(0, 500),
-			});
+	const decodeHtml = (str: string) => {
+		return str
+			.replace(/&amp;/g, '&')
+			.replace(/&lt;/g, '<')
+			.replace(/&gt;/g, '>')
+			.replace(/&quot;/g, '"')
+			.replace(/&#39;/g, "'")
+			.replace(/&nbsp;/g, ' ')
+			.replace(/&amp;#[0-9]+;/g, '');
+	};
+	
+	const decodedUrl = decodeHtml(url);
+	const decodedTitle = decodeHtml(title);
+	const decodedDescription = decodeHtml(description);
+	
+	results.push({
+		title: decodedTitle.substring(0, 200),
+		description: decodedDescription.substring(0, 500),
+		url: decodedUrl.substring(0, 500),
+	});
 		}
 	}
 	
