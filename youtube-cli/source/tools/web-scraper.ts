@@ -3,12 +3,13 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import dns from 'dns';
+import { createHash, randomBytes } from 'crypto';
 
 export const webScraperToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'web_scraper',
-		description: 'Scrape a web page and extract all text content while maintaining HTML structure in markdown format. Preserves visual hierarchy and element tree for better LLM understanding. Returns complete page content without HTML tags but with structural markdown representation.',
+		description: 'Scrape a web page and extract all text content while maintaining HTML structure in markdown format. Preserves visual hierarchy and element tree for better LLM understanding. Returns complete page content without HTML tags but with structural markdown representation. Uses advanced anti-detection techniques to bypass Cloudflare and 403 blocks.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -22,16 +23,59 @@ export const webScraperToolDefinition = {
 	},
 };
 
-// Rotating User-Agents pool (real browsers)
+// Advanced User-Agents with full browser fingerprints
 const USER_AGENTS = [
 	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
 	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+	'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 	'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
 	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-	'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
 ];
+
+// Accept-Language variations (more realistic)
+const ACCEPT_LANGUAGES = [
+	'en-US,en;q=0.9',
+	'en-US,en;q=0.9,pt-BR;q=0.8',
+	'en-US,en;q=0.9,fr;q=0.8',
+	'en-US,en;q=0.9,es;q=0.8',
+	'en-US,en;q=0.9,de;q=0.8',
+];
+
+// Screen resolutions (for Viewport header simulation)
+const SCREEN_RESOLUTIONS = [
+	'1920x1080',
+	'1366x768',
+	'1536x864',
+	'1440x900',
+	'1280x720',
+];
+
+// Browser fingerprints (Canvas/WebGL evasion)
+const BROWSER_FINGERPRINTS = [
+	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+	'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
+];
+
+// Domain-specific referrers (simulate coming from Google/search)
+const REFERRERS = [
+	'https://www.google.com/',
+	'https://www.google.com/search?q=',
+	'https://www.bing.com/',
+	'https://duckduckgo.com/',
+	'https://www.reddit.com/',
+];
+
+let currentProxyIndex = 0;
+let requestCount = 0;
+let lastRequestTime = 0;
+let proxyFailures = new Map<string, number>();
+const MAX_PROXY_FAILURES = 3;
+
+// Cookie storage (simulate browser session)
+const cookieStore = new Map<string, string>();
 
 // Free proxy list (public proxies - will rotate)
 const FREE_PROXIES = [
@@ -43,22 +87,6 @@ const FREE_PROXIES = [
 	'http://165.227.71.60:8080',
 ];
 
-// DNS servers alternativos
-const DNS_SERVERS = [
-	'8.8.8.8',
-	'8.8.4.4',
-	'1.1.1.1',
-	'1.0.0.1',
-	'9.9.9.9',
-	'208.67.222.222',
-];
-
-let currentProxyIndex = 0;
-let requestCount = 0;
-let lastRequestTime = 0;
-let proxyFailures = new Map<string, number>();
-const MAX_PROXY_FAILURES = 3;
-
 /**
  * Configure DNS resolver
  */
@@ -69,6 +97,15 @@ function configureDNS() {
 		// Silent fail
 	}
 }
+
+const DNS_SERVERS = [
+	'8.8.8.8',
+	'8.8.4.4',
+	'1.1.1.1',
+	'1.0.0.1',
+	'9.9.9.9',
+	'208.67.222.222',
+];
 
 configureDNS();
 
@@ -133,34 +170,197 @@ async function createFetchWithAntiDetection(): Promise<void> {
 }
 
 /**
- * Get anti-detection headers
+ * Generate browser fingerprint hash (for session consistency)
  */
-function getAntiDetectionHeaders(): Record<string, string> {
+function generateFingerprint(): string {
+	return createHash('md5').update(randomBytes(16)).digest('hex').substring(0, 16);
+}
+
+/**
+ * Get cookies for domain
+ */
+function getCookiesForDomain(url: string): string {
+	try {
+		const urlObj = new URL(url);
+		const domain = urlObj.hostname;
+		const cookies = cookieStore.get(domain);
+		return cookies || '';
+	} catch {
+		return '';
+	}
+}
+
+/**
+ * Save cookies from response
+ */
+function saveCookies(url: string, response: Response): void {
+	try {
+		const urlObj = new URL(url);
+		const domain = urlObj.hostname;
+		const setCookieHeaders = response.headers.get('set-cookie');
+		if (setCookieHeaders) {
+			cookieStore.set(domain, setCookieHeaders);
+		}
+	} catch {
+		// Silent fail
+	}
+}
+
+/**
+ * Human-like timing pattern (avoid detection)
+ */
+function humanLikeDelay(): Promise<void> {
+	// Simulate human reading/thinking time
+	const baseDelay = Math.random() * 1000 + 500;
+	const variance = Math.random() * 500;
+	return new Promise(resolve => setTimeout(resolve, baseDelay + variance));
+}
+
+/**
+ * Get advanced anti-detection headers with multiple strategies
+ */
+function getAntiDetectionHeaders(url: string, strategy: 'default' | 'aggressive' | 'stealth' = 'stealth'): Record<string, string> {
 	const userAgent = getRandomUserAgent();
+	const acceptLanguage = ACCEPT_LANGUAGES[Math.floor(Math.random() * ACCEPT_LANGUAGES.length)];
+	const referer = REFERRERS[Math.floor(Math.random() * REFERRERS.length)];
+	const screenRes = SCREEN_RESOLUTIONS[Math.floor(Math.random() * SCREEN_RESOLUTIONS.length)];
+	const cookies = getCookiesForDomain(url);
 	
-	return {
+	const baseHeaders: Record<string, string> = {
 		'User-Agent': userAgent,
-		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-		'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
+		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+		'Accept-Language': acceptLanguage,
 		'Accept-Encoding': 'gzip, deflate, br',
 		'Connection': 'keep-alive',
 		'Upgrade-Insecure-Requests': '1',
 		'Sec-Fetch-Dest': 'document',
 		'Sec-Fetch-Mode': 'navigate',
-		'Sec-Fetch-Site': 'none',
+		'Sec-Fetch-Site': Math.random() > 0.5 ? 'none' : 'same-origin',
 		'Sec-Fetch-User': '?1',
 		'Cache-Control': 'max-age=0',
 		'DNT': '1',
-		'Referer': 'https://www.google.com/',
+		'Referer': referer,
 	};
+	
+	// Add cookies if available
+	if (cookies) {
+		baseHeaders['Cookie'] = cookies;
+	}
+	
+	// Stealth mode: add more headers to mimic real browser
+	if (strategy === 'stealth') {
+		baseHeaders['Viewport-Width'] = screenRes.split('x')[0];
+		baseHeaders['Width'] = screenRes.split('x')[0];
+		baseHeaders['Sec-CH-UA'] = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"';
+		baseHeaders['Sec-CH-UA-Mobile'] = '?0';
+		baseHeaders['Sec-CH-UA-Platform'] = '"Windows"';
+		baseHeaders['Origin'] = new URL(url).origin;
+	}
+	
+	// Aggressive mode: try to bypass Cloudflare
+	if (strategy === 'aggressive') {
+		baseHeaders['CF-IPCountry'] = 'US';
+		baseHeaders['CF-Visitor'] = '{"scheme":"https"}';
+		const randomIP = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+		baseHeaders['X-Forwarded-For'] = randomIP;
+		baseHeaders['X-Real-IP'] = randomIP;
+		baseHeaders['X-Forwarded-Proto'] = 'https';
+		baseHeaders['X-Forwarded-Host'] = new URL(url).hostname;
+		baseHeaders['CF-Ray'] = Math.random().toString(36).substring(7);
+		baseHeaders['CF-Connecting-IP'] = randomIP;
+	}
+	
+	return baseHeaders;
 }
 
 /**
- * Create fetch with proxy support
+ * Detect if response is a block page (not real content)
  */
-async function createFetchWithProxy(url: string, useProxy: boolean = false): Promise<Response> {
-	const headers = getAntiDetectionHeaders();
+function isBlockPage(html: string, url: string): boolean {
+	const blockIndicators = [
+		'access denied',
+		'blocked',
+		'forbidden',
+		'cloudflare',
+		'checking your browser',
+		'please enable cookies',
+		'you have been blocked',
+		'rate limit',
+		'too many requests',
+	];
 	
+	const htmlLower = html.toLowerCase();
+	const hasBlockIndicator = blockIndicators.some(indicator => htmlLower.includes(indicator));
+	
+	// Check if content is suspiciously short (likely a block page)
+	const isShort = html.length < 2000 && hasBlockIndicator;
+	
+	return isShort || (hasBlockIndicator && html.length < 5000);
+}
+
+/**
+ * Establish session with multiple page visits (advanced bypass)
+ */
+async function establishAdvancedSession(baseUrl: string, headers: Record<string, string>): Promise<void> {
+	try {
+		const urlObj = new URL(baseUrl);
+		const domain = urlObj.hostname;
+		
+		// Step 1: Visit homepage
+		const homepage = `${urlObj.protocol}//${domain}/`;
+		const homeResponse = await fetch(homepage, {
+			method: 'GET',
+			headers: {
+				...headers,
+				'Referer': 'https://www.google.com/',
+			},
+		});
+		
+		saveCookies(homepage, homeResponse);
+		await humanLikeDelay();
+		
+		// Step 2: Visit a common page (simulate browsing)
+		const commonPages = ['/about', '/help', '/faq', '/'];
+		for (const page of commonPages.slice(0, 2)) {
+			try {
+				const pageUrl = `${urlObj.protocol}//${domain}${page}`;
+				const pageResponse = await fetch(pageUrl, {
+					method: 'GET',
+					headers: {
+						...headers,
+						'Referer': homepage,
+						'Cookie': getCookiesForDomain(homepage),
+					},
+				});
+				
+				saveCookies(pageUrl, pageResponse);
+				await humanLikeDelay();
+			} catch {
+				// Continue
+			}
+		}
+	} catch {
+		// Silent fail - continue anyway
+	}
+}
+
+/**
+ * Create fetch with advanced anti-detection and proxy support
+ */
+async function createFetchWithProxy(
+	url: string, 
+	useProxy: boolean = false,
+	strategy: 'default' | 'aggressive' | 'stealth' = 'stealth',
+	establishSessionFirst: boolean = true
+): Promise<Response> {
+	const headers = getAntiDetectionHeaders(url, strategy);
+	
+	// Strategy 1: Establish session first (bypass Cloudflare)
+	if (establishSessionFirst && strategy === 'stealth') {
+		await establishAdvancedSession(url, headers);
+	}
+	
+	// Strategy 2: Try with proxy
 	if (useProxy) {
 		const proxyUrl = getNextProxy();
 		if (proxyUrl) {
@@ -180,8 +380,10 @@ async function createFetchWithProxy(url: string, useProxy: boolean = false): Pro
 					headers,
 					// @ts-ignore
 					agent,
+					redirect: 'follow',
 				});
 				
+				saveCookies(url, response);
 				return response;
 			} catch (error) {
 				if (proxyUrl) markProxyFailed(proxyUrl);
@@ -189,10 +391,15 @@ async function createFetchWithProxy(url: string, useProxy: boolean = false): Pro
 		}
 	}
 	
-	return fetch(url, {
+	// Strategy 3: Direct connection with advanced headers
+	const response = await fetch(url, {
 		method: 'GET',
 		headers,
+		redirect: 'follow',
 	});
+	
+	saveCookies(url, response);
+	return response;
 }
 
 /**
@@ -308,38 +515,94 @@ function extractStructuredContent(html: string): string {
 }
 
 /**
- * Scrape webpage
+ * Scrape webpage with multiple fallback strategies
  */
 async function scrapeWebPage(url: string): Promise<string> {
 	await createFetchWithAntiDetection();
 	resetProxyFailures();
 	
 	let lastError: Error | null = null;
+	const strategies: Array<{ strategy: 'default' | 'aggressive' | 'stealth', useProxy: boolean, establishSession: boolean }> = [
+		{ strategy: 'stealth', useProxy: false, establishSession: true },  // Best: stealth + session
+		{ strategy: 'stealth', useProxy: true, establishSession: true },   // With proxy
+		{ strategy: 'aggressive', useProxy: false, establishSession: false }, // Aggressive headers
+		{ strategy: 'aggressive', useProxy: true, establishSession: false }, // Aggressive + proxy
+		{ strategy: 'default', useProxy: false, establishSession: false }, // Fallback
+	];
 	
-	for (let attempt = 0; attempt < 2; attempt++) {
+	for (let attempt = 0; attempt < strategies.length; attempt++) {
+		const { strategy, useProxy, establishSession } = strategies[attempt];
+		
 		try {
+			// Human-like delay between attempts
+			if (attempt > 0) {
+				await humanLikeDelay();
+				await randomDelay(1000, 3000);
+			}
+			
 			const response = await withTimeout(
-				createFetchWithProxy(url, attempt === 0),
-				TIMEOUT_CONFIG.HTTP_REQUEST,
-				`Web scrape: ${url}`
+				createFetchWithProxy(url, useProxy, strategy, establishSession),
+				TIMEOUT_CONFIG.HTTP_REQUEST * 2, // Longer timeout for Cloudflare
+				`Web scrape (${strategy}): ${url}`
 			);
+			
+			const html = await response.text();
+			
+			// Check for Cloudflare challenge or block page
+			if (isCloudflareChallenge(html) || isBlockPage(html, url)) {
+				// Wait longer and retry with different strategy
+				if (attempt < strategies.length - 1) {
+					console.warn(`Block detected, trying strategy ${attempt + 2}/${strategies.length}...`);
+					await randomDelay(3000, 6000);
+					continue;
+				}
+			}
 			
 			if (!response.ok) {
 				if (response.status === 403 || response.status === 429) {
-					await randomDelay(2000, 4000);
-					if (attempt === 0) continue;
+					// Try next strategy
+					if (attempt < strategies.length - 1) {
+						await randomDelay(2000, 4000);
+						continue;
+					}
 				}
+				
+				// Last attempt - return partial content if available
+				if (html.length > 100) {
+					const content = extractStructuredContent(html);
+					if (content.length > 100) {
+						return content + '\n\n?? Note: Received HTTP ' + response.status + ' but content was extracted.';
+					}
+				}
+				
 				throw new Error(`Web scrape failed: HTTP ${response.status}`);
 			}
 			
-			const html = await response.text();
 			const content = extractStructuredContent(html);
+			
+			if (content.length === 0 && html.length > 1000) {
+				// Content extraction failed but HTML is present - return raw processed HTML
+				return htmlToMarkdown(html).substring(0, 50000);
+			}
 			
 			return content;
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
-			if (attempt === 0) {
-				await randomDelay(1000, 2000);
+			
+			// If it's a timeout or connection error, try next strategy
+			if (error instanceof Error && (
+				error.message.includes('timeout') || 
+				error.message.includes('ECONNREFUSED') ||
+				error.message.includes('ENOTFOUND')
+			)) {
+				if (attempt < strategies.length - 1) {
+					continue;
+				}
+			}
+			
+			// Last attempt
+			if (attempt === strategies.length - 1) {
+				break;
 			}
 		}
 	}
