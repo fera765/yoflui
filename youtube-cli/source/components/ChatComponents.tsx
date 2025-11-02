@@ -1,16 +1,8 @@
-/**
- * ChatComponents.tsx - IMPLEMENTA??O LIMPA E SIMPLES
- * 
- * Componentes ultra-simples sem complexidade desnecess?ria
- * Foco em: estabilidade, sem duplica??o, sem re-renders
- */
-
 import React from 'react';
 import { Box, Text } from 'ink';
 import TextInput from 'ink-text-input';
-import Spinner from 'ink-spinner';
+import { ToolBox } from './ToolBox.js';
 
-// Tipos
 export interface ChatMessage {
 	id: string;
 	role: 'user' | 'assistant' | 'tool' | 'kanban';
@@ -28,7 +20,6 @@ export interface ChatMessage {
 	}>;
 }
 
-// Componente de mensagem do usu?rio - Ultra simples
 export const UserMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => (
 	<Box marginY={1}>
 		<Text color="cyan" bold>&gt; </Text>
@@ -36,47 +27,18 @@ export const UserMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => (
 	</Box>
 ));
 
-// Componente de resposta do assistente - Ultra simples
 export const AssistantMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => (
 	<Box marginY={1} paddingLeft={2}>
 		<Text color="green">{msg.content}</Text>
 	</Box>
 ));
 
-// Componente de ferramenta - Ultra simples
 export const ToolMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
 	if (!msg.toolCall) return null;
 	
-	const { name, status, result } = msg.toolCall;
-	const isRunning = status === 'running';
-	
-	return (
-		<Box marginY={1} flexDirection="column">
-			<Box>
-				{isRunning ? (
-					<>
-						<Text color="yellow"><Spinner type="dots" /></Text>
-						<Text color="yellow"> {name}</Text>
-					</>
-				) : (
-					<>
-						<Text color={status === 'error' ? 'red' : 'green'}>
-							{status === 'error' ? '[ERR]' : '[OK]'}
-						</Text>
-						<Text color="gray"> {name}</Text>
-					</>
-				)}
-			</Box>
-			{result && (
-				<Box paddingLeft={2}>
-					<Text color="gray" dimColor>{result.substring(0, 80)}</Text>
-				</Box>
-			)}
-		</Box>
-	);
+	return <ToolBox name={msg.toolCall.name} args={msg.toolCall.args} status={msg.toolCall.status} result={msg.toolCall.result} />;
 });
 
-// Componente Kanban - Ultra simples
 export const KanbanMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
 	if (!msg.kanban) return null;
 	
@@ -96,7 +58,6 @@ export const KanbanMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) =>
 	);
 });
 
-// Timeline - EXTREMAMENTE SIMPLES
 export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
 	if (messages.length === 0) {
 		return (
@@ -122,7 +83,6 @@ export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = ({ messages }
 	);
 };
 
-// Input - EXTREMAMENTE SIMPLES - Width ajustado para 98%
 export const ChatInput: React.FC<{
 	value: string;
 	onChange: (val: string) => void;
