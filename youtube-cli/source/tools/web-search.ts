@@ -16,7 +16,7 @@ export const webSearchToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'web_search',
-		description: 'Search the web using Google. Returns results with title, description, and URL. Uses Puppeteer to render JavaScript and extract results.',
+		description: 'Search the web using Google. Returns results with title, description, and URL. Uses Puppeteer with proxy support to render JavaScript and extract results.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -37,23 +37,84 @@ export const webSearchToolDefinition = {
 	},
 };
 
+// Free proxy list (public proxies - will rotate)
+const FREE_PROXIES = [
+	'http://103.149.162.194:80',
+	'http://45.79.159.226:8080',
+	'http://138.68.60.8:8080',
+	'http://51.159.24.172:3169',
+	'http://47.74.152.29:8888',
+	'http://165.227.71.60:8080',
+];
+
+let currentProxyIndex = 0;
+let requestCount = 0;
+let proxyFailures = new Map<string, number>();
+const MAX_PROXY_FAILURES = 3;
+
 // Keep browser instance for reuse
 let browserInstance: any = null;
 
 /**
- * Get or create browser instance
+ * Get next proxy (rotate, skip failed ones)
  */
-async function getBrowser() {
+function getNextProxy(): string | null {
+	if (FREE_PROXIES.length === 0) return null;
+	
+	// Remove proxies with too many failures
+	const availableProxies = FREE_PROXIES.filter(proxy => {
+		const failures = proxyFailures.get(proxy) || 0;
+		return failures < MAX_PROXY_FAILURES;
+	});
+	
+	if (availableProxies.length === 0) {
+		// Reset failures if all proxies failed
+		proxyFailures.clear();
+		return FREE_PROXIES[0];
+	}
+	
+	currentProxyIndex = (currentProxyIndex + 1) % availableProxies.length;
+	return availableProxies[currentProxyIndex];
+}
+
+/**
+ * Mark proxy as failed
+ */
+function markProxyFailed(proxy: string): void {
+	const failures = proxyFailures.get(proxy) || 0;
+	proxyFailures.set(proxy, failures + 1);
+}
+
+/**
+ * Random delay between requests (anti-detection)
+ */
+function randomDelay(min: number = 500, max: number = 2000): Promise<void> {
+	const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+	return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+/**
+ * Get or create browser instance with proxy support
+ */
+async function getBrowser(proxyUrl?: string | null): Promise<any> {
 	if (!browserInstance) {
-		browserInstance = await puppeteer.launch({
+		const launchOptions: any = {
 			headless: true,
 			args: [
 				'--no-sandbox',
 				'--disable-setuid-sandbox',
 				'--disable-dev-shm-usage',
 				'--disable-blink-features=AutomationControlled',
+				'--disable-features=IsolateOrigins,site-per-process',
 			],
-		});
+		};
+		
+		// Add proxy if provided
+		if (proxyUrl) {
+			launchOptions.args.push(`--proxy-server=${proxyUrl}`);
+		}
+		
+		browserInstance = await puppeteer.launch(launchOptions);
 	}
 	return browserInstance;
 }
@@ -82,7 +143,10 @@ function parseGoogleResults(html: string, maxResults: number = 10): SearchResult
 			if (!title || title.length < 3) continue;
 			
 			// Skip navigation/header h3s
-			if (title.toLowerCase().includes('google') || title.toLowerCase().includes('search')) {
+			const titleLower = title.toLowerCase();
+			if (titleLower.includes('google') || titleLower.includes('search') || 
+			    titleLower.includes('sign in') || titleLower.includes('menu') ||
+			    titleLower.includes('images') || titleLower.includes('videos')) {
 				continue;
 			}
 			
@@ -92,7 +156,11 @@ function parseGoogleResults(html: string, maxResults: number = 10): SearchResult
 			// Pattern 1: /url?q= (Google redirect URLs)
 			const urlQMatch = context.match(/href="\/url\?q=([^&"]+)"/i);
 			if (urlQMatch) {
-				url = decodeURIComponent(urlQMatch[1]);
+				try {
+					url = decodeURIComponent(urlQMatch[1]);
+				} catch (e) {
+					url = urlQMatch[1];
+				}
 			}
 			
 			// Pattern 2: Direct http/https URLs
@@ -109,7 +177,11 @@ function parseGoogleResults(html: string, maxResults: number = 10): SearchResult
 				if (dataVedMatch) {
 					const potentialUrl = dataVedMatch[1];
 					if (potentialUrl.startsWith('/url?q=')) {
-						url = decodeURIComponent(potentialUrl.split('q=')[1]?.split('&')[0] || '');
+						try {
+							url = decodeURIComponent(potentialUrl.split('q=')[1]?.split('&')[0] || '');
+						} catch (e) {
+							url = potentialUrl.split('q=')[1]?.split('&')[0] || '';
+						}
 					} else if (potentialUrl.startsWith('http')) {
 						url = potentialUrl;
 					}
@@ -160,61 +232,115 @@ function parseGoogleResults(html: string, maxResults: number = 10): SearchResult
 }
 
 /**
- * Search Google using Puppeteer (renders JavaScript)
+ * Search Google using Puppeteer with proxy support
  */
 async function searchGoogle(query: string, maxResults: number = 10): Promise<SearchResult[]> {
 	let browser: any = null;
 	let page: any = null;
 	
-	try {
-		browser = await getBrowser();
-		page = await browser.newPage();
-		
-		// Set realistic viewport
-		await page.setViewport({ width: 1920, height: 1080 });
-		
-		// Set user agent
-		await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-		
-		// Navigate to Google search
-		const encodedQuery = encodeURIComponent(query);
-		const url = `https://www.google.com/search?q=${encodedQuery}&num=${Math.min(maxResults, 20)}&hl=en`;
-		
-		await page.goto(url, { 
-			waitUntil: 'networkidle2',
-			timeout: 30000 
-		});
-		
-		// Wait for results to load
-		await page.waitForSelector('h3', { timeout: 10000 }).catch(() => {
-			// If h3 not found, try waiting a bit more
-		});
-		
-		// Get HTML content
-		const html = await page.content();
-		
-		// Parse results
-		const results = parseGoogleResults(html, maxResults);
-		
-		// Close page
-		await page.close();
-		
-		return results;
-		
-	} catch (error) {
-		if (page) {
-			try {
-				await page.close();
-			} catch (e) {
-				// Ignore
+	// Try with proxy first, then fallback to direct
+	for (let attempt = 0; attempt < 3; attempt++) {
+		try {
+			const useProxy = attempt < 2;
+			const proxyUrl = useProxy ? getNextProxy() : null;
+			
+			if (useProxy && proxyUrl) {
+				console.log(`Attempt ${attempt + 1}: Using proxy ${proxyUrl}`);
+			} else {
+				console.log(`Attempt ${attempt + 1}: Using direct connection`);
+			}
+			
+			// Close previous browser if exists
+			if (browserInstance) {
+				try {
+					await browserInstance.close();
+				} catch (e) {
+					// Ignore
+				}
+				browserInstance = null;
+			}
+			
+			browser = await getBrowser(proxyUrl);
+			page = await browser.newPage();
+			
+			// Set realistic viewport
+			await page.setViewport({ width: 1920, height: 1080 });
+			
+			// Set user agent
+			await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+			
+			// Set extra headers
+			await page.setExtraHTTPHeaders({
+				'Accept-Language': 'en-US,en;q=0.9',
+				'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+			});
+			
+			// Navigate to Google search
+			const encodedQuery = encodeURIComponent(query);
+			const url = `https://www.google.com/search?q=${encodedQuery}&num=${Math.min(maxResults, 20)}&hl=en`;
+			
+			await page.goto(url, { 
+				waitUntil: 'networkidle2',
+				timeout: 30000 
+			});
+			
+			// Wait for results to load
+			await page.waitForSelector('h3', { timeout: 10000 }).catch(() => {
+				// If h3 not found, wait a bit more
+				return new Promise(resolve => setTimeout(resolve, 2000));
+			});
+			
+			// Get HTML content
+			const html = await page.content();
+			
+			// Close page
+			await page.close();
+			page = null;
+			
+			// Parse results
+			const results = parseGoogleResults(html, maxResults);
+			
+			if (results.length > 0) {
+				requestCount++;
+				console.log(`? Successfully extracted ${results.length} results`);
+				return results;
+			}
+			
+			// If no results, try again
+			if (attempt < 2) {
+				await randomDelay(1000, 2000);
+				continue;
+			}
+			
+			return [];
+			
+		} catch (error) {
+			if (page) {
+				try {
+					await page.close();
+				} catch (e) {
+					// Ignore
+				}
+			}
+			
+			if (attempt < 2) {
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				console.warn(`Attempt ${attempt + 1} failed: ${errorMsg}`);
+				if (useProxy && proxyUrl) {
+					markProxyFailed(proxyUrl);
+				}
+				await randomDelay(1000, 2000);
+			} else {
+				throw error;
 			}
 		}
-		throw error;
 	}
+	
+	return [];
 }
 
 /**
- * Execute web search tool - Google only with Puppeteer
+ * Execute web search tool - Google only with Puppeteer and proxy
  */
 export async function executeWebSearchTool(
 	query: string,
@@ -223,6 +349,9 @@ export async function executeWebSearchTool(
 	try {
 		// Validate maxResults
 		const limit = Math.min(Math.max(1, maxResults), 20);
+		
+		// Add random delay (anti-detection)
+		await randomDelay(300, 1200);
 		
 		const results = await withTimeout(
 			searchGoogle(query, limit),
