@@ -29,17 +29,17 @@ const parseEditDiff = (result: string) => {
 		}
 	}
 	
-	return { diffLines, totalAdded, totalRemoved, totalLines: lineNum - 1 };
+	return { diffLines, totalAdded, totalRemoved };
 };
 
-export const ToolBox: React.FC<ToolBoxProps> = ({ name, args, status, result }) => {
+export const ToolBox: React.FC<ToolBoxProps> = React.memo(({ name, args, status, result }) => {
 	const [frame, setFrame] = useState(0);
 	
 	useEffect(() => {
 		if (status === 'running') {
 			const interval = setInterval(() => {
 				setFrame(prev => (prev + 1) % SPINNER_FRAMES.length);
-			}, 80);
+			}, 100);
 			return () => clearInterval(interval);
 		}
 	}, [status]);
@@ -55,16 +55,16 @@ export const ToolBox: React.FC<ToolBoxProps> = ({ name, args, status, result }) 
 	let totalLinesInfo = '';
 	
 	if (result && isEdit) {
-		const { diffLines, totalAdded, totalRemoved, totalLines } = parseEditDiff(result);
+		const { diffLines, totalAdded, totalRemoved } = parseEditDiff(result);
 		const visibleLines = diffLines.slice(0, 16);
 		const hasMore = diffLines.length > 16;
 		
 		if (totalAdded > 0 && totalRemoved > 0) {
-			totalLinesInfo = `+${totalAdded}/-${totalRemoved} linhas`;
+			totalLinesInfo = `+${totalAdded}/-${totalRemoved}`;
 		} else if (totalAdded > 0) {
-			totalLinesInfo = `+${totalAdded} linhas`;
+			totalLinesInfo = `+${totalAdded}`;
 		} else if (totalRemoved > 0) {
-			totalLinesInfo = `-${totalRemoved} linhas`;
+			totalLinesInfo = `-${totalRemoved}`;
 		}
 		
 		displayContent = visibleLines.map(l => {
@@ -100,21 +100,13 @@ export const ToolBox: React.FC<ToolBoxProps> = ({ name, args, status, result }) 
 							const isRemove = line.includes(' - ');
 							const color = isAdd ? 'green' : isRemove ? 'red' : 'white';
 							
-							return (
-								<Text key={idx} color={color}>
-									{line}
-								</Text>
-							);
+							return <Text key={idx} color={color}>{line}</Text>;
 						}
 						
-						return (
-							<Text key={idx} color="white">
-								{line}
-							</Text>
-						);
+						return <Text key={idx} color="white">{line}</Text>;
 					})}
 				</Box>
 			)}
 		</Box>
 	);
-};
+});

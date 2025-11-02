@@ -1,12 +1,5 @@
-/**
- * App.tsx - REESCRITO ULTRA-SIMPLES
- * 
- * Zero complexidade, zero bugs
- * Foco: funcionar perfeitamente
- */
-
-import React, { useState } from 'react';
-import { Box, useInput } from 'ink';
+import React, { useState, useCallback, useMemo } from 'react';
+import { Box, useInput, useStdout, Static } from 'ink';
 import { ChatTimeline, ChatInput, type ChatMessage } from './components/ChatComponents.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
@@ -28,9 +21,9 @@ export default function App() {
 	const [busy, setBusy] = useState(false);
 	const [cmds, setCmds] = useState(false);
 	
+	const { stdout } = useStdout();
 	const cfg = getConfig();
 	
-	// ESC para limpar
 	useInput((_, key) => {
 		if (key.escape) {
 			setInput('');
@@ -38,14 +31,12 @@ export default function App() {
 		}
 	});
 	
-	// Mudar input
-	const changeInput = (val: string) => {
+	const changeInput = useCallback((val: string) => {
 		setInput(val);
 		setCmds(val === '/');
-	};
+	}, []);
 	
-	// Selecionar comando
-	const selectCmd = (cmd: string) => {
+	const selectCmd = useCallback((cmd: string) => {
 		setInput('');
 		setCmds(false);
 		
@@ -53,25 +44,21 @@ export default function App() {
 		else if (cmd === '/config') setScreen('config');
 		else if (cmd === '/tools') setScreen('tools');
 		else if (cmd === '/exit') process.exit(0);
-	};
+	}, []);
 	
-	// Enviar mensagem
-	const submitMsg = async () => {
+	const submitMsg = useCallback(async () => {
 		if (!input.trim() || busy) return;
 		
 		const txt = input.trim();
 		
-		// Comando?
 		if (txt.startsWith('/') && txt.split(' ').length === 1) {
 			selectCmd(txt);
 			return;
 		}
 		
-		// Limpar input IMEDIATAMENTE
 		setInput('');
 		setCmds(false);
 		
-		// Adicionar msg do usu?rio
 		const userMsgId = generateId('user');
 		setMsgs(prev => [...prev, { id: userMsgId, role: 'user', content: txt }]);
 		
@@ -122,7 +109,6 @@ export default function App() {
 				}
 			});
 			
-			// Adicionar resposta
 			setMsgs(prev => [...prev, {
 				id: generateId('assistant'),
 				role: 'assistant',
@@ -138,16 +124,22 @@ export default function App() {
 		} finally {
 			setBusy(false);
 		}
-	};
+	}, [input, busy, selectCmd]);
 	
-	// Telas
+	const onAuthComplete = useCallback((mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
+		setConfig({ endpoint, apiKey, model });
+		setScreen('chat');
+	}, []);
+	
+	const onConfigSave = useCallback((maxVideos: number, maxCommentsPerVideo: number) => {
+		setConfig({ maxVideos, maxCommentsPerVideo });
+		setScreen('chat');
+	}, []);
+	
 	if (screen === 'auth') {
 		return (
 			<NewAuthScreen
-				onComplete={(mode, endpoint, apiKey, model) => {
-					setConfig({ endpoint, apiKey, model });
-					setScreen('chat');
-				}}
+				onComplete={onAuthComplete}
 				onCancel={() => setScreen('chat')}
 				currentMode="custom"
 				currentEndpoint={cfg.endpoint}
@@ -160,10 +152,7 @@ export default function App() {
 	if (screen === 'config') {
 		return (
 			<ConfigScreen
-				onSave={(maxVideos, maxCommentsPerVideo) => {
-					setConfig({ maxVideos, maxCommentsPerVideo });
-					setScreen('chat');
-				}}
+				onSave={onConfigSave}
 				onCancel={() => setScreen('chat')}
 				currentMaxVideos={cfg.maxVideos}
 				currentMaxComments={cfg.maxCommentsPerVideo}
@@ -175,11 +164,32 @@ export default function App() {
 		return <ToolsScreen onClose={() => setScreen('chat')} />;
 	}
 	
-	// Chat
+	const terminalHeight = stdout?.rows || 24;
+	const maxVisibleMessages = terminalHeight - 6;
+	
+	const visibleMessages = useMemo(() => {
+		if (msgs.length <= maxVisibleMessages) {
+			return msgs;
+		}
+		return msgs.slice(msgs.length - maxVisibleMessages);
+	}, [msgs, maxVisibleMessages]);
+	
+	const oldMessages = useMemo(() => {
+		if (msgs.length <= maxVisibleMessages) {
+			return [];
+		}
+		return msgs.slice(0, msgs.length - maxVisibleMessages);
+	}, [msgs, maxVisibleMessages]);
+	
 	return (
-		<Box flexDirection="column" minHeight={0}>
-			<Box flexGrow={1} minHeight={0}>
-				<ChatTimeline messages={msgs} />
+		<Box flexDirection="column" height={terminalHeight}>
+			<Box flexDirection="column" flexGrow={1} overflow="hidden">
+				{oldMessages.length > 0 && (
+					<Static items={oldMessages}>
+						{() => null}
+					</Static>
+				)}
+				<ChatTimeline messages={visibleMessages} />
 			</Box>
 			
 			{cmds && (

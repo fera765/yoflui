@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
 import TextInput from 'ink-text-input';
 import { ToolBox } from './ToolBox.js';
@@ -58,7 +58,7 @@ export const KanbanMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) =>
 	);
 });
 
-export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
+export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = React.memo(({ messages }) => {
 	if (messages.length === 0) {
 		return (
 			<Box paddingY={5} justifyContent="center">
@@ -70,25 +70,23 @@ export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = ({ messages }
 	return (
 		<Box flexDirection="column" paddingX={2} paddingY={1}>
 			{messages.map(msg => {
-				const key = msg.id;
-				
-				if (msg.role === 'user') return <UserMsg key={key} msg={msg} />;
-				if (msg.role === 'assistant') return <AssistantMsg key={key} msg={msg} />;
-				if (msg.role === 'tool') return <ToolMsg key={key} msg={msg} />;
-				if (msg.role === 'kanban') return <KanbanMsg key={key} msg={msg} />;
+				if (msg.role === 'user') return <UserMsg key={msg.id} msg={msg} />;
+				if (msg.role === 'assistant') return <AssistantMsg key={msg.id} msg={msg} />;
+				if (msg.role === 'tool') return <ToolMsg key={msg.id} msg={msg} />;
+				if (msg.role === 'kanban') return <KanbanMsg key={msg.id} msg={msg} />;
 				
 				return null;
 			})}
 		</Box>
 	);
-};
+});
 
 export const ChatInput: React.FC<{
 	value: string;
 	onChange: (val: string) => void;
 	onSubmit: () => void;
 	disabled: boolean;
-}> = ({ value, onChange, onSubmit, disabled }) => {
+}> = React.memo(({ value, onChange, onSubmit, disabled }) => {
 	return (
 		<Box width="98%" borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginX={1} marginBottom={1}>
 			{disabled ? (
@@ -106,4 +104,4 @@ export const ChatInput: React.FC<{
 			)}
 		</Box>
 	);
-};
+});
