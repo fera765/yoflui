@@ -5,11 +5,13 @@ import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
 import { ToolsScreen } from './components/ToolsScreen.js';
+import { MCPScreen } from './components/MCPScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
+import { mcpManager } from './mcp/mcp-manager.js';
 import { join } from 'path';
 
-type Screen = 'chat' | 'auth' | 'config' | 'tools';
+type Screen = 'chat' | 'auth' | 'config' | 'tools' | 'mcp';
 
 const MAX_MESSAGES_IN_MEMORY = 500;
 
@@ -22,9 +24,17 @@ export default function App() {
 	const [input, setInput] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [cmds, setCmds] = useState(false);
+	const [mcpInitialized, setMcpInitialized] = useState(false);
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
+	
+	React.useEffect(() => {
+		if (!mcpInitialized) {
+			mcpManager.startAllMCPs().catch(console.error);
+			setMcpInitialized(true);
+		}
+	}, [mcpInitialized]);
 	
 	useInput((_, key) => {
 		if (screen !== 'chat') return;
@@ -47,6 +57,7 @@ export default function App() {
 		if (cmd === '/llm') setScreen('auth');
 		else if (cmd === '/config') setScreen('config');
 		else if (cmd === '/tools') setScreen('tools');
+		else if (cmd === '/mcp') setScreen('mcp');
 		else if (cmd === '/exit') process.exit(0);
 	}, []);
 	
@@ -180,6 +191,10 @@ export default function App() {
 	
 	if (screen === 'tools') {
 		return <ToolsScreen onClose={() => setScreen('chat')} />;
+	}
+	
+	if (screen === 'mcp') {
+		return <MCPScreen onClose={() => setScreen('chat')} />;
 	}
 	
 	return (

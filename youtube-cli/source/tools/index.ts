@@ -34,25 +34,38 @@ import { webFetchToolDefinition, executeWebFetchTool } from './web-fetch.js';
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 import { memoryToolDefinition, executeSaveMemoryTool, loadMemories } from './memory.js';
 import { delegateAgentToolDefinition, executeDelegateAgent } from './agent.js';
+import { getMCPToolDefinitions, executeMCPTool, isMCPTool } from '../mcp/mcp-tools-adapter.js';
 
-export const ALL_TOOL_DEFINITIONS = [
-	editToolDefinition,
-	readFileToolDefinition,
-	writeFileToolDefinition,
-	shellToolDefinition,
-	shellInputToolDefinition,
-	shellStatusToolDefinition,
-	findFilesToolDefinition,
-	searchTextToolDefinition,
-	readFolderToolDefinition,
-	kanbanToolDefinition,
-	webFetchToolDefinition,
-	youtubeToolDefinition,
-	memoryToolDefinition,
-	delegateAgentToolDefinition,
-];
+export function getAllToolDefinitions() {
+	const baseTools = [
+		editToolDefinition,
+		readFileToolDefinition,
+		writeFileToolDefinition,
+		shellToolDefinition,
+		shellInputToolDefinition,
+		shellStatusToolDefinition,
+		findFilesToolDefinition,
+		searchTextToolDefinition,
+		readFolderToolDefinition,
+		kanbanToolDefinition,
+		webFetchToolDefinition,
+		youtubeToolDefinition,
+		memoryToolDefinition,
+		delegateAgentToolDefinition,
+	];
+
+	const mcpTools = getMCPToolDefinitions();
+	
+	return [...baseTools, ...mcpTools];
+}
+
+export const ALL_TOOL_DEFINITIONS = getAllToolDefinitions();
 
 export async function executeToolCall(toolName: string, args: any, workDir: string): Promise<string> {
+	if (isMCPTool(toolName)) {
+		return executeMCPTool(toolName, args);
+	}
+
 	switch (toolName) {
 		case 'edit_file':
 			return executeEditTool(args.file_path, args.old_string, args.new_string);

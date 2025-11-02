@@ -3,7 +3,7 @@ import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
-import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
+import { getAllToolDefinitions, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
 import { saveConversationHistory, loadConversationHistory, type MemoryEntry } from './tools/memory.js';
 import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversation } from './context-manager.js';
 
@@ -121,7 +121,7 @@ CRITICAL: Greetings = NO tools, Simple = tools only, Complex = Kanban`;
 		const response = await openai.chat.completions.create({
 			model: config.model,
 			messages,
-			tools: ALL_TOOL_DEFINITIONS,
+			tools: getAllToolDefinitions(),
 			tool_choice: 'auto',
 		});
 
