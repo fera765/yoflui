@@ -118,6 +118,7 @@ Available tools:
 - read_folder: List directory contents
 - update_kanban: Update task board (ONLY use for multi-step tasks with 3+ steps)
 - web_scraper: Scrape web pages with advanced anti-detection
+- keyword_suggestions: Extract trending search keyword suggestions from Google, DuckDuckGo, and Bing
 - search_youtube_comments: Search YouTube videos and extract comments
 - save_memory: Save important context/learnings for future reference
 

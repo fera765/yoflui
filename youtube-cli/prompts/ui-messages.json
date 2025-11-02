@@ -76,6 +76,7 @@
     "read_folder": "?? Listing directory",
     "update_kanban": "?? Updating task board",
     "web_scraper": "?? Scraping web page",
+    "keyword_suggestions": "?? Extracting keyword suggestions",
     "search_youtube_comments": "?? Searching YouTube",
     "save_memory": "?? Saving memory",
     "create_agent": "?? Creating agent",
