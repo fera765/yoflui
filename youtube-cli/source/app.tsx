@@ -22,7 +22,6 @@ export default function App() {
 	const [input, setInput] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [cmds, setCmds] = useState(false);
-	const [scrollOffset, setScrollOffset] = useState(0);
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
@@ -30,16 +29,7 @@ export default function App() {
 	const terminalHeight = stdout?.rows || 24;
 	const INPUT_HEIGHT = 4;
 	const COMMANDS_HEIGHT = cmds ? 10 : 0;
-	const SCROLL_INDICATOR_HEIGHT = 1;
-	const availableHeight = Math.max(5, terminalHeight - INPUT_HEIGHT - COMMANDS_HEIGHT - SCROLL_INDICATOR_HEIGHT);
-	
-	useEffect(() => {
-		setScrollOffset(0);
-	}, [msgs.length]);
-	
-	useEffect(() => {
-		setScrollOffset(0);
-	}, [terminalHeight]);
+	const availableHeight = Math.max(5, terminalHeight - INPUT_HEIGHT - COMMANDS_HEIGHT);
 	
 	useInput((_, key) => {
 		if (screen !== 'chat') return;
@@ -47,25 +37,6 @@ export default function App() {
 		if (key.escape) {
 			setInput('');
 			setCmds(false);
-			return;
-		}
-		
-		if (cmds) return;
-		
-		if (key.upArrow) {
-			setScrollOffset(prev => {
-				const maxOffset = Math.max(0, msgs.length - availableHeight);
-				return Math.min(prev + 1, maxOffset);
-			});
-		} else if (key.downArrow) {
-			setScrollOffset(prev => Math.max(0, prev - 1));
-		} else if (key.pageUp) {
-			setScrollOffset(prev => {
-				const maxOffset = Math.max(0, msgs.length - availableHeight);
-				return Math.min(prev + Math.floor(availableHeight / 2), maxOffset);
-			});
-		} else if (key.pageDown) {
-			setScrollOffset(prev => Math.max(0, prev - Math.floor(availableHeight / 2)));
 		}
 	});
 	
@@ -195,14 +166,8 @@ export default function App() {
 			return msgs;
 		}
 		
-		const start = Math.max(0, msgs.length - availableHeight - scrollOffset);
-		const end = msgs.length - scrollOffset;
-		
-		return msgs.slice(start, end);
-	}, [msgs, availableHeight, scrollOffset]);
-	
-	const hasMoreAbove = msgs.length > availableHeight && scrollOffset < msgs.length - availableHeight;
-	const hasMoreBelow = scrollOffset > 0;
+		return msgs.slice(msgs.length - availableHeight);
+	}, [msgs, availableHeight]);
 	
 	if (screen === 'auth') {
 		return (
@@ -237,20 +202,6 @@ export default function App() {
 			<Box flexDirection="column" flexGrow={1} overflow="hidden">
 				<ChatTimeline messages={visibleMessages} />
 			</Box>
-			
-			{(hasMoreAbove || hasMoreBelow) && !cmds && (
-				<Box justifyContent="center" paddingX={2}>
-					{hasMoreAbove && hasMoreBelow && (
-						<Text color="gray" dimColor>? Scroll para ver mais | {scrollOffset} ocultas abaixo ?</Text>
-					)}
-					{hasMoreAbove && !hasMoreBelow && (
-						<Text color="gray" dimColor>? Scroll para cima para ver mais antigas</Text>
-					)}
-					{!hasMoreAbove && hasMoreBelow && (
-						<Text color="yellow">? {scrollOffset} novas mensagens abaixo</Text>
-					)}
-				</Box>
-			)}
 			
 			{cmds && (
 				<Box paddingX={2} paddingBottom={1}>
