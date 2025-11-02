@@ -73,6 +73,12 @@ export default function App() {
 		setInput(val);
 		setCmds(val === '/');
 		setShowAutomations(val === '@');
+		
+		// If user clears to just "@", don't let it submit as a message
+		if (val === '@') {
+			// Keep showing automations, don't submit
+			return;
+		}
 	}, []);
 	
 	const selectCmd = useCallback((cmd: string) => {
@@ -171,29 +177,50 @@ export default function App() {
 			return;
 		}
 		
+		// Add user message (automation selection)
 		const userMsgId = generateId('user');
 		addMessage({ id: userMsgId, role: 'user', content: `@${automationItem.name}` });
-		
-		setBusy(true);
 		
 		try {
 			const workDir = join(process.cwd(), 'work', `automation-${Date.now()}`);
 			
 			// Check if this is a webhook automation
 			if (webhookTriggerHandler.hasWebhookConfig(automation)) {
-				// Setup webhook and show info
+				// For webhook: ONLY setup, DO NOT execute yet
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: `?? Setting up webhook for: ${automation.metadata.name}`
+				});
+				
 				const webhookInfo = await webhookTriggerHandler.setupWebhook(
 					automation as any,
 					async (webhookData) => {
-						// Webhook triggered!
-						addMessage({
-							id: generateId('assistant'),
-							role: 'assistant',
-							content: `?? Webhook triggered for: ${automation.metadata.name}`
-						});
+						// Wait if busy
+						if (busy) {
+							addMessage({
+								id: generateId('assistant'),
+								role: 'assistant',
+								content: `? Webhook received. Waiting for current operation...`
+							});
+							const waitInterval = setInterval(() => {
+								if (!busy) {
+									clearInterval(waitInterval);
+									executeWebhook();
+								}
+							}, 500);
+						} else {
+							executeWebhook();
+						}
 						
-						// Execute automation with LLM coordination
-						await executeLLMCoordinatedAutomation(automation, workDir, webhookData);
+						async function executeWebhook() {
+							addMessage({
+								id: generateId('assistant'),
+								role: 'assistant',
+								content: `?? Webhook triggered for: ${automation.metadata.name}`
+							});
+							await executeLLMCoordinatedAutomation(automation, workDir, webhookData);
+						}
 					}
 				);
 				
@@ -202,10 +229,10 @@ export default function App() {
 					role: 'assistant',
 					content: webhookInfo.message
 				});
-				
-				setBusy(false);
+				// User can continue chatting - NOT busy
 			} else {
-				// Execute automation with LLM coordination
+				// Non-webhook: execute immediately
+				setBusy(true);
 				await executeLLMCoordinatedAutomation(automation, workDir);
 			}
 		} catch (err) {
@@ -216,7 +243,8 @@ export default function App() {
 			});
 			setBusy(false);
 		}
-	}, [addMessage, executeLLMCoordinatedAutomation]);
+	}, [addMessage, executeLLMCoordinatedAutomation, busy]);
+
 	
 	const submitMsg = useCallback(async () => {
 		if (!input.trim() || busy) return;
