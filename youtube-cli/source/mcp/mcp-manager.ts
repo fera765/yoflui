@@ -30,7 +30,7 @@ export class MCPManager {
 				const data = readFileSync(this.configPath, 'utf-8');
 				return JSON.parse(data);
 			} catch (error) {
-				console.error('Failed to load MCP config:', error);
+				// Config load failed, use defaults
 			}
 		}
 		return { mcps: [] };
@@ -44,7 +44,7 @@ export class MCPManager {
 			}
 			writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
 		} catch (error) {
-			console.error('Failed to save MCP config:', error);
+			// Config save failed
 		}
 	}
 
@@ -113,7 +113,7 @@ export class MCPManager {
 				this.activeMCPs.set(mcp.packageName, mcpId);
 				mcp.lastUsed = Date.now();
 			} catch (error) {
-				console.error(`Failed to start MCP ${mcp.packageName}:`, error);
+				// MCP failed to start, skip
 			}
 		}
 		this.saveConfig();

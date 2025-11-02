@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, useStdout } from 'ink';
 
 interface ToolBoxProps {
 	name: string;
@@ -9,6 +9,7 @@ interface ToolBoxProps {
 }
 
 const SPINNER_FRAMES = ['|', '/', '-', '\\'];
+const MAX_VISIBLE_LINES = 10;
 
 const parseEditDiff = (result: string) => {
 	const lines = result.split('\n');
@@ -32,8 +33,43 @@ const parseEditDiff = (result: string) => {
 	return { diffLines, totalAdded, totalRemoved };
 };
 
+const truncateToVisibleLines = (text: string, terminalWidth: number): { truncated: string; hiddenCount: number } => {
+	const lines = text.split('\n');
+	let visibleLineCount = 0;
+	const resultLines: string[] = [];
+	
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		const lineLength = line.length;
+		const wrappedLines = Math.ceil(lineLength / Math.max(terminalWidth - 10, 40));
+		
+		if (visibleLineCount + wrappedLines > MAX_VISIBLE_LINES) {
+			const hiddenCount = lines.length - i;
+			return { truncated: resultLines.join('\n'), hiddenCount };
+		}
+		
+		resultLines.push(line);
+		visibleLineCount += wrappedLines;
+	}
+	
+	return { truncated: resultLines.join('\n'), hiddenCount: 0 };
+};
+
+const truncateJSON = (text: string, maxChars: number = 2000): string => {
+	if (text.length <= maxChars) return text;
+	
+	try {
+		const parsed = JSON.parse(text);
+		return JSON.stringify(parsed, null, 2).substring(0, maxChars) + '\n... [truncado]';
+	} catch {
+		return text.substring(0, maxChars) + '\n... [truncado]';
+	}
+};
+
 export const ToolBox: React.FC<ToolBoxProps> = React.memo(({ name, args, status, result }) => {
 	const [frame, setFrame] = useState(0);
+	const { stdout } = useStdout();
+	const terminalWidth = stdout?.columns || 80;
 	
 	useEffect(() => {
 		if (status === 'running') {
@@ -53,11 +89,12 @@ export const ToolBox: React.FC<ToolBoxProps> = React.memo(({ name, args, status,
 	
 	let displayContent = '';
 	let totalLinesInfo = '';
+	let hiddenLinesCount = 0;
 	
 	if (result && isEdit) {
 		const { diffLines, totalAdded, totalRemoved } = parseEditDiff(result);
-		const visibleLines = diffLines.slice(0, 16);
-		const hasMore = diffLines.length > 16;
+		const visibleLines = diffLines.slice(0, MAX_VISIBLE_LINES);
+		const hasMore = diffLines.length > MAX_VISIBLE_LINES;
 		
 		if (totalAdded > 0 && totalRemoved > 0) {
 			totalLinesInfo = `+${totalAdded}/-${totalRemoved}`;
@@ -73,14 +110,18 @@ export const ToolBox: React.FC<ToolBoxProps> = React.memo(({ name, args, status,
 		}).join('\n');
 		
 		if (hasMore) {
-			displayContent += `\n---------- +${diffLines.length - 16} linhas ----------`;
+			hiddenLinesCount = diffLines.length - MAX_VISIBLE_LINES;
 		}
 	} else if (result) {
-		const lines = result.split('\n').slice(0, 16);
-		displayContent = lines.join('\n');
-		if (result.split('\n').length > 16) {
-			displayContent += `\n---------- +${result.split('\n').length - 16} linhas ----------`;
+		let processedResult = result;
+		
+		if (result.length > 10000) {
+			processedResult = truncateJSON(result, 2000);
 		}
+		
+		const { truncated, hiddenCount } = truncateToVisibleLines(processedResult, terminalWidth);
+		displayContent = truncated;
+		hiddenLinesCount = hiddenCount;
 	}
 	
 	return (
@@ -105,8 +146,17 @@ export const ToolBox: React.FC<ToolBoxProps> = React.memo(({ name, args, status,
 						
 						return <Text key={idx} color="white">{line}</Text>;
 					})}
+					{hiddenLinesCount > 0 && (
+						<Text color="gray">... +{hiddenLinesCount} linhas ocultas</Text>
+					)}
 				</Box>
 			)}
 		</Box>
+	);
+}, (prevProps, nextProps) => {
+	return (
+		prevProps.name === nextProps.name &&
+		prevProps.status === nextProps.status &&
+		prevProps.result === nextProps.result
 	);
 });

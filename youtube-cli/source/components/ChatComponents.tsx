@@ -25,18 +25,25 @@ export const UserMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => (
 		<Text color="cyan" bold>&gt; </Text>
 		<Text color="white">{msg.content}</Text>
 	</Box>
-));
+), (prev, next) => prev.msg.id === next.msg.id && prev.msg.content === next.msg.content);
 
 export const AssistantMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => (
 	<Box marginY={1} paddingLeft={2}>
 		<Text color="green">{msg.content}</Text>
 	</Box>
-));
+), (prev, next) => prev.msg.id === next.msg.id && prev.msg.content === next.msg.content);
 
 export const ToolMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
 	if (!msg.toolCall) return null;
 	
 	return <ToolBox name={msg.toolCall.name} args={msg.toolCall.args} status={msg.toolCall.status} result={msg.toolCall.result} />;
+}, (prev, next) => {
+	if (!prev.msg.toolCall || !next.msg.toolCall) return false;
+	return (
+		prev.msg.id === next.msg.id &&
+		prev.msg.toolCall.status === next.msg.toolCall.status &&
+		prev.msg.toolCall.result === next.msg.toolCall.result
+	);
 });
 
 export const KanbanMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
@@ -55,6 +62,14 @@ export const KanbanMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) =>
 				))}
 			</Box>
 		</Box>
+	);
+}, (prev, next) => {
+	if (!prev.msg.kanban || !next.msg.kanban) return false;
+	if (prev.msg.id !== next.msg.id) return false;
+	if (prev.msg.kanban.length !== next.msg.kanban.length) return false;
+	return prev.msg.kanban.every((task, idx) => 
+		task.id === next.msg.kanban![idx].id && 
+		task.status === next.msg.kanban![idx].status
 	);
 });
 

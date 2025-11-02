@@ -71,22 +71,17 @@ export class MCPClient extends EventEmitter {
 		});
 
 	childProcess.stderr?.on('data', (data: Buffer) => {
-		const text = data.toString();
-		if (!text.includes('npm warn') && !text.includes('npm notice')) {
-			console.error(`[MCP ${mcpId}] stderr:`, text);
-		}
+		// Silently ignore stderr to avoid cluttering console
 	});
 
-		childProcess.on('error', (error) => {
-			console.error(`[MCP ${mcpId}] Process error:`, error);
-			this.emit('error', { mcpId, error });
-		});
+	childProcess.on('error', (error) => {
+		this.emit('error', { mcpId, error });
+	});
 
-		childProcess.on('close', (code) => {
-			console.log(`[MCP ${mcpId}] Process closed with code ${code}`);
-			this.mcpProcesses.delete(mcpId);
-			this.emit('close', { mcpId, code });
-		});
+	childProcess.on('close', (code) => {
+		this.mcpProcesses.delete(mcpId);
+		this.emit('close', { mcpId, code });
+	});
 
 		try {
 			await this.initializeMCP(mcpId);
@@ -114,7 +109,7 @@ export class MCPClient extends EventEmitter {
 				const message = JSON.parse(line);
 				this.handleMCPMessage(mcpId, message);
 			} catch (error) {
-				console.error(`[MCP ${mcpId}] Failed to parse message:`, line);
+				// Ignore parse errors
 			}
 		}
 	}
@@ -190,11 +185,11 @@ export class MCPClient extends EventEmitter {
 				mcpProcess.isReady = true;
 			}
 
-			try {
-				await this.sendMCPRequest(mcpId, 'notifications/initialized', {});
-			} catch (notifError) {
-				console.log(`[MCP ${mcpId}] Initialized notification not supported, continuing...`);
-			}
+		try {
+			await this.sendMCPRequest(mcpId, 'notifications/initialized', {});
+		} catch (notifError) {
+			// Notification not supported, continue
+		}
 		} catch (error) {
 			throw new Error(`Failed to initialize MCP: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
@@ -213,7 +208,6 @@ export class MCPClient extends EventEmitter {
 				}));
 			}
 		} catch (error) {
-			console.error(`[MCP ${mcpId}] Failed to discover tools:`, error);
 			throw error;
 		}
 	}
