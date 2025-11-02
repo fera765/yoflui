@@ -55,10 +55,10 @@ export const NewAuthScreen: React.FC<Props> = ({
 	if (screen === 'custom') {
 		return (
 			<Box flexDirection="column" padding={1}>
-				<Box borderStyle="double" borderColor="#8B5CF6" paddingX={2} paddingY={1} flexDirection="column">
-					<Box marginBottom={1}>
-						<Text bold color="#A78BFA">?? CUSTOM ENDPOINT</Text>
-					</Box>
+			<Box borderStyle="double" borderColor="#8B5CF6" paddingX={2} paddingY={1} flexDirection="column">
+				<Box marginBottom={1}>
+					<Text bold color="#A78BFA">?? CUSTOM ENDPOINT</Text>
+				</Box>
 
 					<Box flexDirection="column" gap={1}>
 						<Box flexDirection="column">
@@ -147,15 +147,15 @@ export const NewAuthScreen: React.FC<Props> = ({
 
 	return (
 		<Box flexDirection="column" padding={1}>
-			<Box borderStyle="double" borderColor="#8B5CF6" paddingX={2} paddingY={1} flexDirection="column">
-				<Box marginBottom={1}>
-					<Text bold color="#A78BFA">?? LLM AUTHENTICATION</Text>
-				</Box>
+		<Box borderStyle="double" borderColor="#8B5CF6" paddingX={2} paddingY={1} flexDirection="column">
+			<Box marginBottom={1}>
+				<Text bold color="#A78BFA">?? LLM AUTHENTICATION</Text>
+			</Box>
 
-				<SelectInput
-					items={[
-						{ label: '?? Qwen OAuth (2000 req/day FREE)', value: 'qwen' },
-						{ label: '?? Custom Endpoint', value: 'custom' },
+			<SelectInput
+				items={[
+				{ label: '?? Qwen OAuth (2000 req/day FREE)', value: 'qwen' },
+				{ label: '?? Custom Endpoint', value: 'custom' },
 					]}
 					onSelect={item => setScreen(item.value as Screen)}
 				/>

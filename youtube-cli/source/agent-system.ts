@@ -143,7 +143,7 @@ export class AgentSystem {
 									'find_files',
 									'search_text',
 									'read_folder',
-									'web_fetch',
+									'web_scraper',
 								],
 							},
 							tool_args: {
@@ -162,7 +162,7 @@ export class AgentSystem {
 Your task: ${options.task}
 
 You can:
-1. Use tools directly (write_file, read_file, edit_file, execute_shell, find_files, search_text, read_folder, web_fetch)
+1. Use tools directly (write_file, read_file, edit_file, execute_shell, find_files, search_text, read_folder, web_scraper)
 2. Delegate subtasks to specialized child agents using delegate_to_agent
 
 Working Directory: ${options.workDir}

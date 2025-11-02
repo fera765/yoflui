@@ -213,7 +213,7 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
     }
 
     if (error instanceof RateLimitError) {
-        return `? Too many requests. Please wait a moment before trying again.`;
+        return `?? Too many requests. Please wait a moment before trying again.`;
     }
 
     if (error instanceof ValidationError) {
@@ -221,7 +221,7 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
     }
 
     if (error instanceof MCPNotFoundError) {
-        return `? External service not available: ${error.mcpPackage}. Please check your MCP configuration.`;
+        return `?? External service not available: ${error.mcpPackage}. Please check your MCP configuration.`;
     }
 
     if (error instanceof WebhookAuthError) {

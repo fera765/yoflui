@@ -175,7 +175,7 @@ export const MCPScreen: React.FC<MCPScreenProps> = ({ onClose }) => {
 
 			<Box marginTop={1}>
 				<Text color="gray" dimColor>
-					Use ?? to navigate | Enter to select | ESC to close
+					Use ???? to navigate | Enter to select | ESC to close
 					{mcps.length > 0 && selectedIndex < mcps.length && ' | Enter on MCP to uninstall'}
 				</Text>
 			</Box>
