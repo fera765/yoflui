@@ -155,12 +155,12 @@ export default function App() {
 			}
 		});
 		
-		// Single final message
+		// Single final message (result already emitted via onProgress)
 		const summary = execContext.getSummary();
 		addMessage({
 			id: generateId('assistant'),
 			role: 'assistant',
-			content: `? Automation completed in ${Math.round(summary.duration / 1000)}s\n\n${result}`
+			content: `? Automation completed in ${Math.round(summary.duration / 1000)}s`
 		});
 		
 		setBusy(false);
