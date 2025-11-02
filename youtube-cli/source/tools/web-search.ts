@@ -12,7 +12,7 @@ export interface SearchResult {
 
 export interface WebSearchOptions {
 	query: string;
-	engine: 'google' | 'duckduckgo';
+	engine: 'google' | 'duckduckgo' | 'bing' | 'perplexity';
 	maxResults?: number;
 }
 
@@ -20,7 +20,7 @@ export const webSearchToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'web_search',
-		description: 'Search the web using Google or DuckDuckGo. Returns up to 100 results with title, description, and URL. No API keys required - uses scraping techniques.',
+		description: 'Search the web using Google, DuckDuckGo, Bing, or Perplexity. Returns up to 100 results with title, description, and URL. No API keys required - uses scraping techniques.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -30,8 +30,8 @@ export const webSearchToolDefinition = {
 				},
 				engine: {
 					type: 'string',
-					enum: ['google', 'duckduckgo'],
-					description: 'Search engine to use (google or duckduckgo)',
+					enum: ['google', 'duckduckgo', 'bing', 'perplexity'],
+					description: 'Search engine to use (google, duckduckgo, bing, or perplexity)',
 					default: 'duckduckgo'
 				},
 				maxResults: {
@@ -508,11 +508,301 @@ async function searchDuckDuckGo(query: string, maxResults: number = 100): Promis
 }
 
 /**
+ * Parse Bing search results from HTML
+ */
+function parseBingResults(html: string, maxResults: number = 100): SearchResult[] {
+	const results: SearchResult[] = [];
+	
+	// Bing uses li.b_algo for results
+	const resultPatterns = [
+		/<li[^>]*class="[^"]*b_algo[^"]*"[^>]*>[\s\S]*?<\/li>/gi,
+		/<div[^>]*class="[^"]*b_title[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
+	];
+
+	let matches: RegExpMatchArray[] = [];
+	for (const pattern of resultPatterns) {
+		const found = Array.from(html.matchAll(pattern));
+		if (found.length > 0) {
+			matches = found;
+			break;
+		}
+	}
+
+	// Fallback: find all h2 titles with links
+	if (matches.length === 0) {
+		const h2Pattern = /<h2[^>]*>[\s\S]*?<\/h2>/gi;
+		const h2Matches = Array.from(html.matchAll(h2Pattern));
+		
+		for (const h2Match of h2Matches) {
+			if (results.length >= maxResults) break;
+			
+			const h2Html = h2Match[0];
+			const linkMatch = h2Html.match(/<a[^>]*href="([^"]+)"[^>]*>/i);
+			const title = h2Html.replace(/<[^>]*>/g, '').trim();
+			
+			if (linkMatch && linkMatch[1] && title) {
+				const url = linkMatch[1];
+				if (url.startsWith('http')) {
+					// Try to find description near this result
+					const descriptionMatch = html.substring(h2Match.index || 0, (h2Match.index || 0) + 800).match(/<p[^>]*class="[^"]*b_caption[^"]*"[^>]*>([^<]+)<\/p>/i) ||
+						html.substring(h2Match.index || 0, (h2Match.index || 0) + 800).match(/<p[^>]*>(.*?)<\/p>/i);
+					const description = descriptionMatch ? descriptionMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+					
+					results.push({
+						title: title.substring(0, 200),
+						description: description.substring(0, 500),
+						url: url.substring(0, 500),
+					});
+				}
+			}
+		}
+		return results;
+	}
+
+	// Parse matches
+	for (const match of matches) {
+		if (results.length >= maxResults) break;
+		
+		const resultHtml = match[0];
+		
+		// Extract title from h2
+		const titleMatch = resultHtml.match(/<h2[^>]*>[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h2>/i) ||
+			resultHtml.match(/<h2[^>]*>(.*?)<\/h2>/i);
+		
+		let title = '';
+		let url = '';
+		
+		if (titleMatch) {
+			if (titleMatch[1]) {
+				url = titleMatch[1];
+				title = titleMatch[2] ? titleMatch[2].replace(/<[^>]*>/g, '').trim() : '';
+			} else {
+				title = titleMatch[1].replace(/<[^>]*>/g, '').trim();
+				const linkMatch = resultHtml.match(/<a[^>]*href="([^"]+)"[^>]*>/i);
+				if (linkMatch) url = linkMatch[1];
+			}
+		}
+		
+		// Extract description
+		const descriptionMatch = resultHtml.match(/<p[^>]*class="[^"]*b_caption[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
+			resultHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+		const description = descriptionMatch ? descriptionMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+		
+		if (title && url && url.startsWith('http')) {
+			// Decode HTML entities
+			const decodeHtml = (str: string) => {
+				return str
+					.replace(/&amp;/g, '&')
+					.replace(/&lt;/g, '<')
+					.replace(/&gt;/g, '>')
+					.replace(/&quot;/g, '"')
+					.replace(/&#39;/g, "'")
+					.replace(/&nbsp;/g, ' ')
+					.replace(/&amp;#[0-9]+;/g, '');
+			};
+			
+			url = decodeHtml(url);
+			title = decodeHtml(title);
+			description = decodeHtml(description);
+			
+			results.push({
+				title: title.substring(0, 200),
+				description: description.substring(0, 500),
+				url: url.substring(0, 500),
+			});
+		}
+	}
+	
+	return results;
+}
+
+/**
+ * Parse Perplexity search results from HTML
+ */
+function parsePerplexityResults(html: string, maxResults: number = 100): SearchResult[] {
+	const results: SearchResult[] = [];
+	
+	// Perplexity uses different structure - try to find result containers
+	const resultPatterns = [
+		/<div[^>]*class="[^"]*prose[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
+		/<article[^>]*>[\s\S]*?<\/article>/gi,
+		/<div[^>]*data-testid="[^"]*search-result[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
+	];
+
+	let matches: RegExpMatchArray[] = [];
+	for (const pattern of resultPatterns) {
+		const found = Array.from(html.matchAll(pattern));
+		if (found.length > 0) {
+			matches = found;
+			break;
+		}
+	}
+
+	// Fallback: try to find links with citations
+	if (matches.length === 0) {
+		// Perplexity often shows citations as numbered links
+		const citationPattern = /<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?<\/a>/gi;
+		const citations = Array.from(html.matchAll(citationPattern));
+		
+		const seenUrls = new Set<string>();
+		
+		for (const citation of citations) {
+			if (results.length >= maxResults) break;
+			
+			const url = citation[1];
+			if (url && url.startsWith('http') && !seenUrls.has(url)) {
+				seenUrls.add(url);
+				
+				// Try to find title near this citation
+				const context = html.substring(Math.max(0, (citation.index || 0) - 200), (citation.index || 0) + 200);
+				const titleMatch = context.match(/<[^>]*>([^<]{10,200})/);
+				const title = titleMatch ? titleMatch[1].trim() : url;
+				
+				// Try to find description
+				const descMatch = html.substring(citation.index || 0, (citation.index || 0) + 500).match(/<p[^>]*>([^<]{20,300})/i);
+				const description = descMatch ? descMatch[1].trim() : '';
+				
+				results.push({
+					title: title.substring(0, 200),
+					description: description.substring(0, 500),
+					url: url.substring(0, 500),
+				});
+			}
+		}
+		return results;
+	}
+
+	// Parse matches
+	for (const match of matches) {
+		if (results.length >= maxResults) break;
+		
+		const resultHtml = match[0];
+		
+		// Extract title
+		const titleMatch = resultHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i) ||
+			resultHtml.match(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i);
+		
+		let title = '';
+		let url = '';
+		
+		if (titleMatch) {
+			if (titleMatch[2]) {
+				url = titleMatch[1];
+				title = titleMatch[2].trim();
+			} else {
+				title = titleMatch[1].trim();
+				const linkMatch = resultHtml.match(/<a[^>]*href="([^"]+)"[^>]*>/i);
+				if (linkMatch) url = linkMatch[1];
+			}
+		}
+		
+		// Extract description
+		const descriptionMatch = resultHtml.match(/<p[^>]*>([\s\S]{20,500})<\/p>/i);
+		const description = descriptionMatch ? descriptionMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+		
+		if (title && url && url.startsWith('http')) {
+			results.push({
+				title: title.substring(0, 200),
+				description: description.substring(0, 500),
+				url: url.substring(0, 500),
+			});
+		}
+	}
+	
+	return results;
+}
+
+/**
+ * Search Bing
+ */
+async function searchBing(query: string, maxResults: number = 100): Promise<SearchResult[]> {
+	await createFetchWithAntiDetection();
+	resetProxyFailures();
+	
+	const encodedQuery = encodeURIComponent(query);
+	const url = `https://www.bing.com/search?q=${encodedQuery}&count=${Math.min(maxResults, 100)}`;
+	
+	let lastError: Error | null = null;
+	
+	for (let attempt = 0; attempt < 2; attempt++) {
+		try {
+			const response = await withTimeout(
+				createFetchWithProxy(url, attempt === 0),
+				TIMEOUT_CONFIG.HTTP_REQUEST,
+				`Bing search: ${query}`
+			);
+			
+			if (!response.ok) {
+				if (response.status === 403 || response.status === 429) {
+					await randomDelay(2000, 4000);
+					if (attempt === 0) continue;
+				}
+				throw new Error(`Bing search failed: HTTP ${response.status}`);
+			}
+			
+			const html = await response.text();
+			const results = parseBingResults(html, maxResults);
+			
+			return results;
+		} catch (error) {
+			lastError = error instanceof Error ? error : new Error(String(error));
+			if (attempt === 0) {
+				await randomDelay(1000, 2000);
+			}
+		}
+	}
+	
+	throw new Error(`Bing search error: ${lastError?.message || 'Unknown error'}`);
+}
+
+/**
+ * Search Perplexity
+ */
+async function searchPerplexity(query: string, maxResults: number = 100): Promise<SearchResult[]> {
+	await createFetchWithAntiDetection();
+	resetProxyFailures();
+	
+	const encodedQuery = encodeURIComponent(query);
+	// Perplexity uses their search API endpoint
+	const url = `https://www.perplexity.ai/search?q=${encodedQuery}`;
+	
+	try {
+		const response = await withTimeout(
+			createFetchWithProxy(url, false),
+			TIMEOUT_CONFIG.HTTP_REQUEST,
+			`Perplexity search: ${query}`
+		);
+		
+		if (!response.ok) {
+			if (response.status === 403 || response.status === 429) {
+				// Perplexity might block - return empty results
+				throw new Error(`Perplexity search blocked: HTTP ${response.status}`);
+			}
+			throw new Error(`Perplexity search failed: HTTP ${response.status}`);
+		}
+		
+		const html = await response.text();
+		const results = parsePerplexityResults(html, maxResults);
+		
+		// If no results, Perplexity might require JavaScript - return empty
+		if (results.length === 0) {
+			console.warn('Perplexity returned no results - may require JavaScript rendering');
+		}
+		
+		return results;
+	} catch (error) {
+		// Perplexity is harder to scrape - return empty results rather than error
+		console.warn(`Perplexity search error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		return [];
+	}
+}
+
+/**
  * Execute web search tool
  */
 export async function executeWebSearchTool(
 	query: string,
-	engine: 'google' | 'duckduckgo' = 'duckduckgo',
+	engine: 'google' | 'duckduckgo' | 'bing' | 'perplexity' = 'duckduckgo',
 	maxResults: number = 100
 ): Promise<string> {
 	try {
@@ -526,6 +816,10 @@ export async function executeWebSearchTool(
 		
 		if (engine === 'google') {
 			results = await searchGoogle(query, limit);
+		} else if (engine === 'bing') {
+			results = await searchBing(query, limit);
+		} else if (engine === 'perplexity') {
+			results = await searchPerplexity(query, limit);
 		} else {
 			results = await searchDuckDuckGo(query, limit);
 		}
