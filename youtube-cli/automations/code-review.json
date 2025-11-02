@@ -1,0 +1,88 @@
+{
+  "id": "code-review",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "AI Code Review",
+    "description": "Performs an AI-powered code review of TypeScript/JavaScript files",
+    "author": "Flui Team",
+    "created": "2025-11-02",
+    "tags": ["code-review", "quality", "best-practices"],
+    "category": "development"
+  },
+  "triggers": [
+    {
+      "type": "contains",
+      "pattern": "revisar c?digo"
+    },
+    {
+      "type": "contains",
+      "pattern": "code review"
+    },
+    {
+      "type": "contains",
+      "pattern": "review code"
+    }
+  ],
+  "variables": {
+    "sourceFiles": {
+      "type": "array",
+      "defaultValue": []
+    },
+    "reviewResults": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "log",
+      "message": "?? Finding source files...",
+      "level": "info"
+    },
+    {
+      "id": "step_2",
+      "type": "tool",
+      "toolName": "find_files",
+      "toolArgs": {
+        "pattern": "*.{ts,tsx,js,jsx}",
+        "directory": "./source"
+      },
+      "saveResultAs": "sourceFiles",
+      "continueOnError": true
+    },
+    {
+      "id": "step_3",
+      "type": "log",
+      "message": "?? Performing AI code review...",
+      "level": "info"
+    },
+    {
+      "id": "step_4",
+      "type": "llm_process",
+      "prompt": "Perform a code review focusing on:\n1. Code quality and best practices\n2. Potential bugs or issues\n3. Performance improvements\n4. Security concerns\n5. Code organization\n\nProvide specific, actionable feedback.",
+      "useContext": true,
+      "saveResultAs": "reviewResults"
+    },
+    {
+      "id": "step_5",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "code-review-${Date.now()}.md",
+        "content": "# AI Code Review\n\n**Date:** ${Date.now()}\n\n## Review Results\n\n${variables.reviewResults}\n\n## Files Analyzed\n\n${variables.sourceFiles}"
+      }
+    },
+    {
+      "id": "step_6",
+      "type": "log",
+      "message": "? Code review complete! Check the report.",
+      "level": "success"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "skip",
+    "maxRetries": 1,
+    "logErrors": true
+  }
+}

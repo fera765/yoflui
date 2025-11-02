@@ -1,3 +1,5 @@
+import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
+
 export const webFetchToolDefinition = {
 	type: 'function' as const,
 	function: {
@@ -15,10 +17,17 @@ export const webFetchToolDefinition = {
 
 export async function executeWebFetchTool(url: string): Promise<string> {
 	try {
-		const response = await fetch(url);
+		// Apply timeout to HTTP request
+		const response = await withTimeout(
+			fetch(url),
+			TIMEOUT_CONFIG.HTTP_REQUEST,
+			`HTTP fetch ${url}`
+		);
+		
 		if (!response.ok) {
 			return `Error: HTTP ${response.status}`;
 		}
+		
 		const text = await response.text();
 		return text.substring(0, 5000); // Limit to 5000 chars
 	} catch (error) {

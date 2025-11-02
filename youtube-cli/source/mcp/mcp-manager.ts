@@ -2,6 +2,8 @@ import { mcpClient } from './mcp-client.js';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
+import { circuitBreakerRegistry } from '../errors/circuit-breaker.js';
 
 interface InstalledMCP {
 	packageName: string;
@@ -175,7 +177,21 @@ export class MCPManager {
 			throw new Error(`MCP ${packageName} is not active`);
 		}
 
-		return await mcpClient.callMCPTool(mcpId, toolName, args);
+		// Get or create circuit breaker for this MCP
+		const breaker = circuitBreakerRegistry.getOrCreate(`mcp:${packageName}`, {
+			failureThreshold: 5,
+			resetTimeoutMs: 60000,
+			successThreshold: 2,
+		});
+
+		// Execute with circuit breaker and timeout
+		return await breaker.execute(async () => {
+			return await withTimeout(
+				mcpClient.callMCPTool(mcpId, toolName, args),
+				TIMEOUT_CONFIG.MCP_TOOL_CALL,
+				`MCP ${packageName}.${toolName}`
+			);
+		});
 	}
 }
 

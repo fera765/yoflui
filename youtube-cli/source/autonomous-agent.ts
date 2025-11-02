@@ -6,6 +6,8 @@ import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 import { getAllToolDefinitions, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
 import { saveConversationHistory, loadConversationHistory, type MemoryEntry } from './tools/memory.js';
 import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversation } from './context-manager.js';
+import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
+import { getSystemPrompt } from './prompts/prompt-loader.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -118,12 +120,17 @@ CRITICAL: Greetings = NO tools, Simple = tools only, Complex = Kanban`;
 	while (iterations < maxIterations) {
 		iterations++;
 
-		const response = await openai.chat.completions.create({
-			model: config.model,
-			messages,
-			tools: getAllToolDefinitions(),
-			tool_choice: 'auto',
-		});
+		// Apply timeout to LLM calls
+		const response = await withTimeout(
+			openai.chat.completions.create({
+				model: config.model,
+				messages,
+				tools: getAllToolDefinitions(),
+				tool_choice: 'auto',
+			}),
+			TIMEOUT_CONFIG.LLM_COMPLETION,
+			'Autonomous agent LLM call'
+		);
 
 		const assistantMsg = response.choices[0]?.message;
 

@@ -36,5 +36,44 @@ if (promptIndex !== -1 && args[promptIndex + 1]) {
 	}
 
 	// Render interactive CLI
-	render(<App />);
+	const { clear, unmount } = render(<App />);
+	
+	// Handle graceful shutdown on Ctrl+C and other signals
+	const cleanup = () => {
+		try {
+			unmount();
+			clear();
+		} catch (error) {
+			// Ignore errors during cleanup
+		}
+		process.exit(0);
+	};
+	
+	// Handle SIGINT (Ctrl+C)
+	process.on('SIGINT', cleanup);
+	
+	// Handle SIGTERM
+	process.on('SIGTERM', cleanup);
+	
+	// Handle uncaught exceptions during exit
+	process.on('uncaughtException', (error) => {
+		const nodeError = error as any;
+		if (nodeError.code === 'EIO' || nodeError.syscall === 'read') {
+			// Ignore EIO errors during terminal cleanup
+			cleanup();
+		} else {
+			console.error('Uncaught exception:', error);
+			cleanup();
+		}
+	});
+	
+	// Handle stdin errors (like EIO when terminal closes)
+	if (process.stdin) {
+		process.stdin.on('error', (error: any) => {
+			if (error.code === 'EIO' || error.syscall === 'read') {
+				// Ignore EIO errors during terminal cleanup
+				cleanup();
+			}
+		});
+	}
 }

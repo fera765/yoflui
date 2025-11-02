@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { getConfig } from './llm-config.js';
+import { getSystemPrompt } from './prompts/prompt-loader.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 import { youtubeToolDefinition, executeYouTubeTool } from './youtube-tool.js';
 
@@ -44,7 +45,7 @@ export async function askLLMWithYouTube(
 	const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{
 			role: 'system',
-			content: 'You are a helpful AI assistant with access to YouTube comment data. When users ask about topics, trends, opinions, or pain points, use the search_youtube_comments tool to gather real user feedback from YouTube. Analyze the comments to provide insights.',
+			content: getSystemPrompt('youtube_assistant'),
 		},
 		{
 			role: 'user',

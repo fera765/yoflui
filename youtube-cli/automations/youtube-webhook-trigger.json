@@ -1,0 +1,118 @@
+{
+  "id": "youtube-webhook-trigger",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "YouTube Webhook Analysis",
+    "description": "Analyzes YouTube videos when webhook is triggered with video topics",
+    "author": "Flui Team",
+    "created": "2025-11-02",
+    "tags": ["webhook", "youtube", "analysis", "research"],
+    "category": "webhook-triggers"
+  },
+  "triggers": [
+    {
+      "type": "exact",
+      "pattern": "@youtube-trigger",
+      "caseSensitive": false
+    }
+  ],
+  "variables": {
+    "webhookUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "URL do webhook gerado"
+    },
+    "apiKey": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "API key se necess?rio"
+    },
+    "searchTopic": {
+      "type": "string",
+      "defaultValue": "technology",
+      "description": "Topic to search on YouTube"
+    },
+    "videoResults": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Results from YouTube search"
+    },
+    "analysis": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "AI analysis of results"
+    }
+  },
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "log",
+      "message": "?? YouTube Webhook Trigger Activated",
+      "level": "info",
+      "description": "Notify start of automation"
+    },
+    {
+      "id": "step_2",
+      "type": "log",
+      "message": "?? Webhook data received - Topic: ${variables.searchTopic}",
+      "level": "info",
+      "description": "Show received data"
+    },
+    {
+      "id": "step_3",
+      "type": "tool",
+      "toolName": "search_youtube_comments",
+      "toolArgs": {
+        "query": "${variables.searchTopic}"
+      },
+      "saveResultAs": "videoResults",
+      "description": "Search YouTube for the topic"
+    },
+    {
+      "id": "step_4",
+      "type": "log",
+      "message": "?? Analyzing YouTube results with AI...",
+      "level": "info",
+      "description": "Notify AI analysis"
+    },
+    {
+      "id": "step_5",
+      "type": "llm_process",
+      "prompt": "Analyze these YouTube video comments and provide insights:\n\n${variables.videoResults}\n\nProvide:\n1. Main themes and topics\n2. Sentiment analysis\n3. Key insights from comments\n4. Trending topics\n5. Recommendations",
+      "useContext": true,
+      "saveResultAs": "analysis",
+      "description": "LLM analyzes the results"
+    },
+    {
+      "id": "step_6",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "youtube-analysis-${Date.now()}.md",
+        "content": "# YouTube Analysis\n\n**Topic:** ${variables.searchTopic}\n\n**Date:** ${Date.now()}\n\n## YouTube Results\n\n${variables.videoResults}\n\n## AI Analysis\n\n${variables.analysis}"
+      },
+      "description": "Save analysis to file"
+    },
+    {
+      "id": "step_7",
+      "type": "log",
+      "message": "? Analysis complete! Report saved.",
+      "level": "success",
+      "description": "Notify completion"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "skip",
+    "maxRetries": 1,
+    "retryDelay": 2000,
+    "logErrors": true
+  },
+  "webhookConfig": {
+    "enabled": true,
+    "requireAuth": true,
+    "method": "POST",
+    "expectedPayload": {
+      "searchTopic": "string"
+    }
+  }
+}

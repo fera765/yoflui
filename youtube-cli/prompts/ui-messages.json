@@ -1,0 +1,91 @@
+{
+  "automation": {
+    "start": {
+      "icon": "??",
+      "template": "{{icon}} Starting automation: {{name}}\n?? {{description}}",
+      "variables": {
+        "name": "string",
+        "description": "string"
+      }
+    },
+    "step_start": {
+      "icon": "??",
+      "template": "{{icon}} Step {{step_number}}/{{total_steps}}: {{step_description}}",
+      "variables": {
+        "step_number": "number",
+        "total_steps": "number",
+        "step_description": "string"
+      }
+    },
+    "tool_execute": {
+      "icon": "??",
+      "template": "{{icon}} Executing tool: {{tool_name}}",
+      "color": "cyan",
+      "variables": {
+        "tool_name": "string"
+      }
+    },
+    "tool_success": {
+      "icon": "?",
+      "template": "{{icon}} {{tool_name}} completed successfully",
+      "color": "green",
+      "variables": {
+        "tool_name": "string"
+      }
+    },
+    "tool_error": {
+      "icon": "?",
+      "template": "{{icon}} {{tool_name}} failed: {{error}}",
+      "color": "red",
+      "variables": {
+        "tool_name": "string",
+        "error": "string"
+      }
+    },
+    "complete": {
+      "icon": "?",
+      "template": "{{icon}} Automation completed in {{duration}}s\n\n{{summary}}",
+      "variables": {
+        "duration": "number",
+        "summary": "string"
+      }
+    },
+    "webhook_setup": {
+      "icon": "??",
+      "template": "{{icon}} Webhook configured and waiting for trigger...\n\n?? Endpoint: {{url}}\n?? Method: {{method}}\n{{auth_info}}\n?? Expected Payload:\n{{payload_schema}}",
+      "variables": {
+        "url": "string",
+        "method": "string",
+        "auth_info": "string",
+        "payload_schema": "string"
+      }
+    },
+    "webhook_triggered": {
+      "icon": "?",
+      "template": "{{icon}} Webhook triggered! Starting automation...",
+      "variables": {}
+    }
+  },
+  "tool_descriptions": {
+    "write_file": "?? Writing to file system",
+    "read_file": "?? Reading file contents",
+    "edit_file": "?? Editing file",
+    "execute_shell": "?? Running shell command",
+    "find_files": "?? Searching for files",
+    "search_text": "?? Searching text in files",
+    "read_folder": "?? Listing directory",
+    "update_kanban": "?? Updating task board",
+    "web_fetch": "?? Fetching URL",
+    "search_youtube_comments": "?? Searching YouTube",
+    "save_memory": "?? Saving memory",
+    "create_agent": "?? Creating agent",
+    "get_agent_status": "?? Getting agent status"
+  },
+  "progress": {
+    "thinking": "?? Thinking...",
+    "analyzing": "?? Analyzing...",
+    "processing": "?? Processing...",
+    "waiting": "? Waiting...",
+    "retrying": "?? Retrying..."
+  }
+}

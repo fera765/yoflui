@@ -11,6 +11,10 @@ export * from './web-fetch.js';
 export * from './memory.js';
 export * from './agent.js';
 
+// Import retry logic
+import { retryWithBackoff } from '../errors/retry-manager.js';
+import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
+
 // Re-export loadKanban for external use
 import { loadKanban } from './kanban.js';
 export { loadKanban };
@@ -62,10 +66,26 @@ export function getAllToolDefinitions() {
 export const ALL_TOOL_DEFINITIONS = getAllToolDefinitions();
 
 export async function executeToolCall(toolName: string, args: any, workDir: string): Promise<string> {
-	if (isMCPTool(toolName)) {
-		return executeMCPTool(toolName, args);
-	}
+	// Wrap tool execution with retry logic
+	return retryWithBackoff(
+		async () => {
+			if (isMCPTool(toolName)) {
+				return executeMCPTool(toolName, args);
+			}
 
+			return executeToolSwitch(toolName, args, workDir);
+		},
+		`Tool: ${toolName}`,
+		{
+			maxAttempts: 3,
+			baseDelayMs: 1000,
+			retryableErrors: ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'timeout', '503', '504'],
+		}
+	);
+}
+
+// Internal function without retry (called by executeToolCall)
+async function executeToolSwitch(toolName: string, args: any, workDir: string): Promise<string> {
 	switch (toolName) {
 		case 'edit_file':
 			return executeEditTool(args.file_path, args.old_string, args.new_string);

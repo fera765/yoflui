@@ -1,0 +1,87 @@
+{
+  "id": "analyze-project",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Analyze Project Structure",
+    "description": "Analyzes the current project structure and generates a report",
+    "author": "Flui Team",
+    "created": "2025-11-02",
+    "tags": ["analysis", "project", "report"],
+    "category": "development"
+  },
+  "triggers": [
+    {
+      "type": "contains",
+      "pattern": "analisar projeto"
+    },
+    {
+      "type": "contains",
+      "pattern": "analyze project"
+    },
+    {
+      "type": "contains",
+      "pattern": "estrutura do projeto"
+    }
+  ],
+  "variables": {
+    "folderStructure": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "analysis": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "log",
+      "message": "?? Analyzing project structure...",
+      "level": "info"
+    },
+    {
+      "id": "step_2",
+      "type": "tool",
+      "toolName": "read_folder",
+      "toolArgs": {
+        "path": "."
+      },
+      "saveResultAs": "folderStructure"
+    },
+    {
+      "id": "step_3",
+      "type": "log",
+      "message": "?? Generating analysis with AI...",
+      "level": "info"
+    },
+    {
+      "id": "step_4",
+      "type": "llm_process",
+      "prompt": "Analyze this project structure and provide insights:\n\n${variables.folderStructure}\n\nProvide:\n1. Project type identification\n2. Key files and their purposes\n3. Potential improvements\n4. Missing important files",
+      "useContext": true,
+      "saveResultAs": "analysis"
+    },
+    {
+      "id": "step_5",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "project-analysis-${Date.now()}.md",
+        "content": "# Project Analysis\n\n## Structure\n${variables.folderStructure}\n\n## AI Analysis\n${variables.analysis}"
+      }
+    },
+    {
+      "id": "step_6",
+      "type": "log",
+      "message": "? Analysis complete! Report saved.",
+      "level": "success"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "abort",
+    "maxRetries": 1,
+    "retryDelay": 2000,
+    "logErrors": true
+  }
+}
