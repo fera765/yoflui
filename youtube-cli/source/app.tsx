@@ -284,7 +284,7 @@ export default function App() {
 			
 			// If LLM coordinator exists (from previous automation), continue conversation
 			if (llmCoordinator) {
-				const reply = await llmCoordinator.continueConversation(txt);
+				const reply = await llmCoordinator.continueConversation(txt, workDir);
 				
 				addMessage({
 					id: generateId('assistant'),

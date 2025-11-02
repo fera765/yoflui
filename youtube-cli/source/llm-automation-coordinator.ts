@@ -253,7 +253,7 @@ Execute the automation now, step by step, using the tools available.`,
     /**
      * Continue conversation after automation
      */
-    async continueConversation(userMessage: string): Promise<string> {
+    async continueConversation(userMessage: string, workDir?: string): Promise<string> {
         const config = getConfig();
         const qwenCreds = loadQwenCredentials();
         let endpoint = config.endpoint;
@@ -276,27 +276,89 @@ Execute the automation now, step by step, using the tools available.`,
             content: userMessage,
         });
 
-        // Apply timeout to conversation continuation
-        const response = await withTimeout(
-            openai.chat.completions.create({
-                model: config.model,
-                messages: this.conversationHistory,
-                tools: getAllToolDefinitions(),
-                tool_choice: 'auto',
-            }),
-            TIMEOUT_CONFIG.LLM_COMPLETION,
-            'Continue conversation'
-        );
+        let iterations = 0;
+        const maxIterations = 10;
 
-        const assistantMsg = response.choices[0]?.message;
-        if (assistantMsg) {
+        while (iterations < maxIterations) {
+            iterations++;
+
+            // Apply timeout to conversation continuation
+            const response = await withTimeout(
+                openai.chat.completions.create({
+                    model: config.model,
+                    messages: this.conversationHistory,
+                    tools: getAllToolDefinitions(),
+                    tool_choice: 'auto',
+                }),
+                TIMEOUT_CONFIG.LLM_COMPLETION,
+                'Continue conversation'
+            );
+
+            const assistantMsg = response.choices[0]?.message;
+            if (!assistantMsg) break;
+
+            // Add assistant message to history
             this.conversationHistory.push({
                 role: 'assistant',
                 content: assistantMsg.content || '',
                 tool_calls: assistantMsg.tool_calls,
             });
 
-            return assistantMsg.content || 'No response';
+            // Handle tool calls if present
+            if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
+                for (const toolCall of assistantMsg.tool_calls) {
+                    const func = (toolCall as any).function;
+                    const toolName = func.name;
+                    const args = JSON.parse(func.arguments);
+
+                    logger.debug(
+                        'LLMCoordinator',
+                        `Conversation tool: ${toolName}`,
+                        { args: formatToolArgs(args) },
+                        this.executionContext.getExecutionId()
+                    );
+
+                    let result: string;
+
+                    try {
+                        // Execute tool with timeout + retry
+                        result = await executeToolCall(toolName, args, workDir || process.cwd());
+                        
+                        logger.info(
+                            'LLMCoordinator',
+                            `Conversation tool completed: ${toolName}`,
+                            { resultLength: result.length },
+                            this.executionContext.getExecutionId()
+                        );
+                    } catch (error) {
+                        result = error instanceof Error ? error.message : String(error);
+                        
+                        logger.error(
+                            'LLMCoordinator',
+                            `Conversation tool failed: ${toolName}`,
+                            { error: result },
+                            this.executionContext.getExecutionId()
+                        );
+                    }
+
+                    // Add tool result to conversation history
+                    this.conversationHistory.push({
+                        role: 'tool',
+                        content: result,
+                        tool_call_id: toolCall.id,
+                    });
+                }
+                
+                // Continue loop to get LLM's response to tool results
+                continue;
+            }
+
+            // No tool calls, return content
+            if (assistantMsg.content) {
+                return assistantMsg.content;
+            }
+
+            break;
         }
 
         return 'No response';
