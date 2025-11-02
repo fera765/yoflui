@@ -12,7 +12,7 @@ export interface SearchResult {
 
 export interface WebSearchOptions {
 	query: string;
-	engine: 'google' | 'duckduckgo' | 'bing' | 'perplexity';
+	engine: 'google' | 'duckduckgo' | 'bing';
 	maxResults?: number;
 }
 
@@ -20,7 +20,7 @@ export const webSearchToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'web_search',
-		description: 'Search the web using Google, DuckDuckGo, Bing, or Perplexity. Returns up to 100 results with title, description, and URL. No API keys required - uses scraping techniques.',
+		description: 'Search the web using Google, DuckDuckGo, or Bing. Returns the requested number of results (up to 100) with title, description, and URL. No API keys required - uses scraping techniques. The LLM can specify how many results it wants (e.g., 20 results).',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -30,13 +30,13 @@ export const webSearchToolDefinition = {
 				},
 				engine: {
 					type: 'string',
-					enum: ['google', 'duckduckgo', 'bing', 'perplexity'],
-					description: 'Search engine to use (google, duckduckgo, bing, or perplexity)',
+					enum: ['google', 'duckduckgo', 'bing'],
+					description: 'Search engine to use (google, duckduckgo, or bing)',
 					default: 'duckduckgo'
 				},
 				maxResults: {
 					type: 'number',
-					description: 'Maximum number of results to return (default: 100, max: 100)',
+					description: 'Number of results to return (LLM can specify any number from 1 to 100, e.g., 20 results). Default: 100',
 					default: 100
 				}
 			},
@@ -617,102 +617,6 @@ function parseBingResults(html: string, maxResults: number = 100): SearchResult[
 }
 
 /**
- * Parse Perplexity search results from HTML
- */
-function parsePerplexityResults(html: string, maxResults: number = 100): SearchResult[] {
-	const results: SearchResult[] = [];
-	
-	// Perplexity uses different structure - try to find result containers
-	const resultPatterns = [
-		/<div[^>]*class="[^"]*prose[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
-		/<article[^>]*>[\s\S]*?<\/article>/gi,
-		/<div[^>]*data-testid="[^"]*search-result[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
-	];
-
-	let matches: RegExpMatchArray[] = [];
-	for (const pattern of resultPatterns) {
-		const found = Array.from(html.matchAll(pattern));
-		if (found.length > 0) {
-			matches = found;
-			break;
-		}
-	}
-
-	// Fallback: try to find links with citations
-	if (matches.length === 0) {
-		// Perplexity often shows citations as numbered links
-		const citationPattern = /<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?<\/a>/gi;
-		const citations = Array.from(html.matchAll(citationPattern));
-		
-		const seenUrls = new Set<string>();
-		
-		for (const citation of citations) {
-			if (results.length >= maxResults) break;
-			
-			const url = citation[1];
-			if (url && url.startsWith('http') && !seenUrls.has(url)) {
-				seenUrls.add(url);
-				
-				// Try to find title near this citation
-				const context = html.substring(Math.max(0, (citation.index || 0) - 200), (citation.index || 0) + 200);
-				const titleMatch = context.match(/<[^>]*>([^<]{10,200})/);
-				const title = titleMatch ? titleMatch[1].trim() : url;
-				
-				// Try to find description
-				const descMatch = html.substring(citation.index || 0, (citation.index || 0) + 500).match(/<p[^>]*>([^<]{20,300})/i);
-				const description = descMatch ? descMatch[1].trim() : '';
-				
-				results.push({
-					title: title.substring(0, 200),
-					description: description.substring(0, 500),
-					url: url.substring(0, 500),
-				});
-			}
-		}
-		return results;
-	}
-
-	// Parse matches
-	for (const match of matches) {
-		if (results.length >= maxResults) break;
-		
-		const resultHtml = match[0];
-		
-		// Extract title
-		const titleMatch = resultHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i) ||
-			resultHtml.match(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i);
-		
-		let title = '';
-		let url = '';
-		
-		if (titleMatch) {
-			if (titleMatch[2]) {
-				url = titleMatch[1];
-				title = titleMatch[2].trim();
-			} else {
-				title = titleMatch[1].trim();
-				const linkMatch = resultHtml.match(/<a[^>]*href="([^"]+)"[^>]*>/i);
-				if (linkMatch) url = linkMatch[1];
-			}
-		}
-		
-		// Extract description
-		const descriptionMatch = resultHtml.match(/<p[^>]*>([\s\S]{20,500})<\/p>/i);
-		const description = descriptionMatch ? descriptionMatch[1].replace(/<[^>]*>/g, '').trim() : '';
-		
-		if (title && url && url.startsWith('http')) {
-			results.push({
-				title: title.substring(0, 200),
-				description: description.substring(0, 500),
-				url: url.substring(0, 500),
-			});
-		}
-	}
-	
-	return results;
-}
-
-/**
  * Search Bing
  */
 async function searchBing(query: string, maxResults: number = 100): Promise<SearchResult[]> {
@@ -756,53 +660,11 @@ async function searchBing(query: string, maxResults: number = 100): Promise<Sear
 }
 
 /**
- * Search Perplexity
- */
-async function searchPerplexity(query: string, maxResults: number = 100): Promise<SearchResult[]> {
-	await createFetchWithAntiDetection();
-	resetProxyFailures();
-	
-	const encodedQuery = encodeURIComponent(query);
-	// Perplexity uses their search API endpoint
-	const url = `https://www.perplexity.ai/search?q=${encodedQuery}`;
-	
-	try {
-		const response = await withTimeout(
-			createFetchWithProxy(url, false),
-			TIMEOUT_CONFIG.HTTP_REQUEST,
-			`Perplexity search: ${query}`
-		);
-		
-		if (!response.ok) {
-			if (response.status === 403 || response.status === 429) {
-				// Perplexity might block - return empty results
-				throw new Error(`Perplexity search blocked: HTTP ${response.status}`);
-			}
-			throw new Error(`Perplexity search failed: HTTP ${response.status}`);
-		}
-		
-		const html = await response.text();
-		const results = parsePerplexityResults(html, maxResults);
-		
-		// If no results, Perplexity might require JavaScript - return empty
-		if (results.length === 0) {
-			console.warn('Perplexity returned no results - may require JavaScript rendering');
-		}
-		
-		return results;
-	} catch (error) {
-		// Perplexity is harder to scrape - return empty results rather than error
-		console.warn(`Perplexity search error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		return [];
-	}
-}
-
-/**
  * Execute web search tool
  */
 export async function executeWebSearchTool(
 	query: string,
-	engine: 'google' | 'duckduckgo' | 'bing' | 'perplexity' = 'duckduckgo',
+	engine: 'google' | 'duckduckgo' | 'bing' = 'duckduckgo',
 	maxResults: number = 100
 ): Promise<string> {
 	try {
@@ -818,8 +680,6 @@ export async function executeWebSearchTool(
 			results = await searchGoogle(query, limit);
 		} else if (engine === 'bing') {
 			results = await searchBing(query, limit);
-		} else if (engine === 'perplexity') {
-			results = await searchPerplexity(query, limit);
 		} else {
 			results = await searchDuckDuckGo(query, limit);
 		}
