@@ -18,7 +18,14 @@ export { loadKanban };
 import { editToolDefinition, executeEditTool } from './edit.js';
 import { readFileToolDefinition, executeReadFileTool } from './read-file.js';
 import { writeFileToolDefinition, executeWriteFileTool } from './write-file.js';
-import { shellToolDefinition, executeShellTool } from './shell.js';
+import { 
+	shellToolDefinition, 
+	executeShellTool,
+	shellInputToolDefinition,
+	executeShellInputTool,
+	shellStatusToolDefinition,
+	executeShellStatusTool
+} from './shell.js';
 import { findFilesToolDefinition, executeFindFilesTool } from './find-files.js';
 import { searchTextToolDefinition, executeSearchTextTool } from './search-text.js';
 import { readFolderToolDefinition, executeReadFolderTool } from './read-folder.js';
@@ -33,6 +40,8 @@ export const ALL_TOOL_DEFINITIONS = [
 	readFileToolDefinition,
 	writeFileToolDefinition,
 	shellToolDefinition,
+	shellInputToolDefinition,
+	shellStatusToolDefinition,
 	findFilesToolDefinition,
 	searchTextToolDefinition,
 	readFolderToolDefinition,
@@ -52,7 +61,11 @@ export async function executeToolCall(toolName: string, args: any, workDir: stri
 		case 'write_file':
 			return executeWriteFileTool(args.file_path, args.content);
 		case 'execute_shell':
-			return executeShellTool(args.command);
+			return executeShellTool(args.command, args.timeout, args.interactive);
+		case 'shell_input':
+			return executeShellInputTool(args.processId, args.input);
+		case 'shell_status':
+			return executeShellStatusTool(args.processId);
 		case 'find_files':
 			return executeFindFilesTool(args.pattern, args.directory);
 		case 'search_text':
