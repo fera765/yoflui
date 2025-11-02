@@ -40,9 +40,16 @@ export class MCPClient extends EventEmitter {
 		const mainCmd = args[0];
 		const cmdArgs = args.slice(1);
 
+		const cleanEnv = { ...process.env };
+		delete cleanEnv.npm_config_version_commit_hooks;
+		delete cleanEnv.npm_config_version_tag_prefix;
+		delete cleanEnv.npm_config_version_git_message;
+		delete cleanEnv.npm_config_argv;
+		delete cleanEnv.npm_config_version_git_tag;
+
 		const childProcess = spawn('npx', ['-y', mainCmd, ...cmdArgs], {
 			stdio: ['pipe', 'pipe', 'pipe'],
-			env: { ...process.env, NODE_ENV: 'production' },
+			env: { ...cleanEnv, NODE_ENV: 'production' },
 		});
 
 		const mcpProcess: MCPProcess = {
@@ -63,9 +70,12 @@ export class MCPClient extends EventEmitter {
 			this.handleMCPOutput(mcpId, data);
 		});
 
-		childProcess.stderr?.on('data', (data: Buffer) => {
-			console.error(`[MCP ${mcpId}] stderr:`, data.toString());
-		});
+	childProcess.stderr?.on('data', (data: Buffer) => {
+		const text = data.toString();
+		if (!text.includes('npm warn') && !text.includes('npm notice')) {
+			console.error(`[MCP ${mcpId}] stderr:`, text);
+		}
+	});
 
 		childProcess.on('error', (error) => {
 			console.error(`[MCP ${mcpId}] Process error:`, error);
@@ -145,16 +155,19 @@ export class MCPClient extends EventEmitter {
 			const requestStr = JSON.stringify(request) + '\n';
 			mcpProcess.process.stdin?.write(requestStr);
 
+			const timeoutMs = method === 'initialize' ? 30000 : 15000;
 			setTimeout(() => {
 				if (mcpProcess.pendingRequests.has(messageId)) {
 					mcpProcess.pendingRequests.delete(messageId);
 					reject(new Error(`MCP request timeout: ${method}`));
 				}
-			}, 10000);
+			}, timeoutMs);
 		});
 	}
 
 	private async initializeMCP(mcpId: string): Promise<void> {
+		await new Promise(resolve => setTimeout(resolve, 2000));
+
 		try {
 			const result = await this.sendMCPRequest(mcpId, 'initialize', {
 				protocolVersion: '2024-11-05',
@@ -177,7 +190,11 @@ export class MCPClient extends EventEmitter {
 				mcpProcess.isReady = true;
 			}
 
-			await this.sendMCPRequest(mcpId, 'initialized');
+			try {
+				await this.sendMCPRequest(mcpId, 'notifications/initialized', {});
+			} catch (notifError) {
+				console.log(`[MCP ${mcpId}] Initialized notification not supported, continuing...`);
+			}
 		} catch (error) {
 			throw new Error(`Failed to initialize MCP: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
