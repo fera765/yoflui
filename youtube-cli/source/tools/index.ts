@@ -9,6 +9,7 @@ export * from './read-folder.js';
 export * from './kanban.js';
 export * from './web-fetch.js';
 export * from './web-search.js';
+export * from './web-scraper.js';
 export * from './memory.js';
 export * from './agent.js';
 
@@ -37,6 +38,7 @@ import { readFolderToolDefinition, executeReadFolderTool } from './read-folder.j
 import { kanbanToolDefinition, executeKanbanTool, type KanbanTask } from './kanban.js';
 import { webFetchToolDefinition, executeWebFetchTool } from './web-fetch.js';
 import { webSearchToolDefinition, executeWebSearchTool } from './web-search.js';
+import { webScraperToolDefinition, executeWebScraperTool } from './web-scraper.js';
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 import { memoryToolDefinition, executeSaveMemoryTool, loadMemories } from './memory.js';
 import { delegateAgentToolDefinition, executeDelegateAgent } from './agent.js';
@@ -56,6 +58,7 @@ export function getAllToolDefinitions() {
 		kanbanToolDefinition,
 		webFetchToolDefinition,
 		webSearchToolDefinition,
+		webScraperToolDefinition,
 		youtubeToolDefinition,
 		memoryToolDefinition,
 		delegateAgentToolDefinition,
@@ -114,6 +117,8 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeWebFetchTool(args.url);
 		case 'web_search':
 			return executeWebSearchTool(args.query, args.engine || 'duckduckgo', args.maxResults || 100);
+		case 'web_scraper':
+			return executeWebScraperTool(args.url);
 		case 'search_youtube_comments': {
 			const result = await executeYouTubeTool(args.query);
 			if (!result.success) {
