@@ -80,14 +80,9 @@ export async function fetchVideoComments(videoId: string, maxComments: number = 
 		// Add small delay to avoid rate limiting
 		await delay(300);
 		
-		// Suppress parser warnings
-		const originalConsoleError = console.error;
-		console.error = (...args: any[]) => {
-			const msg = args[0]?.toString() || '';
-			if (!msg.includes('YOUTUBEJS') && !msg.includes('Parser')) {
-				originalConsoleError(...args);
-			}
-		};
+	// Suppress parser warnings
+	const originalConsoleError = console.error;
+	console.error = () => {};
 		
 		const youtube = await retryWithBackoff(
 			() => Innertube.create(),
@@ -184,7 +179,6 @@ export async function fetchVideoComments(videoId: string, maxComments: number = 
 		// Return up to maxComments
 		return comments.slice(0, maxComments);
 	} catch (error) {
-		console.error(`Failed to fetch comments for video ${videoId}:`, error);
 		return [];
 	}
 }

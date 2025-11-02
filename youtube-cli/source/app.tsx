@@ -1,207 +1,215 @@
-import React, { useState } from 'react';
-import { Box, useInput, Text } from 'ink';
-import { QuantumTimeline, QuantumInput, type Message } from './components/QuantumTerminal.js';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Box, useInput, useStdout } from 'ink';
+import { ChatTimeline, ChatInput, type ChatMessage } from './components/ChatComponents.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
 import { ToolsScreen } from './components/ToolsScreen.js';
+import { MCPScreen } from './components/MCPScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
+import { mcpManager } from './mcp/mcp-manager.js';
 import { join } from 'path';
 
-type Screen = 'chat' | 'auth' | 'config' | 'tools';
+type Screen = 'chat' | 'auth' | 'config' | 'tools' | 'mcp';
+
+const MAX_MESSAGES_IN_MEMORY = 500;
+
+let msgIdCounter = 0;
+const generateId = (prefix: string) => `${prefix}-${Date.now()}-${++msgIdCounter}`;
+
+let mcpStarted = false;
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
-	const [messages, setMessages] = useState<Message[]>([]);
-	const [inputValue, setInputValue] = useState('');
-	const [isProcessing, setIsProcessing] = useState(false);
-	const [showCommandSuggestions, setShowCommandSuggestions] = useState(false);
-
-	const config = getConfig();
-
-	useInput((input, key) => {
-		if (key.escape && inputValue.length > 0) {
-			setInputValue('');
-			setShowCommandSuggestions(false);
+	const [msgs, setMsgs] = useState<ChatMessage[]>([]);
+	const [input, setInput] = useState('');
+	const [busy, setBusy] = useState(false);
+	const [cmds, setCmds] = useState(false);
+	
+	const { stdout } = useStdout();
+	const cfg = getConfig();
+	
+	if (!mcpStarted) {
+		mcpStarted = true;
+		mcpManager.startAllMCPs().catch(() => {});
+	}
+	
+	useInput((_, key) => {
+		if (screen !== 'chat') return;
+		
+		if (key.escape) {
+			setInput('');
+			setCmds(false);
 		}
 	});
-
-	const handleInputChange = (value: string) => {
-		setInputValue(value);
-		setShowCommandSuggestions(value === '/');
-	};
-
-	const handleCommandSelect = (command: string) => {
-		setInputValue('');
-		setShowCommandSuggestions(false);
-
-		if (command === '/llm') {
-			setScreen('auth');
-		} else if (command === '/config') {
-			setScreen('config');
-		} else if (command === '/tools') {
-			setScreen('tools');
-		} else if (command === '/exit') {
-			process.exit(0);
-		}
-	};
-
-	const handleSubmit = async () => {
-		if (!inputValue.trim() || isProcessing) return;
-
-		const msg = inputValue.trim();
-		setInputValue('');
-		setShowCommandSuggestions(false);
-
-		// Handle commands
-		if (msg === '/llm') {
-			setScreen('auth');
+	
+	const changeInput = useCallback((val: string) => {
+		setInput(val);
+		setCmds(val === '/');
+	}, []);
+	
+	const selectCmd = useCallback((cmd: string) => {
+		setInput('');
+		setCmds(false);
+		
+		if (cmd === '/llm') setScreen('auth');
+		else if (cmd === '/config') setScreen('config');
+		else if (cmd === '/tools') setScreen('tools');
+		else if (cmd === '/mcp') setScreen('mcp');
+		else if (cmd === '/exit') process.exit(0);
+	}, []);
+	
+	const addMessage = useCallback((msg: ChatMessage) => {
+		setMsgs(prev => {
+			const updated = [...prev, msg];
+			if (updated.length > MAX_MESSAGES_IN_MEMORY) {
+				return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
+			}
+			return updated;
+		});
+	}, []);
+	
+	const submitMsg = useCallback(async () => {
+		if (!input.trim() || busy) return;
+		
+		const txt = input.trim();
+		
+		if (txt.startsWith('/') && txt.split(' ').length === 1) {
+			selectCmd(txt);
 			return;
 		}
-		if (msg === '/config') {
-			setScreen('config');
-			return;
-		}
-		if (msg === '/tools') {
-			setScreen('tools');
-			return;
-		}
-		if (msg === '/exit') {
-			process.exit(0);
-			return;
-		}
-
-		// Send message - autonomous agent
-		setMessages(prev => [...prev, { role: 'user', content: msg }]);
-		setIsProcessing(true);
-
+		
+		setInput('');
+		setCmds(false);
+		
+		const userMsgId = generateId('user');
+		addMessage({ id: userMsgId, role: 'user', content: txt });
+		
+		setBusy(true);
+		
 		try {
-			// Create work directory
 			const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
-
-			const response = await runAutonomousAgent({
-				userMessage: msg,
+			
+			const reply = await runAutonomousAgent({
+				userMessage: txt,
 				workDir,
-				onProgress: (progress) => {
-					// Silent in interactive mode - visual feedback via timeline
-				},
+				onProgress: () => {},
 				onKanbanUpdate: (tasks) => {
-					setMessages(prev => {
-						// Remove previous kanban and add new one
-						const filtered = prev.filter(m => m.role !== 'kanban');
-						return [...filtered, { role: 'kanban', content: '', kanban: tasks }];
-					});
-				},
-				onToolExecute: (toolName, args) => {
-					setMessages(prev => [
-						...prev,
-						{
-							role: 'tool',
+					setMsgs(prev => {
+						const noKanban = prev.filter(m => m.role !== 'kanban');
+						const updated: ChatMessage[] = [...noKanban, {
+							id: generateId('kanban'),
+							role: 'kanban' as const,
 							content: '',
-							toolCall: { name: toolName, args, status: 'running' },
-						},
-					]);
-				},
-				onToolComplete: (toolName, args, result, error) => {
-					setMessages(prev => {
-						const updated = [...prev];
-						// Find the last tool message with matching name and running status
-						for (let i = updated.length - 1; i >= 0; i--) {
-							if (
-								updated[i]?.role === 'tool' &&
-								updated[i]?.toolCall?.name === toolName &&
-								updated[i]?.toolCall?.status === 'running'
-							) {
-								updated[i] = {
-									role: 'tool',
-									content: '',
-									toolCall: {
-										name: toolName,
-										args,
-										status: error ? 'error' : 'complete',
-										result,
-									},
-								};
-								break;
-							}
+							kanban: tasks
+						}];
+						if (updated.length > MAX_MESSAGES_IN_MEMORY) {
+							return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
 						}
 						return updated;
 					});
 				},
-			});
-
-			setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-		} catch (error) {
-			setMessages(prev => [
-				...prev,
-				{
-					role: 'assistant',
-					content: `**Error:** ${error instanceof Error ? error.message : 'Unknown error'}`,
+				onToolExecute: (name, args) => {
+					addMessage({
+						id: generateId('tool'),
+						role: 'tool',
+						content: '',
+						toolCall: { name, args, status: 'running' }
+					});
 				},
-			]);
+				onToolComplete: (name, args, result, error) => {
+					setMsgs(prev => {
+						const copy = [...prev];
+						for (let i = copy.length - 1; i >= 0; i--) {
+							if (copy[i].role === 'tool' && 
+								copy[i].toolCall?.name === name &&
+								copy[i].toolCall?.status === 'running') {
+								copy[i] = {
+									...copy[i],
+									toolCall: { name, args, status: error ? 'error' : 'complete', result }
+								};
+								break;
+							}
+						}
+						return copy;
+					});
+				}
+			});
+			
+			addMessage({
+				id: generateId('assistant'),
+				role: 'assistant',
+				content: reply
+			});
+			
+		} catch (err) {
+			addMessage({
+				id: generateId('error'),
+				role: 'assistant',
+				content: `Error: ${err instanceof Error ? err.message : String(err)}`
+			});
 		} finally {
-			setIsProcessing(false);
+			setBusy(false);
 		}
-	};
-
-	const handleAuthComplete = (mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
+	}, [input, busy, selectCmd, addMessage]);
+	
+	const onAuthComplete = useCallback((mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
 		setConfig({ endpoint, apiKey, model });
 		setScreen('chat');
-	};
-
-	const handleConfigSave = (maxVideos: number, maxCommentsPerVideo: number) => {
+	}, []);
+	
+	const onConfigSave = useCallback((maxVideos: number, maxCommentsPerVideo: number) => {
 		setConfig({ maxVideos, maxCommentsPerVideo });
 		setScreen('chat');
-	};
-
+	}, []);
+	
 	if (screen === 'auth') {
 		return (
 			<NewAuthScreen
-				onComplete={handleAuthComplete}
+				onComplete={onAuthComplete}
 				onCancel={() => setScreen('chat')}
 				currentMode="custom"
-				currentEndpoint={config.endpoint}
-				currentApiKey={config.apiKey}
-				currentModel={config.model}
+				currentEndpoint={cfg.endpoint}
+				currentApiKey={cfg.apiKey}
+				currentModel={cfg.model}
 			/>
 		);
 	}
-
+	
 	if (screen === 'config') {
 		return (
 			<ConfigScreen
-				onSave={handleConfigSave}
+				onSave={onConfigSave}
 				onCancel={() => setScreen('chat')}
-				currentMaxVideos={config.maxVideos}
-				currentMaxComments={config.maxCommentsPerVideo}
+				currentMaxVideos={cfg.maxVideos}
+				currentMaxComments={cfg.maxCommentsPerVideo}
 			/>
 		);
 	}
-
+	
 	if (screen === 'tools') {
 		return <ToolsScreen onClose={() => setScreen('chat')} />;
 	}
-
+	
+	if (screen === 'mcp') {
+		return <MCPScreen onClose={() => setScreen('chat')} />;
+	}
+	
 	return (
-		<Box flexDirection="column" minHeight={0}>
-			<Box flexDirection="column" flexGrow={1} minHeight={0}>
-				<QuantumTimeline messages={messages} />
+		<Box flexDirection="column">
+			<Box flexDirection="column" flexGrow={1}>
+				<ChatTimeline messages={msgs} />
 			</Box>
-
-			{showCommandSuggestions && (
+			
+			{cmds && (
 				<Box paddingX={2} paddingBottom={1}>
-					<CommandSuggestions onSelect={handleCommandSelect} />
+					<CommandSuggestions onSelect={selectCmd} />
 				</Box>
 			)}
-
+			
 			<Box flexShrink={0}>
-				<QuantumInput
-					value={inputValue}
-					onChange={handleInputChange}
-					onSubmit={handleSubmit}
-					isProcessing={isProcessing}
-				/>
+				<ChatInput value={input} onChange={changeInput} onSubmit={submitMsg} disabled={busy} />
 			</Box>
 		</Box>
 	);

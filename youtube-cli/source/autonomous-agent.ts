@@ -3,8 +3,9 @@ import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
-import { ALL_TOOL_DEFINITIONS, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
+import { getAllToolDefinitions, executeToolCall, loadKanban, type KanbanTask, loadMemories } from './tools/index.js';
 import { saveConversationHistory, loadConversationHistory, type MemoryEntry } from './tools/memory.js';
+import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversation } from './context-manager.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -21,7 +22,16 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	// Create work directory
 	mkdirSync(workDir, { recursive: true });
 
-	onProgress?.('[*] Analyzing task and creating Kanban...');
+	// Load or create context (silently scans folder structure)
+	const cwd = process.cwd();
+	const context = loadOrCreateContext(userMessage, cwd);
+	const contextPrompt = generateContextPrompt(context);
+	
+	// Save user message to conversation history BEFORE processing
+	addToConversation('user', userMessage, cwd);
+	
+	// Save context immediately
+	saveContext(context, cwd);
 
 	const config = getConfig();
 	const qwenCreds = loadQwenCredentials();
@@ -41,37 +51,16 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 
 	const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
-	// Load conversation history
-	const conversationHistory = loadConversationHistory(workDir);
-	
 	// Load saved memories
 	const savedMemories = loadMemories(workDir);
 	const memoryContext = savedMemories.length > 0 
 		? `\n## SAVED MEMORIES:\n${savedMemories.map(m => `- [${m.category}] ${m.content}`).join('\n')}\n`
 		: '';
 
-	// Check if .flui.md exists and load it
-	let fluiContext = '';
-	const fluiPath = join(process.cwd(), '.flui.md');
-	if (existsSync(fluiPath)) {
-		try {
-			fluiContext = readFileSync(fluiPath, 'utf-8');
-			onProgress?.('[+] Loaded .flui.md context');
-		} catch (error) {
-			// Ignore errors loading .flui.md
-		}
-	}
-
-	if (savedMemories.length > 0) {
-		onProgress?.(`[+] Loaded ${savedMemories.length} saved memories`);
-	}
-
-	if (conversationHistory.length > 0) {
-		onProgress?.(`[+] Loaded ${conversationHistory.length} previous messages`);
-	}
-
 	const systemPrompt = `You are an AUTONOMOUS AI AGENT that helps users complete tasks efficiently.
-${fluiContext ? `\n## PROJECT CONTEXT FROM .flui.md:\n${fluiContext}\n` : ''}${memoryContext}
+
+${contextPrompt}
+${memoryContext}
 
 Work directory: ${workDir}
 
@@ -88,32 +77,31 @@ Available tools:
 - search_youtube_comments: Search YouTube videos and extract comments
 - save_memory: Save important context/learnings for future reference
 
-TASK CLASSIFICATION:
-- **Simple task (1-2 steps)**: Just execute the tool(s) and respond. NO Kanban needed.
-  Example: "Read file X" ? Use read_file and respond
-  Example: "Create hello.txt" ? Use write_file and respond
+MESSAGE CLASSIFICATION:
+1. CASUAL CONVERSATION (NO tools):
+   - Greetings like Hi, Hello, Oi, Hey
+   - Small talk like How are you, Tudo bem
+   - Questions like Who are you
+   RESPONSE: Chat naturally, DO NOT use tools
 
-- **Complex task (3+ steps)**: Create Kanban, execute tasks, update Kanban as you progress.
-  Example: "Create 3 files with tests" ? Use update_kanban first, then execute
-  Example: "Build a web app" ? Use update_kanban to track multiple steps
+2. SIMPLE TASK (tools, NO Kanban):
+   - Read file X - Use read_file
+   - Create file - Use write_file
+   RESPONSE: Execute tools, NO Kanban
 
-WORKFLOW:
-1. Analyze if task requires multiple steps (3+)
-2. If YES: Create Kanban ? Execute tools ? Update Kanban ? Respond
-3. If NO: Execute tool(s) directly ? Respond (no Kanban)
+3. COMPLEX TASK (tools + Kanban):
+   - Create 3+ files - Use Kanban
+   RESPONSE: Kanban + tools
 
-IMPORTANT: 
-- Use Kanban ONLY for genuinely complex tasks
-- Always ACTUALLY execute the tools to complete tasks
-- Provide clear, concise responses about what was done`;
+CRITICAL: Greetings = NO tools, Simple = tools only, Complex = Kanban`;
 
-	// Build messages with history
+	// Build messages with context history
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 		{ role: 'system', content: systemPrompt },
 	];
 
-	// Add conversation history (last 10 messages to keep context manageable)
-	const recentHistory = conversationHistory.slice(-10);
+	// Add recent conversation from context (last 5 messages)
+	const recentHistory = context.conversationHistory.slice(-5);
 	for (const entry of recentHistory) {
 		messages.push({
 			role: entry.role,
@@ -133,7 +121,7 @@ IMPORTANT:
 		const response = await openai.chat.completions.create({
 			model: config.model,
 			messages,
-			tools: ALL_TOOL_DEFINITIONS,
+			tools: getAllToolDefinitions(),
 			tool_choice: 'auto',
 		});
 
@@ -187,22 +175,8 @@ IMPORTANT:
 
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
-			// Save conversation to history
-			const newEntries: MemoryEntry[] = [
-				...conversationHistory,
-				{
-					timestamp: Date.now(),
-					role: 'user',
-					content: userMessage,
-				},
-				{
-					timestamp: Date.now(),
-					role: 'assistant',
-					content: assistantMsg.content,
-				},
-			];
-			
-			saveConversationHistory(`session-${Date.now()}`, newEntries, workDir);
+			// Save assistant response to context (user message already in context)
+			addToConversation('assistant', assistantMsg.content, cwd);
 			
 			return assistantMsg.content;
 		}

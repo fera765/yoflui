@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "?? TESTE DE DUPLICA??O VISUAL"
+echo ""
+echo "Este teste vai:"
+echo "1. Executar a CLI"
+echo "2. Voc? envia uma mensagem"
+echo "3. Verifica quantas vezes a mensagem aparece"
+echo ""
+echo "Execute: npm run dev"
+echo ""
+echo "Depois de enviar 'oi', conte quantas vezes aparece:"
+echo "  - 1 vez quando voc? envia = ? CORRETO"
+echo "  - 2 vezes (antes da resposta) = ? DUPLICADO"
+echo ""

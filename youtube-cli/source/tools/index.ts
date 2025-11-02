@@ -9,11 +9,23 @@ export * from './read-folder.js';
 export * from './kanban.js';
 export * from './web-fetch.js';
 export * from './memory.js';
+export * from './agent.js';
+
+// Re-export loadKanban for external use
+import { loadKanban } from './kanban.js';
+export { loadKanban };
 
 import { editToolDefinition, executeEditTool } from './edit.js';
 import { readFileToolDefinition, executeReadFileTool } from './read-file.js';
 import { writeFileToolDefinition, executeWriteFileTool } from './write-file.js';
-import { shellToolDefinition, executeShellTool } from './shell.js';
+import { 
+	shellToolDefinition, 
+	executeShellTool,
+	shellInputToolDefinition,
+	executeShellInputTool,
+	shellStatusToolDefinition,
+	executeShellStatusTool
+} from './shell.js';
 import { findFilesToolDefinition, executeFindFilesTool } from './find-files.js';
 import { searchTextToolDefinition, executeSearchTextTool } from './search-text.js';
 import { readFolderToolDefinition, executeReadFolderTool } from './read-folder.js';
@@ -21,22 +33,39 @@ import { kanbanToolDefinition, executeKanbanTool, type KanbanTask } from './kanb
 import { webFetchToolDefinition, executeWebFetchTool } from './web-fetch.js';
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 import { memoryToolDefinition, executeSaveMemoryTool, loadMemories } from './memory.js';
+import { delegateAgentToolDefinition, executeDelegateAgent } from './agent.js';
+import { getMCPToolDefinitions, executeMCPTool, isMCPTool } from '../mcp/mcp-tools-adapter.js';
 
-export const ALL_TOOL_DEFINITIONS = [
-	editToolDefinition,
-	readFileToolDefinition,
-	writeFileToolDefinition,
-	shellToolDefinition,
-	findFilesToolDefinition,
-	searchTextToolDefinition,
-	readFolderToolDefinition,
-	kanbanToolDefinition,
-	webFetchToolDefinition,
-	youtubeToolDefinition,
-	memoryToolDefinition,
-];
+export function getAllToolDefinitions() {
+	const baseTools = [
+		editToolDefinition,
+		readFileToolDefinition,
+		writeFileToolDefinition,
+		shellToolDefinition,
+		shellInputToolDefinition,
+		shellStatusToolDefinition,
+		findFilesToolDefinition,
+		searchTextToolDefinition,
+		readFolderToolDefinition,
+		kanbanToolDefinition,
+		webFetchToolDefinition,
+		youtubeToolDefinition,
+		memoryToolDefinition,
+		delegateAgentToolDefinition,
+	];
+
+	const mcpTools = getMCPToolDefinitions();
+	
+	return [...baseTools, ...mcpTools];
+}
+
+export const ALL_TOOL_DEFINITIONS = getAllToolDefinitions();
 
 export async function executeToolCall(toolName: string, args: any, workDir: string): Promise<string> {
+	if (isMCPTool(toolName)) {
+		return executeMCPTool(toolName, args);
+	}
+
 	switch (toolName) {
 		case 'edit_file':
 			return executeEditTool(args.file_path, args.old_string, args.new_string);
@@ -45,7 +74,11 @@ export async function executeToolCall(toolName: string, args: any, workDir: stri
 		case 'write_file':
 			return executeWriteFileTool(args.file_path, args.content);
 		case 'execute_shell':
-			return executeShellTool(args.command);
+			return executeShellTool(args.command, args.timeout, args.interactive);
+		case 'shell_input':
+			return executeShellInputTool(args.processId, args.input);
+		case 'shell_status':
+			return executeShellStatusTool(args.processId);
 		case 'find_files':
 			return executeFindFilesTool(args.pattern, args.directory);
 		case 'search_text':
@@ -70,6 +103,8 @@ export async function executeToolCall(toolName: string, args: any, workDir: stri
 		}
 		case 'save_memory':
 			return executeSaveMemoryTool(args.content, args.category, workDir);
+		case 'delegate_to_agent':
+			return executeDelegateAgent(args.task, workDir, args.kanban_task_id);
 		default:
 			return `Unknown tool: ${toolName}`;
 	}
