@@ -7,6 +7,7 @@ import { ExecutionContext } from './utils/execution-context.js';
 import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
 import { logger, formatToolArgs } from './utils/logger.js';
 import { checkpointManager } from './automation/checkpoint-manager.js';
+import { getSystemPrompt, formatToolMessage } from './prompts/prompt-loader.js';
 
 interface CoordinatorOptions {
     automation: Automation;
@@ -59,25 +60,15 @@ export class LLMAutomationCoordinator {
         // Build automation context for LLM
         const automationContext = this.buildAutomationContext(automation, webhookData);
 
-        // Initialize conversation
+        // Initialize conversation with system prompt from JSON
+        const systemPromptContent = getSystemPrompt('automation_coordinator', {
+            automation_context: automationContext
+        });
+
         this.conversationHistory = [
             {
                 role: 'system',
-                content: `You are an automation coordinator. You will execute the following automation step by step:
-
-${automationContext}
-
-Your job is to:
-1. Execute each step of the automation using the available tools
-2. Report what you're doing at each step
-3. Handle errors gracefully
-4. Provide a final summary
-
-Available tools: ${getAllToolDefinitions().map(t => t.function.name).join(', ')}
-
-Work directory: ${workDir}
-
-Execute the automation now, step by step, using the tools available.`,
+                content: systemPromptContent
             },
             {
                 role: 'user',

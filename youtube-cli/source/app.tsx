@@ -3,6 +3,7 @@ import { Box, useInput, useStdout } from 'ink';
 import { ChatTimeline, ChatInput, type ChatMessage } from './components/ChatComponents.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { AutomationSelector } from './components/AutomationSelector.js';
+import { formatAutomationStart, formatWebhookSetup, formatWebhookTriggered } from './prompts/prompt-loader.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
 import { ConfigScreen } from './components/ConfigScreen.js';
 import { ToolsScreen } from './components/ToolsScreen.js';

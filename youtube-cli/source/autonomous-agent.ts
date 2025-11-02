@@ -7,6 +7,7 @@ import { getAllToolDefinitions, executeToolCall, loadKanban, type KanbanTask, lo
 import { saveConversationHistory, loadConversationHistory, type MemoryEntry } from './tools/memory.js';
 import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversation } from './context-manager.js';
 import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
+import { getSystemPrompt } from './prompts/prompt-loader.js';
 
 interface AgentOptions {
 	userMessage: string;
