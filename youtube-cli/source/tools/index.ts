@@ -118,7 +118,7 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 		case 'keyword_suggestions':
 			return executeKeywordSuggestionsTool(args.query, args.engines || ['all']);
 		case 'web_search':
-			return executeWebSearchTool(args.query, args.maxResults || 5);
+			return executeWebSearchTool(args.query, args.maxResults || 10);
 		case 'search_youtube_comments': {
 			const result = await executeYouTubeTool(args.query);
 			if (!result.success) {

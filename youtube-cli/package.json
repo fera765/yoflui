@@ -38,6 +38,7 @@
     "ink-text-input": "^6.0.0",
     "openai": "^6.7.0",
     "p-queue": "^9.0.0",
+    "puppeteer": "^24.27.0",
     "react": "^19.2.0",
     "scrape-youtube": "^2.4.0",
     "socks-proxy-agent": "^8.0.5",
