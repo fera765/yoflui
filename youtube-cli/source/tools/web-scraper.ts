@@ -388,6 +388,16 @@ function getAntiDetectionHeaders(url: string, strategy: 'default' | 'aggressive'
 		'Referer': referer,
 	};
 	
+	// For default strategy, use minimal headers (especially for blocked sites)
+	if (strategy === 'default') {
+		baseHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+		baseHeaders['Referer'] = 'https://www.google.com/';
+		baseHeaders['Sec-Fetch-Site'] = 'none';
+		delete baseHeaders['Cache-Control'];
+		delete baseHeaders['DNT'];
+		delete baseHeaders['Upgrade-Insecure-Requests'];
+	}
+	
 	// Add cookies if available
 	if (cookies) {
 		baseHeaders['Cookie'] = cookies;
