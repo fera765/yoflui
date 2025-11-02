@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
 
 interface ToolBoxProps {
 	name: string;
@@ -9,7 +8,7 @@ interface ToolBoxProps {
 	result?: string;
 }
 
-const SPINNER_FRAMES = ['?', '?', '?', '?', '?', '?', '?', '?', '?', '?'];
+const SPINNER_FRAMES = ['|', '/', '-', '\\'];
 
 const parseEditDiff = (result: string) => {
 	const lines = result.split('\n');
@@ -45,7 +44,7 @@ export const ToolBox: React.FC<ToolBoxProps> = ({ name, args, status, result }) 
 		}
 	}, [status]);
 	
-	const icon = status === 'running' ? SPINNER_FRAMES[frame] : status === 'error' ? '?' : '?';
+	const icon = status === 'running' ? SPINNER_FRAMES[frame] : status === 'error' ? '[X]' : '[OK]';
 	const iconColor = status === 'running' ? 'cyan' : status === 'error' ? 'red' : 'green';
 	const toolName = name.toUpperCase();
 	
@@ -61,7 +60,7 @@ export const ToolBox: React.FC<ToolBoxProps> = ({ name, args, status, result }) 
 		const hasMore = diffLines.length > 16;
 		
 		if (totalAdded > 0 && totalRemoved > 0) {
-			totalLinesInfo = `?${totalAdded + totalRemoved} linhas`;
+			totalLinesInfo = `+${totalAdded}/-${totalRemoved} linhas`;
 		} else if (totalAdded > 0) {
 			totalLinesInfo = `+${totalAdded} linhas`;
 		} else if (totalRemoved > 0) {
@@ -74,13 +73,13 @@ export const ToolBox: React.FC<ToolBoxProps> = ({ name, args, status, result }) 
 		}).join('\n');
 		
 		if (hasMore) {
-			displayContent += `\n    ... (${diffLines.length - 16} linhas ocultas)`;
+			displayContent += `\n---------- +${diffLines.length - 16} linhas ----------`;
 		}
 	} else if (result) {
 		const lines = result.split('\n').slice(0, 16);
 		displayContent = lines.join('\n');
 		if (result.split('\n').length > 16) {
-			displayContent += `\n... (${result.split('\n').length - 16} linhas ocultas)`;
+			displayContent += `\n---------- +${result.split('\n').length - 16} linhas ----------`;
 		}
 	}
 	
@@ -89,19 +88,27 @@ export const ToolBox: React.FC<ToolBoxProps> = ({ name, args, status, result }) 
 			<Box marginBottom={displayContent ? 1 : 0}>
 				<Text color={iconColor} bold>{icon} </Text>
 				<Text color="white" bold>{toolName}</Text>
-				{fileName && <Text color="gray">: {fileName}</Text>}
+				{fileName && <Text color="white">: {fileName}</Text>}
 				{totalLinesInfo && <Text color="yellow"> ({totalLinesInfo})</Text>}
 			</Box>
 			
 			{displayContent && (
 				<Box flexDirection="column">
 					{displayContent.split('\n').map((line, idx) => {
-						const isAdd = line.includes(' + ');
-						const isRemove = line.includes(' - ');
-						const color = isAdd ? 'green' : isRemove ? 'red' : 'gray';
+						if (isEdit) {
+							const isAdd = line.includes(' + ');
+							const isRemove = line.includes(' - ');
+							const color = isAdd ? 'green' : isRemove ? 'red' : 'white';
+							
+							return (
+								<Text key={idx} color={color}>
+									{line}
+								</Text>
+							);
+						}
 						
 						return (
-							<Text key={idx} color={color}>
+							<Text key={idx} color="white">
 								{line}
 							</Text>
 						);
