@@ -217,6 +217,152 @@ function humanLikeDelay(): Promise<void> {
 }
 
 /**
+ * Get domain-specific headers (underground bypass)
+ */
+function getDomainSpecificHeaders(url: string, strategy: 'default' | 'aggressive' | 'stealth'): Record<string, string> {
+	const urlObj = new URL(url);
+	const domain = urlObj.hostname.toLowerCase();
+	const baseHeaders = getAntiDetectionHeaders(url, strategy);
+	
+	// StackOverflow specific headers (underground bypass)
+	if (domain.includes('stackoverflow.com')) {
+		// Ultra-minimal headers - mimic direct browser navigation from Google
+		baseHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+		baseHeaders['Referer'] = 'https://www.google.com/';
+		baseHeaders['Sec-Fetch-Site'] = 'none';
+		baseHeaders['Sec-Fetch-Mode'] = 'navigate';
+		baseHeaders['Sec-Fetch-Dest'] = 'document';
+		baseHeaders['Sec-Fetch-User'] = '?1';
+		baseHeaders['Accept-Language'] = 'en-US,en;q=0.9';
+		baseHeaders['Accept-Encoding'] = 'gzip, deflate, br';
+		baseHeaders['Connection'] = 'keep-alive';
+		// Remove ALL suspicious headers
+		delete baseHeaders['Viewport-Width'];
+		delete baseHeaders['Width'];
+		delete baseHeaders['Sec-CH-UA'];
+		delete baseHeaders['Sec-CH-UA-Mobile'];
+		delete baseHeaders['Sec-CH-UA-Platform'];
+		delete baseHeaders['Origin'];
+		delete baseHeaders['DNT'];
+		delete baseHeaders['Cache-Control'];
+		delete baseHeaders['Upgrade-Insecure-Requests'];
+		if (baseHeaders['X-Requested-With']) delete baseHeaders['X-Requested-With'];
+	}
+	
+	// Reddit specific headers (underground bypass)
+	if (domain.includes('reddit.com')) {
+		// Ultra-minimal headers - Reddit is extremely strict
+		baseHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+		baseHeaders['Referer'] = 'https://www.google.com/';
+		baseHeaders['Sec-Fetch-Site'] = 'none';
+		baseHeaders['Sec-Fetch-Mode'] = 'navigate';
+		baseHeaders['Sec-Fetch-Dest'] = 'document';
+		baseHeaders['Sec-Fetch-User'] = '?1';
+		baseHeaders['Accept-Language'] = 'en-US,en;q=0.9';
+		baseHeaders['Accept-Encoding'] = 'gzip, deflate, br';
+		baseHeaders['Connection'] = 'keep-alive';
+		// Remove ALL suspicious headers - Reddit detects everything
+		delete baseHeaders['Viewport-Width'];
+		delete baseHeaders['Width'];
+		delete baseHeaders['Sec-CH-UA'];
+		delete baseHeaders['Sec-CH-UA-Mobile'];
+		delete baseHeaders['Sec-CH-UA-Platform'];
+		delete baseHeaders['Origin'];
+		delete baseHeaders['DNT'];
+		delete baseHeaders['Cache-Control'];
+		delete baseHeaders['Upgrade-Insecure-Requests'];
+		// Don't send cookies initially - Reddit might detect cookie patterns
+		if (!baseHeaders['Cookie'] || baseHeaders['Cookie'].length < 50) {
+			delete baseHeaders['Cookie'];
+		}
+	}
+	
+	return baseHeaders;
+}
+
+/**
+ * Complete navigation simulation (visit multiple pages like real user)
+ * Underground bypass: simulate complete browsing session
+ */
+async function simulateCompleteNavigation(baseUrl: string, headers: Record<string, string>): Promise<void> {
+	try {
+		const urlObj = new URL(baseUrl);
+		const domain = urlObj.hostname;
+		const protocol = urlObj.protocol;
+		
+		// Step 1: Visit homepage FIRST (critical for cookie establishment)
+		const homepage = `${protocol}//${domain}/`;
+		const minimalHeaders = {
+			'User-Agent': headers['User-Agent'],
+			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+			'Accept-Language': 'en-US,en;q=0.9',
+			'Accept-Encoding': 'gzip, deflate, br',
+			'Connection': 'keep-alive',
+			'Referer': 'https://www.google.com/',
+		};
+		
+		const homeResponse = await withTimeout(
+			fetch(homepage, {
+				method: 'GET',
+				headers: minimalHeaders,
+			}),
+			TIMEOUT_CONFIG.HTTP_REQUEST * 2,
+			`Navigation step 1: ${homepage}`
+		);
+		
+		saveCookies(homepage, homeResponse);
+		const cookies = getCookiesForDomain(homepage);
+		
+		// Wait longer to simulate human reading
+		await randomDelay(2000, 4000);
+		
+		// Step 2: Visit common pages (simulate browsing) with cookies
+		const commonPages = domain.includes('stackoverflow.com') 
+			? ['/questions', '/tags']
+			: domain.includes('reddit.com')
+			? ['/r/popular', '/']
+			: ['/about', '/help'];
+		
+		for (const page of commonPages.slice(0, 2)) {
+			try {
+				const pageUrl = `${protocol}//${domain}${page}`;
+				const pageHeaders = {
+					...minimalHeaders,
+					'Referer': homepage,
+					'Cookie': cookies || '',
+				};
+				
+				const pageResponse = await withTimeout(
+					fetch(pageUrl, {
+						method: 'GET',
+						headers: pageHeaders,
+					}),
+					TIMEOUT_CONFIG.HTTP_REQUEST * 2,
+					`Navigation step: ${pageUrl}`
+				);
+				
+				saveCookies(pageUrl, pageResponse);
+				// Update cookies for next request
+				const newCookies = getCookiesForDomain(pageUrl);
+				if (newCookies && newCookies !== cookies) {
+					headers['Cookie'] = newCookies;
+				}
+				
+				// Simulate human reading time between pages
+				await randomDelay(2000, 4000);
+			} catch {
+				// Continue - don't fail entire navigation
+			}
+		}
+		
+		// Step 3: Final delay before target request
+		await randomDelay(1500, 3000);
+	} catch {
+		// Silent fail - continue anyway
+	}
+}
+
+/**
  * Get advanced anti-detection headers with multiple strategies
  */
 function getAntiDetectionHeaders(url: string, strategy: 'default' | 'aggressive' | 'stealth' = 'stealth'): Record<string, string> {
@@ -271,31 +417,6 @@ function getAntiDetectionHeaders(url: string, strategy: 'default' | 'aggressive'
 	}
 	
 	return baseHeaders;
-}
-
-/**
- * Detect if response is a block page (not real content)
- */
-function isBlockPage(html: string, url: string): boolean {
-	const blockIndicators = [
-		'access denied',
-		'blocked',
-		'forbidden',
-		'cloudflare',
-		'checking your browser',
-		'please enable cookies',
-		'you have been blocked',
-		'rate limit',
-		'too many requests',
-	];
-	
-	const htmlLower = html.toLowerCase();
-	const hasBlockIndicator = blockIndicators.some(indicator => htmlLower.includes(indicator));
-	
-	// Check if content is suspiciously short (likely a block page)
-	const isShort = html.length < 2000 && hasBlockIndicator;
-	
-	return isShort || (hasBlockIndicator && html.length < 5000);
 }
 
 /**
@@ -358,10 +479,22 @@ async function createFetchWithProxy(
 	strategy: 'default' | 'aggressive' | 'stealth' = 'stealth',
 	establishSessionFirst: boolean = true
 ): Promise<Response> {
-	const headers = getAntiDetectionHeaders(url, strategy);
+	// Get domain-specific headers
+	const headers = getDomainSpecificHeaders(url, strategy);
 	
-	// Strategy 1: Establish session first (bypass Cloudflare)
-	if (establishSessionFirst && strategy === 'stealth') {
+		// Strategy 1: Complete navigation simulation for blocked sites
+	const urlObj = new URL(url);
+	const domain = urlObj.hostname.toLowerCase();
+	if (establishSessionFirst && (domain.includes('stackoverflow.com') || domain.includes('reddit.com'))) {
+		// Use faster timeout for navigation simulation
+		const originalTimeout = TIMEOUT_CONFIG.HTTP_REQUEST;
+		TIMEOUT_CONFIG.HTTP_REQUEST = 20000; // 20 seconds for navigation
+		try {
+			await simulateCompleteNavigation(url, headers);
+		} finally {
+			TIMEOUT_CONFIG.HTTP_REQUEST = originalTimeout;
+		}
+	} else if (establishSessionFirst && strategy === 'stealth') {
 		await establishAdvancedSession(url, headers);
 	}
 	
@@ -498,6 +631,71 @@ function htmlToMarkdown(html: string): string {
 }
 
 /**
+ * Detect if response is a block page (not real content)
+ */
+function isBlockPage(html: string, url: string): boolean {
+	const urlObj = new URL(url);
+	const domain = urlObj.hostname.toLowerCase();
+	
+	// Domain-specific block detection
+	if (domain.includes('stackoverflow.com')) {
+		// StackOverflow block pages are usually very short or contain specific text
+		if (html.length < 1000) {
+			return true; // Definitely blocked
+		}
+		if (html.length < 3000) {
+			const lowerHtml = html.toLowerCase();
+			return lowerHtml.includes('blocked') || lowerHtml.includes('access denied') || lowerHtml.includes('forbidden');
+		}
+		// If HTML is substantial (>3000 chars), it's likely real content even with block keywords
+		return false;
+	}
+	
+	if (domain.includes('reddit.com')) {
+		// Reddit block pages contain specific text
+		const lowerHtml = html.toLowerCase();
+		const hasBlockText = lowerHtml.includes('you\'ve been blocked') || 
+			lowerHtml.includes('blocked by network security') ||
+			lowerHtml.includes('log in to your reddit account');
+		
+		if (hasBlockText) {
+			return true; // Definitely blocked
+		}
+		
+		// Very short responses are likely blocks
+		if (html.length < 1000) {
+			return true;
+		}
+		
+		// Reddit can serve content even with keywords if it's substantial
+		if (html.length > 5000 && !hasBlockText) {
+			return false; // Likely real content
+		}
+		return false;
+	}
+	
+	const blockIndicators = [
+		'access denied',
+		'blocked',
+		'forbidden',
+		'cloudflare',
+		'checking your browser',
+		'please enable cookies',
+		'you have been blocked',
+		'rate limit',
+		'too many requests',
+	];
+	
+	const htmlLower = html.toLowerCase();
+	const hasBlockIndicator = blockIndicators.some(indicator => htmlLower.includes(indicator));
+	
+	// Check if content is suspiciously short (likely a block page)
+	const isShort = html.length < 2000 && hasBlockIndicator;
+	
+	return isShort || (hasBlockIndicator && html.length < 5000);
+}
+
+/**
  * Extract structured content from HTML
  */
 function extractStructuredContent(html: string): string {
@@ -526,14 +724,30 @@ async function scrapeWebPage(url: string): Promise<string> {
 	await createFetchWithAntiDetection();
 	resetProxyFailures();
 	
+	const urlObj = new URL(url);
+	const domain = urlObj.hostname.toLowerCase();
+	const isBlockedSite = domain.includes('stackoverflow.com') || domain.includes('reddit.com');
+	
 	let lastError: Error | null = null;
-	const strategies: Array<{ strategy: 'default' | 'aggressive' | 'stealth', useProxy: boolean, establishSession: boolean }> = [
-		{ strategy: 'stealth', useProxy: false, establishSession: true },  // Best: stealth + session
-		{ strategy: 'stealth', useProxy: true, establishSession: true },   // With proxy
-		{ strategy: 'aggressive', useProxy: false, establishSession: false }, // Aggressive headers
-		{ strategy: 'aggressive', useProxy: true, establishSession: false }, // Aggressive + proxy
-		{ strategy: 'default', useProxy: false, establishSession: false }, // Fallback
-	];
+	
+	// Enhanced strategies for blocked sites - ultra-minimal approach first
+	const strategies: Array<{ strategy: 'default' | 'aggressive' | 'stealth', useProxy: boolean, establishSession: boolean }> = isBlockedSite
+		? [
+			// For blocked sites: start with ultra-minimal, no navigation (direct approach)
+			{ strategy: 'default', useProxy: false, establishSession: false }, // First: minimal headers, no navigation
+			{ strategy: 'default', useProxy: false, establishSession: true },  // Second: minimal headers + navigation
+			{ strategy: 'default', useProxy: true, establishSession: false },  // Third: minimal + proxy
+			{ strategy: 'stealth', useProxy: false, establishSession: false }, // Fourth: stealth, no navigation
+			{ strategy: 'aggressive', useProxy: false, establishSession: false }, // Fifth: aggressive headers
+		]
+		: [
+			// For normal sites: standard approach
+			{ strategy: 'stealth', useProxy: false, establishSession: true },
+			{ strategy: 'stealth', useProxy: false, establishSession: false },
+			{ strategy: 'aggressive', useProxy: false, establishSession: false },
+			{ strategy: 'aggressive', useProxy: true, establishSession: false },
+			{ strategy: 'default', useProxy: false, establishSession: false },
+		];
 	
 	for (let attempt = 0; attempt < strategies.length; attempt++) {
 		const { strategy, useProxy, establishSession } = strategies[attempt];
