@@ -306,38 +306,43 @@ async function establishAdvancedSession(baseUrl: string, headers: Record<string,
 		const urlObj = new URL(baseUrl);
 		const domain = urlObj.hostname;
 		
-		// Step 1: Visit homepage
+		// Step 1: Visit homepage with timeout
 		const homepage = `${urlObj.protocol}//${domain}/`;
-		const homeResponse = await fetch(homepage, {
-			method: 'GET',
-			headers: {
-				...headers,
-				'Referer': 'https://www.google.com/',
-			},
-		});
+		const homeResponse = await withTimeout(
+			fetch(homepage, {
+				method: 'GET',
+				headers: {
+					...headers,
+					'Referer': 'https://www.google.com/',
+				},
+			}),
+			TIMEOUT_CONFIG.HTTP_REQUEST,
+			`Establish session: ${homepage}`
+		);
 		
 		saveCookies(homepage, homeResponse);
-		await humanLikeDelay();
+		await randomDelay(800, 1500);
 		
-		// Step 2: Visit a common page (simulate browsing)
-		const commonPages = ['/about', '/help', '/faq', '/'];
-		for (const page of commonPages.slice(0, 2)) {
-			try {
-				const pageUrl = `${urlObj.protocol}//${domain}${page}`;
-				const pageResponse = await fetch(pageUrl, {
+		// Step 2: Visit one common page (simulate browsing)
+		try {
+			const pageUrl = `${urlObj.protocol}//${domain}/about`;
+			const pageResponse = await withTimeout(
+				fetch(pageUrl, {
 					method: 'GET',
 					headers: {
 						...headers,
 						'Referer': homepage,
 						'Cookie': getCookiesForDomain(homepage),
 					},
-				});
-				
-				saveCookies(pageUrl, pageResponse);
-				await humanLikeDelay();
-			} catch {
-				// Continue
-			}
+				}),
+				TIMEOUT_CONFIG.HTTP_REQUEST,
+				`Establish session page: ${pageUrl}`
+			);
+			
+			saveCookies(pageUrl, pageResponse);
+			await randomDelay(500, 1000);
+		} catch {
+			// Continue anyway
 		}
 	} catch {
 		// Silent fail - continue anyway
@@ -534,26 +539,24 @@ async function scrapeWebPage(url: string): Promise<string> {
 		const { strategy, useProxy, establishSession } = strategies[attempt];
 		
 		try {
-			// Human-like delay between attempts
+			// Human-like delay between attempts (reduced to avoid timeouts)
 			if (attempt > 0) {
-				await humanLikeDelay();
-				await randomDelay(1000, 3000);
+				await randomDelay(1000, 2000);
 			}
 			
 			const response = await withTimeout(
 				createFetchWithProxy(url, useProxy, strategy, establishSession),
-				TIMEOUT_CONFIG.HTTP_REQUEST * 2, // Longer timeout for Cloudflare
+				TIMEOUT_CONFIG.HTTP_REQUEST * 1.5,
 				`Web scrape (${strategy}): ${url}`
 			);
 			
 			const html = await response.text();
 			
 			// Check for Cloudflare challenge or block page
-			if (isCloudflareChallenge(html) || isBlockPage(html, url)) {
+			if (isBlockPage(html, url)) {
 				// Wait longer and retry with different strategy
 				if (attempt < strategies.length - 1) {
-					console.warn(`Block detected, trying strategy ${attempt + 2}/${strategies.length}...`);
-					await randomDelay(3000, 6000);
+					await randomDelay(2000, 4000);
 					continue;
 				}
 			}
