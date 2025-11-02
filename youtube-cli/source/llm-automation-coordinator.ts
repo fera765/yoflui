@@ -5,6 +5,7 @@ import { executeToolCall, getAllToolDefinitions } from './tools/index.js';
 import type { Automation } from './automation/types.js';
 import { ExecutionContext } from './utils/execution-context.js';
 import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
+import { logger, formatToolArgs } from './utils/logger.js';
 
 interface CoordinatorOptions {
     automation: Automation;
@@ -110,6 +111,12 @@ Execute the automation now, step by step, using the tools available.`,
                     const messageKey = `llm:${assistantMsg.content.substring(0, 50)}`;
                     if (this.executionContext.shouldEmitMessage(messageKey)) {
                         onProgress(assistantMsg.content);
+                        logger.info(
+                            'LLMCoordinator',
+                            'LLM response',
+                            { length: assistantMsg.content.length },
+                            this.executionContext.getExecutionId()
+                        );
                     }
                     executionLog.push(`[LLM]: ${assistantMsg.content}`);
                 }
@@ -128,6 +135,13 @@ Execute the automation now, step by step, using the tools available.`,
                         }
 
                         executionLog.push(`[TOOL]: ${toolName} with args: ${JSON.stringify(args)}`);
+                        
+                        logger.debug(
+                            'LLMCoordinator',
+                            `Executing tool: ${toolName}`,
+                            { args: formatToolArgs(args) },
+                            this.executionContext.getExecutionId()
+                        );
 
                         let result: string;
                         let hasError = false;
@@ -136,10 +150,24 @@ Execute the automation now, step by step, using the tools available.`,
                             // Tool execution now has timeout + retry built-in
                             result = await executeToolCall(toolName, args, workDir);
                             executionLog.push(`[RESULT]: ${result.substring(0, 200)}`);
+                            
+                            logger.info(
+                                'LLMCoordinator',
+                                `Tool completed: ${toolName}`,
+                                { resultLength: result.length },
+                                this.executionContext.getExecutionId()
+                            );
                         } catch (error) {
                             result = error instanceof Error ? error.message : String(error);
                             hasError = true;
                             executionLog.push(`[ERROR]: ${result}`);
+                            
+                            logger.error(
+                                'LLMCoordinator',
+                                `Tool failed: ${toolName}`,
+                                { error: result },
+                                this.executionContext.getExecutionId()
+                            );
                         }
 
                         // Add tool result to conversation

@@ -1,5 +1,7 @@
 import { webhookAPI, type WebhookConfig, type WebhookTriggerData } from './webhook-api.js';
 import type { Automation } from './automation/types.js';
+import { webhookValidator } from './validation/webhook-validator.js';
+import { logger } from './utils/logger.js';
 
 interface WebhookAutomation extends Automation {
     webhookConfig?: {
@@ -115,7 +117,7 @@ export class WebhookTriggerHandler {
     }
 
     /**
-     * Parse webhook data into variables
+     * Parse webhook data into variables with validation
      */
     parseWebhookData(data: WebhookTriggerData, automation: WebhookAutomation): Record<string, any> {
         const variables: Record<string, any> = {};
@@ -123,8 +125,47 @@ export class WebhookTriggerHandler {
         // Extract data from webhook
         const payload = data.method === 'POST' ? data.body : data.query;
 
-        if (payload) {
-            for (const [key, value] of Object.entries(payload)) {
+        if (!payload) {
+            logger.warn('WebhookTriggerHandler', 'Empty webhook payload', {
+                automationId: automation.id,
+            });
+            return variables;
+        }
+
+        // Validate payload if expectedPayload is defined
+        if (automation.webhookConfig?.expectedPayload) {
+            const validation = webhookValidator.validatePayload(
+                payload,
+                automation.webhookConfig.expectedPayload
+            );
+
+            if (!validation.valid) {
+                logger.error('WebhookTriggerHandler', 'Webhook payload validation failed', {
+                    automationId: automation.id,
+                    errors: validation.errors,
+                });
+                throw new Error(
+                    `Webhook payload validation failed: ${validation.errors?.join(', ')}`
+                );
+            }
+
+            logger.info('WebhookTriggerHandler', 'Webhook payload validated successfully', {
+                automationId: automation.id,
+            });
+
+            // Use sanitized data
+            const sanitizedPayload = validation.sanitizedData || payload;
+            
+            for (const [key, value] of Object.entries(sanitizedPayload)) {
+                if (automation.variables[key]) {
+                    variables[key] = value;
+                }
+            }
+        } else {
+            // No validation schema, sanitize and use as-is
+            const sanitized = webhookValidator.sanitizePayload(payload);
+            
+            for (const [key, value] of Object.entries(sanitized)) {
                 if (automation.variables[key]) {
                     variables[key] = value;
                 }

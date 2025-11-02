@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { Server } from 'http';
+import { logger, LogLevel } from './utils/logger.js';
 
 interface WebhookConfig {
     automationId: string;
@@ -28,6 +29,7 @@ class WebhookAPI {
     private webhooks: Map<string, WebhookConfig> = new Map();
     private triggerCallbacks: Map<string, (data: WebhookTriggerData) => void> = new Map();
     private isRunning: boolean = false;
+    private rateLimitMap: Map<string, { count: number; resetTime: number }> = new Map();
 
     constructor() {
         this.app = express();
@@ -36,11 +38,35 @@ class WebhookAPI {
     }
 
     private setupMiddleware() {
-        this.app.use(express.json());
-        this.app.use(express.urlencoded({ extended: true }));
+        // Payload size limits
+        this.app.use(express.json({ limit: '1mb' }));
+        this.app.use(express.urlencoded({ extended: true, limit: '1mb' }));
         
-        // Disable all logs
+        // Header size validation
         this.app.use((req, res, next) => {
+            const headerSize = JSON.stringify(req.headers).length;
+            if (headerSize > 8192) {  // 8KB limit
+                logger.warn('WebhookAPI', 'Request headers too large', { headerSize });
+                res.status(431).json({ error: 'Request headers too large' });
+                return;
+            }
+            next();
+        });
+        
+        // Rate limiting middleware
+        this.app.use((req, res, next) => {
+            const ip = req.ip || req.socket.remoteAddress || 'unknown';
+            const rateLimit = this.checkRateLimit(ip);
+            
+            if (!rateLimit.allowed) {
+                logger.warn('WebhookAPI', 'Rate limit exceeded', { ip, limit: rateLimit.limit });
+                res.status(429).json({
+                    error: 'Too many requests',
+                    retryAfter: Math.ceil(rateLimit.retryAfter / 1000),
+                });
+                return;
+            }
+            
             next();
         });
     }
@@ -58,6 +84,7 @@ class WebhookAPI {
             const webhook = this.webhooks.get(webhookKey);
 
             if (!webhook) {
+                logger.warn('WebhookAPI', 'Webhook not found', { automationId, uniqueId });
                 res.status(404).json({ error: 'Webhook not found' });
                 return;
             }
@@ -68,6 +95,7 @@ class WebhookAPI {
                 const token = authHeader?.replace('Bearer ', '');
                 
                 if (token !== webhook.apiKey) {
+                    logger.warn('WebhookAPI', 'Invalid API key', { automationId });
                     res.status(401).json({ error: 'Invalid API key' });
                     return;
                 }
@@ -75,12 +103,31 @@ class WebhookAPI {
 
             // Verify method
             if (req.method !== webhook.method) {
+                logger.warn('WebhookAPI', 'Method not allowed', {
+                    automationId,
+                    expected: webhook.method,
+                    received: req.method,
+                });
                 res.status(405).json({ error: `Method not allowed. Expected ${webhook.method}` });
+                return;
+            }
+            
+            // Validate payload size (additional check beyond middleware)
+            const payloadSize = JSON.stringify(req.body || {}).length;
+            if (payloadSize > 1048576) {  // 1MB
+                logger.warn('WebhookAPI', 'Payload too large', { automationId, payloadSize });
+                res.status(413).json({ error: 'Payload too large' });
                 return;
             }
 
             // Update last triggered
             webhook.lastTriggered = Date.now();
+            
+            logger.info('WebhookAPI', 'Webhook triggered', {
+                automationId,
+                method: req.method,
+                payloadSize,
+            });
 
             // Trigger callback
             const callback = this.triggerCallbacks.get(webhookKey);
@@ -231,6 +278,56 @@ class WebhookAPI {
     clearWebhooks(): void {
         this.webhooks.clear();
         this.triggerCallbacks.clear();
+    }
+
+    /**
+     * Rate limiting check (100 requests per minute per IP)
+     */
+    private checkRateLimit(ip: string): {
+        allowed: boolean;
+        limit: number;
+        retryAfter: number;
+    } {
+        const limit = 100;  // requests per window
+        const windowMs = 60000;  // 1 minute
+        const now = Date.now();
+
+        let rateLimitData = this.rateLimitMap.get(ip);
+
+        if (!rateLimitData || now > rateLimitData.resetTime) {
+            // New window
+            rateLimitData = {
+                count: 1,
+                resetTime: now + windowMs,
+            };
+            this.rateLimitMap.set(ip, rateLimitData);
+            return { allowed: true, limit, retryAfter: 0 };
+        }
+
+        if (rateLimitData.count >= limit) {
+            // Exceeded limit
+            return {
+                allowed: false,
+                limit,
+                retryAfter: rateLimitData.resetTime - now,
+            };
+        }
+
+        // Increment count
+        rateLimitData.count++;
+        return { allowed: true, limit, retryAfter: 0 };
+    }
+
+    /**
+     * Clean up old rate limit entries (called periodically)
+     */
+    private cleanupRateLimits(): void {
+        const now = Date.now();
+        for (const [ip, data] of this.rateLimitMap.entries()) {
+            if (now > data.resetTime) {
+                this.rateLimitMap.delete(ip);
+            }
+        }
     }
 }
 

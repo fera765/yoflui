@@ -15,6 +15,7 @@ import { webhookAPI } from './webhook-api.js';
 import { webhookTriggerHandler } from './webhook-trigger-handler.js';
 import { LLMAutomationCoordinator } from './llm-automation-coordinator.js';
 import { ExecutionContext } from './utils/execution-context.js';
+import { logger } from './utils/logger.js';
 import { join } from 'path';
 
 type Screen = 'chat' | 'auth' | 'config' | 'tools' | 'mcp';
