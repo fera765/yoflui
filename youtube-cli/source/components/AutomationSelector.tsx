@@ -47,11 +47,11 @@ export const AutomationSelector: React.FC<AutomationSelectorProps> = ({
             {/* Header with API status */}
             <Box justifyContent="space-between" marginBottom={1}>
                 <Text bold color="cyan">
-                    ?? Available Automations
+					?? Available Automations
                 </Text>
                 <Box>
                     <Text color={apiConnected ? 'green' : 'red'}>
-                        {apiConnected ? '??' : '??'} API
+						{apiConnected ? '??' : '??'} API
                     </Text>
                 </Box>
             </Box>
@@ -83,7 +83,7 @@ export const AutomationSelector: React.FC<AutomationSelectorProps> = ({
 
             <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
                 <Text dimColor>
-                    ?? Navigate ? Enter: Select ? Esc: Cancel
+					?? Navigate ? Enter: Select ? Esc: Cancel
                 </Text>
             </Box>
         </Box>

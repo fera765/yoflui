@@ -80,7 +80,7 @@ export class WebhookTriggerHandler {
         }
         
         message += `\n\`\`\`\n`;
-        message += `\n?? The webhook is now active and waiting for triggers. You can continue chatting normally.`;
+        message += `\n? The webhook is now active and waiting for triggers. You can continue chatting normally.`;
 
         return {
             url,

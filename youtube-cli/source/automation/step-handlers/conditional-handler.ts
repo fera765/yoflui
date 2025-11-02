@@ -21,7 +21,7 @@ export class ConditionalStepHandler extends BaseStepHandler {
             const conditionResult = this.evaluator.evaluate(step.condition, variables);
 
             const branchTaken = conditionResult ? 'then' : 'else';
-            console.log(`?? Conditional: ${step.condition} ? ${branchTaken}`);
+            console.log(`? Conditional: ${step.condition} ? ${branchTaken}`);
 
             // Store which branch was taken for executor to follow
             const result = {

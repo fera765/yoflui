@@ -172,7 +172,7 @@ export function formatWebhookSetup(
     apiKey: string,
     payloadSchema: Record<string, any>
 ): string {
-    const authInfo = requireAuth ? `?? Auth: Bearer ${apiKey}` : '?? Auth: Not required';
+    const authInfo = requireAuth ? `?? Auth: Bearer ${apiKey}` : `?? Auth: Not required`;
     const payload = JSON.stringify(payloadSchema, null, 2);
     
     return getUIMessage('automation', 'webhook_setup', {

@@ -221,7 +221,7 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
     }
 
     if (error instanceof MCPNotFoundError) {
-        return `?? External service not available: ${error.mcpPackage}. Please check your MCP configuration.`;
+        return `? External service not available: ${error.mcpPackage}. Please check your MCP configuration.`;
     }
 
     if (error instanceof WebhookAuthError) {

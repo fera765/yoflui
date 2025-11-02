@@ -9,7 +9,7 @@ export class EndStepHandler extends BaseStepHandler {
     async execute(step: Step): Promise<StepResult> {
         const startTime = Date.now();
 
-        console.log(`?? Automation completed`);
+        console.log(`? Automation completed`);
 
         return this.success(step.id, 'end', Date.now() - startTime);
     }

@@ -222,7 +222,7 @@ export default function App() {
 							addMessage({
 								id: generateId('assistant'),
 								role: 'assistant',
-								content: `?? Webhook triggered for: ${automation.metadata.name}`
+								content: `? Webhook triggered for: ${automation.metadata.name}`
 							});
 							await executeLLMCoordinatedAutomation(automation, workDir, webhookData);
 						}
@@ -334,7 +334,7 @@ export default function App() {
 								addMessage({
 									id: generateId('assistant'),
 									role: 'assistant',
-									content: `?? Webhook triggered for: ${automation.metadata.name}`
+									content: `? Webhook triggered for: ${automation.metadata.name}`
 								});
 								await executeLLMCoordinatedAutomation(automation, workDir, webhookData);
 							}

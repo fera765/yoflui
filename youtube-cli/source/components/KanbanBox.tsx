@@ -32,7 +32,7 @@ export const KanbanBox: React.FC<Props> = ({ tasks }) => {
 			{/* In Progress */}
 			{inProgressTasks.length > 0 && (
 				<Box flexDirection="column" marginBottom={1}>
-					<Text color="#FBBF24" bold>?? IN PROGRESS ({inProgressTasks.length})</Text>
+					<Text color="#FBBF24" bold>? IN PROGRESS ({inProgressTasks.length})</Text>
 					{inProgressTasks.map(task => (
 						<Box key={task.id} marginLeft={2}>
 							<Text color="#FBBF24">  ? {task.title}</Text>
