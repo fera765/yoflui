@@ -286,9 +286,60 @@ export default function App() {
 			const automation = automationManager.findAutomation(txt);
 			
 			if (automation) {
-				// Execute automation coordinated by LLM
-				await executeLLMCoordinatedAutomation(automation, workDir);
-				return;
+				// Check if it's a webhook automation
+				if (webhookTriggerHandler.hasWebhookConfig(automation)) {
+					// Webhook: Setup only, do NOT execute
+					addMessage({
+						id: generateId('assistant'),
+						role: 'assistant',
+						content: `?? Setting up webhook for: ${automation.metadata.name}`
+					});
+					
+					const webhookInfo = await webhookTriggerHandler.setupWebhook(
+						automation as any,
+						async (webhookData) => {
+							// Wait if busy
+							if (busy) {
+								addMessage({
+									id: generateId('assistant'),
+									role: 'assistant',
+									content: `? Webhook received. Waiting...`
+								});
+								const waitInterval = setInterval(() => {
+									if (!busy) {
+										clearInterval(waitInterval);
+										executeWebhook();
+									}
+								}, 500);
+							} else {
+								executeWebhook();
+							}
+							
+							async function executeWebhook() {
+								addMessage({
+									id: generateId('assistant'),
+									role: 'assistant',
+									content: `?? Webhook triggered for: ${automation.metadata.name}`
+								});
+								await executeLLMCoordinatedAutomation(automation, workDir, webhookData);
+							}
+						}
+					);
+					
+					addMessage({
+						id: generateId('assistant'),
+						role: 'assistant',
+						content: webhookInfo.message
+					});
+					
+					setBusy(false);
+					return;
+				} else {
+					// Non-webhook: Execute immediately
+					await executeLLMCoordinatedAutomation(automation, workDir);
+					setBusy(false);
+					return;
+				}
 			}
 			
 			// Normal flow (LLM)
