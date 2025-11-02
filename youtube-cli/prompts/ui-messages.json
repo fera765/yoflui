@@ -61,7 +61,7 @@
       }
     },
     "webhook_triggered": {
-      "icon": "?",
+      "icon": "??",
       "template": "{{icon}} Webhook triggered! Starting automation...",
       "variables": {}
     }

@@ -154,8 +154,8 @@ export const NewAuthScreen: React.FC<Props> = ({
 
 				<SelectInput
 					items={[
-						{ label: '?? Qwen OAuth (2000 req/day FREE)', value: 'qwen' },
-						{ label: '?? Custom Endpoint', value: 'custom' },
+			{ label: '?? Qwen OAuth (2000 req/day FREE)', value: 'qwen' },
+			{ label: '?? Custom Endpoint', value: 'custom' },
 					]}
 					onSelect={item => setScreen(item.value as Screen)}
 				/>

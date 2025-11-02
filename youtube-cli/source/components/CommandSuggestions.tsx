@@ -41,7 +41,7 @@ export const CommandSuggestions: React.FC<Props> = React.memo(({ onSelect }) => 
 				</Box>
 			))}
 			<Box marginTop={1}>
-				<Text color="gray" dimColor>Use setas ?? e Enter para selecionar | ESC para cancelar</Text>
+				<Text color="gray" dimColor>Use setas ???? e Enter para selecionar | ESC para cancelar</Text>
 			</Box>
 		</Box>
 	);
