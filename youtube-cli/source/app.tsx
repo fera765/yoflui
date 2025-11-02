@@ -9,6 +9,7 @@ import { MCPScreen } from './components/MCPScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
 import { mcpManager } from './mcp/mcp-manager.js';
+import { automationManager } from './automation/automation-manager.js';
 import { join } from 'path';
 
 type Screen = 'chat' | 'auth' | 'config' | 'tools' | 'mcp';
@@ -19,6 +20,7 @@ let msgIdCounter = 0;
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${++msgIdCounter}`;
 
 let mcpStarted = false;
+let automationInitialized = false;
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
@@ -33,6 +35,11 @@ export default function App() {
 	if (!mcpStarted) {
 		mcpStarted = true;
 		mcpManager.startAllMCPs().catch(() => {});
+	}
+	
+	if (!automationInitialized) {
+		automationInitialized = true;
+		automationManager.initialize();
 	}
 	
 	useInput((_, key) => {
@@ -91,6 +98,60 @@ export default function App() {
 		try {
 			const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
 			
+			// ?? Check if message matches an automation
+			const automation = automationManager.findAutomation(txt);
+			
+			if (automation) {
+				// Execute automation
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: `?? Executing automation: ${automation.metadata.name}...`
+				});
+				
+				const result = await automationManager.executeAutomation(automation, {
+					workDir,
+					onProgress: (step, stepResult) => {
+						if (step.type === 'log' && stepResult.result) {
+							addMessage({
+								id: generateId('assistant'),
+								role: 'assistant',
+								content: String(stepResult.result)
+							});
+						}
+					},
+					onStepComplete: (step, stepResult) => {
+						if (step.type === 'tool') {
+							addMessage({
+								id: generateId('tool'),
+								role: 'tool',
+								content: '',
+								toolCall: {
+									name: step.toolName || 'tool',
+									args: step.toolArgs || {},
+									status: stepResult.success ? 'complete' : 'error',
+									result: stepResult.result || stepResult.error
+								}
+							});
+						}
+					}
+				});
+				
+				const finalMsg = result.success
+					? `? Automation completed successfully in ${(result.duration / 1000).toFixed(1)}s`
+					: `? Automation failed: ${result.finalState.errors[0]?.message || 'Unknown error'}`;
+				
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: finalMsg
+				});
+				
+				setBusy(false);
+				return;
+			}
+			
+			// Normal flow (LLM)
 			const reply = await runAutonomousAgent({
 				userMessage: txt,
 				workDir,

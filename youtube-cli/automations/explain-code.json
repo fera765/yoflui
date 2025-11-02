@@ -1,0 +1,87 @@
+{
+  "id": "explain-code",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Explain Code",
+    "description": "Provides detailed explanation of code in the project",
+    "author": "Flui Team",
+    "created": "2025-11-02",
+    "tags": ["documentation", "explanation", "learning"],
+    "category": "learning"
+  },
+  "triggers": [
+    {
+      "type": "contains",
+      "pattern": "explicar c?digo"
+    },
+    {
+      "type": "contains",
+      "pattern": "explain code"
+    },
+    {
+      "type": "contains",
+      "pattern": "como funciona"
+    }
+  ],
+  "variables": {
+    "sourceCode": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "explanation": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "log",
+      "message": "?? Reading project code...",
+      "level": "info"
+    },
+    {
+      "id": "step_2",
+      "type": "tool",
+      "toolName": "read_folder",
+      "toolArgs": {
+        "path": "./source"
+      },
+      "saveResultAs": "sourceCode",
+      "continueOnError": true
+    },
+    {
+      "id": "step_3",
+      "type": "log",
+      "message": "?? Generating detailed explanation...",
+      "level": "info"
+    },
+    {
+      "id": "step_4",
+      "type": "llm_process",
+      "prompt": "Explain this codebase in detail:\n\n${variables.sourceCode}\n\nProvide:\n1. Overall architecture explanation\n2. Main components and their roles\n3. How different parts interact\n4. Key functions and their purposes\n5. Design patterns used\n\nMake it understandable for developers.",
+      "useContext": true,
+      "saveResultAs": "explanation"
+    },
+    {
+      "id": "step_5",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "CODE_EXPLANATION.md",
+        "content": "# Code Explanation\n\n**Generated:** ${Date.now()}\n\n${variables.explanation}"
+      }
+    },
+    {
+      "id": "step_6",
+      "type": "log",
+      "message": "? Explanation saved to CODE_EXPLANATION.md",
+      "level": "success"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "abort",
+    "maxRetries": 1,
+    "logErrors": true
+  }
+}
