@@ -122,7 +122,7 @@ export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = ({ messages }
 	);
 };
 
-// Input - EXTREMAMENTE SIMPLES
+// Input - EXTREMAMENTE SIMPLES - Width ajustado para 98%
 export const ChatInput: React.FC<{
 	value: string;
 	onChange: (val: string) => void;
@@ -130,16 +130,18 @@ export const ChatInput: React.FC<{
 	disabled: boolean;
 }> = ({ value, onChange, onSubmit, disabled }) => {
 	return (
-		<Box borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginX={1} marginBottom={1}>
+		<Box width="98%" borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginX={1} marginBottom={1}>
 			{disabled ? (
 				<Box>
 					<Text color="yellow">[...]</Text>
 					<Text color="gray"> Processing...</Text>
 				</Box>
 			) : (
-				<Box>
+				<Box width="100%">
 					<Text color="magenta" bold>&gt; </Text>
-					<TextInput value={value} onChange={onChange} onSubmit={onSubmit} />
+					<Box flexGrow={1}>
+						<TextInput value={value} onChange={onChange} onSubmit={onSubmit} />
+					</Box>
 				</Box>
 			)}
 		</Box>
