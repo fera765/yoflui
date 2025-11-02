@@ -69,6 +69,12 @@ export default function App() {
 			setCmds(false);
 			setShowAutomations(false);
 		}
+		
+		// Prevent Enter from submitting when selector is open
+		if (key.return && (showAutomations || cmds)) {
+			// Let the selector handle it, don't submit
+			return;
+		}
 	});
 	
 	const changeInput = useCallback((val: string) => {
@@ -160,6 +166,7 @@ export default function App() {
 	}, [addMessage]);
 	
 	const selectAutomation = useCallback(async (automationItem: any) => {
+		// CRITICAL: Clear input and hide selector IMMEDIATELY to prevent "@" from being submitted
 		setInput('');
 		setShowAutomations(false);
 		setCmds(false);
@@ -244,9 +251,19 @@ export default function App() {
 
 	
 	const submitMsg = useCallback(async () => {
+		// Don't submit if selector is open
+		if (showAutomations || cmds) {
+			return;
+		}
+		
 		if (!input.trim() || busy) return;
 		
 		const txt = input.trim();
+		
+		// Don't submit lone "@" or "/"
+		if (txt === '@' || txt === '/') {
+			return;
+		}
 		
 		if (txt.startsWith('/') && txt.split(' ').length === 1) {
 			selectCmd(txt);
