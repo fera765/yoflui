@@ -14,6 +14,7 @@ import { automationManager } from './automation/automation-manager.js';
 import { webhookAPI } from './webhook-api.js';
 import { webhookTriggerHandler } from './webhook-trigger-handler.js';
 import { LLMAutomationCoordinator } from './llm-automation-coordinator.js';
+import { ExecutionContext } from './utils/execution-context.js';
 import { join } from 'path';
 
 type Screen = 'chat' | 'auth' | 'config' | 'tools' | 'mcp';
@@ -109,54 +110,49 @@ export default function App() {
 	) => {
 		setBusy(true);
 		
+		// Create execution context for deduplication
+		const execContext = new ExecutionContext(automation.id, {
+			automationName: automation.metadata.name,
+			workDir,
+			hasWebhookData: !!webhookData,
+		});
+		
+		// Single initial message
 		addMessage({
 			id: generateId('assistant'),
 			role: 'assistant',
 			content: `?? Executing automation: ${automation.metadata.name}...\n${automation.metadata.description}`
 		});
 		
-		// Create new LLM coordinator
-		llmCoordinator = new LLMAutomationCoordinator();
+		// Create new LLM coordinator with context
+		llmCoordinator = new LLMAutomationCoordinator(execContext);
 		
 		const result = await llmCoordinator.executeAutomation({
 			automation,
 			workDir,
 			webhookData,
-			onStepExecute: (stepInfo) => {
-				addMessage({
-					id: generateId('assistant'),
-					role: 'assistant',
-					content: `??  ${stepInfo}`
-				});
-			},
-			onStepComplete: (stepInfo, result) => {
-				addMessage({
-					id: generateId('tool'),
-					role: 'tool',
-					content: '',
-					toolCall: {
-						name: stepInfo,
-						args: {},
-						status: 'complete',
-						result: result.substring(0, 500)
-					}
-				});
-			},
+			// Only onProgress callback - no duplicates
 			onProgress: (message) => {
 				if (message && message.trim()) {
-					addMessage({
-						id: generateId('assistant'),
-						role: 'assistant',
-						content: message
-					});
+					// Check if should emit (deduplication)
+					const messageKey = message.substring(0, 100);
+					if (execContext.shouldEmitMessage(messageKey)) {
+						addMessage({
+							id: generateId('assistant'),
+							role: 'assistant',
+							content: message
+						});
+					}
 				}
 			}
 		});
 		
+		// Single final message
+		const summary = execContext.getSummary();
 		addMessage({
 			id: generateId('assistant'),
 			role: 'assistant',
-			content: `? Automation completed!\n\n${result}`
+			content: `? Automation completed in ${Math.round(summary.duration / 1000)}s\n\n${result}`
 		});
 		
 		setBusy(false);

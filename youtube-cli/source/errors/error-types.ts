@@ -97,7 +97,7 @@ export class MCPError extends FluiError {
 }
 
 export class MCPNotFoundError extends FluiError {
-    constructor(mcpPackage: string, context?: Record<string, any>) {
+    constructor(public readonly mcpPackage: string, context?: Record<string, any>) {
         super(`MCP package "${mcpPackage}" not found or not active`, 'MCP_NOT_FOUND', false, { ...context, mcpPackage });
     }
 }

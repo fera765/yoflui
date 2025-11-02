@@ -3,13 +3,13 @@ import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 import { executeToolCall, getAllToolDefinitions } from './tools/index.js';
 import type { Automation } from './automation/types.js';
+import { ExecutionContext } from './utils/execution-context.js';
+import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
 
 interface CoordinatorOptions {
     automation: Automation;
     workDir: string;
     webhookData?: any;
-    onStepExecute?: (stepInfo: string) => void;
-    onStepComplete?: (stepInfo: string, result: string) => void;
     onProgress?: (message: string) => void;
 }
 
@@ -19,9 +19,14 @@ interface CoordinatorOptions {
  */
 export class LLMAutomationCoordinator {
     private conversationHistory: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    private executionContext: ExecutionContext;
+
+    constructor(executionContext: ExecutionContext) {
+        this.executionContext = executionContext;
+    }
 
     async executeAutomation(options: CoordinatorOptions): Promise<string> {
-        const { automation, workDir, webhookData, onStepExecute, onStepComplete, onProgress } = options;
+        const { automation, workDir, webhookData, onProgress } = options;
 
         const config = getConfig();
         const qwenCreds = loadQwenCredentials();
@@ -78,12 +83,17 @@ Execute the automation now, step by step, using the tools available.`,
             while (iterations < maxIterations) {
                 iterations++;
 
-                const response = await openai.chat.completions.create({
-                    model: config.model,
-                    messages: this.conversationHistory,
-                    tools: getAllToolDefinitions(),
-                    tool_choice: 'auto',
-                });
+                // Apply timeout to LLM call
+                const response = await withTimeout(
+                    openai.chat.completions.create({
+                        model: config.model,
+                        messages: this.conversationHistory,
+                        tools: getAllToolDefinitions(),
+                        tool_choice: 'auto',
+                    }),
+                    TIMEOUT_CONFIG.LLM_COMPLETION,
+                    `LLM completion for ${automation.metadata.name}`
+                );
 
                 const assistantMsg = response.choices[0]?.message;
                 if (!assistantMsg) break;
@@ -95,9 +105,12 @@ Execute the automation now, step by step, using the tools available.`,
                     tool_calls: assistantMsg.tool_calls,
                 });
 
-                // Show progress
+                // Show progress (deduplicated)
                 if (assistantMsg.content && onProgress) {
-                    onProgress(assistantMsg.content);
+                    const messageKey = `llm:${assistantMsg.content.substring(0, 50)}`;
+                    if (this.executionContext.shouldEmitMessage(messageKey)) {
+                        onProgress(assistantMsg.content);
+                    }
                     executionLog.push(`[LLM]: ${assistantMsg.content}`);
                 }
 
@@ -108,8 +121,10 @@ Execute the automation now, step by step, using the tools available.`,
                         const toolName = func.name;
                         const args = JSON.parse(func.arguments);
 
-                        if (onStepExecute) {
-                            onStepExecute(`Executing: ${toolName}`);
+                        // Emit tool execution notification (deduplicated)
+                        const toolKey = `tool:${toolName}:${Date.now()}`;
+                        if (this.executionContext.shouldEmitMessage(toolKey) && onProgress) {
+                            onProgress(`??  Executing: ${toolName}`);
                         }
 
                         executionLog.push(`[TOOL]: ${toolName} with args: ${JSON.stringify(args)}`);
@@ -118,16 +133,13 @@ Execute the automation now, step by step, using the tools available.`,
                         let hasError = false;
 
                         try {
+                            // Tool execution now has timeout + retry built-in
                             result = await executeToolCall(toolName, args, workDir);
                             executionLog.push(`[RESULT]: ${result.substring(0, 200)}`);
                         } catch (error) {
                             result = error instanceof Error ? error.message : String(error);
                             hasError = true;
                             executionLog.push(`[ERROR]: ${result}`);
-                        }
-
-                        if (onStepComplete) {
-                            onStepComplete(toolName, result);
                         }
 
                         // Add tool result to conversation
@@ -182,12 +194,17 @@ Execute the automation now, step by step, using the tools available.`,
             content: userMessage,
         });
 
-        const response = await openai.chat.completions.create({
-            model: config.model,
-            messages: this.conversationHistory,
-            tools: getAllToolDefinitions(),
-            tool_choice: 'auto',
-        });
+        // Apply timeout to conversation continuation
+        const response = await withTimeout(
+            openai.chat.completions.create({
+                model: config.model,
+                messages: this.conversationHistory,
+                tools: getAllToolDefinitions(),
+                tool_choice: 'auto',
+            }),
+            TIMEOUT_CONFIG.LLM_COMPLETION,
+            'Continue conversation'
+        );
 
         const assistantMsg = response.choices[0]?.message;
         if (assistantMsg) {
