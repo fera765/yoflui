@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Box, useInput, useStdout } from 'ink';
 import { ChatTimeline, ChatInput, type ChatMessage } from './components/ChatComponents.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
@@ -18,23 +18,22 @@ const MAX_MESSAGES_IN_MEMORY = 500;
 let msgIdCounter = 0;
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${++msgIdCounter}`;
 
+let mcpStarted = false;
+
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
 	const [msgs, setMsgs] = useState<ChatMessage[]>([]);
 	const [input, setInput] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [cmds, setCmds] = useState(false);
-	const [mcpInitialized, setMcpInitialized] = useState(false);
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
 	
-	React.useEffect(() => {
-		if (!mcpInitialized) {
-			mcpManager.startAllMCPs().catch(console.error);
-			setMcpInitialized(true);
-		}
-	}, [mcpInitialized]);
+	if (!mcpStarted) {
+		mcpStarted = true;
+		mcpManager.startAllMCPs().catch(() => {});
+	}
 	
 	useInput((_, key) => {
 		if (screen !== 'chat') return;

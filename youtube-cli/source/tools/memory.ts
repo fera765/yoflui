@@ -107,7 +107,7 @@ export function saveConversationHistory(
 
 		writeFileSync(historyPath, JSON.stringify(memory, null, 2), 'utf-8');
 	} catch (error) {
-		console.error('Failed to save conversation history:', error);
+		// Silent fail
 	}
 }
 

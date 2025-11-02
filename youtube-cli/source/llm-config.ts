@@ -51,7 +51,6 @@ export async function fetchAvailableModels(endpoint: string): Promise<string[]> 
 			})
 			.filter((id: string | null): id is string => id !== null);
 	} catch (error) {
-		console.error('Error fetching models:', error);
-		return ['openai', 'deepseek', 'gemini', 'mistral']; // Fallback
+		return ['openai', 'deepseek', 'gemini', 'mistral'];
 	}
 }

@@ -4,9 +4,8 @@
  * Uses Device Authorization Grant (RFC 8628)
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
 import { createHash, randomBytes } from 'crypto';
 import { spawn } from 'child_process';
 
@@ -14,13 +13,12 @@ import { spawn } from 'child_process';
 const QWEN_OAUTH_BASE_URL = 'https://chat.qwen.ai';
 const QWEN_OAUTH_DEVICE_CODE_ENDPOINT = `${QWEN_OAUTH_BASE_URL}/api/v1/oauth2/device/code`;
 const QWEN_OAUTH_TOKEN_ENDPOINT = `${QWEN_OAUTH_BASE_URL}/api/v1/oauth2/token`;
-const QWEN_OAUTH_CLIENT_ID = 'f0304373b74a44d2b584a3fb70ca9e56'; // Hardcoded from official repo
+const QWEN_OAUTH_CLIENT_ID = 'f0304373b74a44d2b584a3fb70ca9e56';
 const QWEN_OAUTH_SCOPE = 'openid profile email model.completion';
 const QWEN_API_ENDPOINT = 'https://chat.qwen.ai/api/v1';
 
-// Storage
-const QWEN_DIR = '.qwen-youtube-analyst';
-const QWEN_CREDENTIAL_FILENAME = 'oauth_creds.json';
+// Storage - Always use project directory
+const CREDENTIALS_FILENAME = 'qwen-credentials.json';
 
 export interface QwenCredentials {
 	access_token: string;
@@ -57,160 +55,77 @@ interface TokenError {
 	error_description?: string;
 }
 
-/**
- * Generate PKCE code verifier (RFC 7636)
- */
 function generateCodeVerifier(): string {
 	return randomBytes(32).toString('base64url');
 }
 
-/**
- * Generate PKCE code challenge from verifier
- */
 function generateCodeChallenge(verifier: string): string {
 	return createHash('sha256').update(verifier).digest('base64url');
 }
 
-/**
- * Generate PKCE pair
- */
 function generatePKCEPair(): { code_verifier: string; code_challenge: string } {
 	const code_verifier = generateCodeVerifier();
 	const code_challenge = generateCodeChallenge(code_verifier);
 	return { code_verifier, code_challenge };
 }
 
-/**
- * Convert object to URL-encoded form data
- */
 function toUrlEncoded(data: Record<string, string>): string {
 	return Object.keys(data)
 		.map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
 		.join('&');
 }
 
-/**
- * Get credentials file path
- */
 function getCredentialsPath(): string {
-	return join(homedir(), QWEN_DIR, QWEN_CREDENTIAL_FILENAME);
+	return join(process.cwd(), CREDENTIALS_FILENAME);
 }
 
-/**
- * Load saved credentials
- */
 export function loadQwenCredentials(): QwenCredentials | null {
 	try {
-		// First, try to load from local directory (for testing/dev)
-		const localPath = join(process.cwd(), 'qwen-credentials.json');
-		if (existsSync(localPath)) {
-			const data = readFileSync(localPath, 'utf-8');
-			
-			// Validate file is not empty
-			if (!data || data.trim().length === 0) {
-				console.log('??  Credentials file is empty, deleting...');
-				clearQwenCredentials();
-				return null;
-			}
-			
-			const creds = JSON.parse(data) as QwenCredentials;
-			
-			// Check if token is expired
-			if (creds.expiry_date && Date.now() > creds.expiry_date) {
-				console.log('??  Token expired, needs refresh or re-auth');
-				return null;
-			}
-			
-			return creds;
-		}
-		
-		// Then try the default location
 		const path = getCredentialsPath();
 		if (!existsSync(path)) {
 			return null;
 		}
+		
 		const data = readFileSync(path, 'utf-8');
 		
-		// Validate file is not empty
 		if (!data || data.trim().length === 0) {
-			console.log('??  Credentials file is empty, deleting...');
 			clearQwenCredentials();
 			return null;
 		}
 		
 		const creds = JSON.parse(data) as QwenCredentials;
 		
-		// Check if token is expired
 		if (creds.expiry_date && Date.now() > creds.expiry_date) {
-			console.log('??  Token expired, clearing credentials...');
-			// Limpar credenciais expiradas
-			clearQwenCredentials();
 			return null;
 		}
 		
 		return creds;
 	} catch (error) {
-		console.error('Error loading credentials:', error);
-		// Clear potentially corrupted credentials
 		clearQwenCredentials();
 		return null;
 	}
 }
 
-/**
- * Save credentials to disk
- */
 export function saveQwenCredentials(creds: QwenCredentials): void {
 	try {
-		const dir = join(homedir(), QWEN_DIR);
-		if (!existsSync(dir)) {
-			mkdirSync(dir, { recursive: true });
-		}
-		
 		const path = getCredentialsPath();
 		writeFileSync(path, JSON.stringify(creds, null, 2), 'utf-8');
-		console.log('? Credentials saved successfully');
 	} catch (error) {
-		console.error('Error saving credentials:', error);
+		// Silent fail
 	}
 }
 
-/**
- * Clear saved credentials
- */
 export function clearQwenCredentials(): void {
 	try {
-		const { unlinkSync } = require('fs');
-		
-		// Clear from default location - DELETE file completely
 		const path = getCredentialsPath();
 		if (existsSync(path)) {
-			try {
-				unlinkSync(path);
-				console.log('???  Credentials deleted from home directory');
-			} catch (err) {
-				// Ignore if already deleted
-			}
-		}
-		
-		// Also clear from local directory - DELETE file completely
-		const localPath = join(process.cwd(), 'qwen-credentials.json');
-		if (existsSync(localPath)) {
-			try {
-				unlinkSync(localPath);
-				console.log('???  Credentials deleted from local directory');
-			} catch (err) {
-				// Ignore if already deleted
-			}
+			unlinkSync(path);
 		}
 	} catch (error) {
-		console.error('Error clearing credentials:', error);
+		// Silent fail
 	}
 }
 
-/**
- * Request device authorization
- */
 export async function requestDeviceAuthorization(): Promise<DeviceAuthorizationData> {
 	const { code_verifier, code_challenge } = generatePKCEPair();
 	
@@ -236,16 +151,11 @@ export async function requestDeviceAuthorization(): Promise<DeviceAuthorizationD
 	}
 
 	const result: any = await response.json();
-	
-	// Store code_verifier for later use
 	result._code_verifier = code_verifier;
 	
 	return result as DeviceAuthorizationData;
 }
 
-/**
- * Poll for device token
- */
 export async function pollDeviceToken(
 	deviceCode: string,
 	codeVerifier: string
@@ -269,22 +179,18 @@ export async function pollDeviceToken(
 
 		const data: any = await response.json();
 
-		// Handle pending authorization
 		if (response.status === 400 && data.error === 'authorization_pending') {
 			return { status: 'pending' } as DeviceTokenPending;
 		}
 
-		// Handle slow down request
 		if (response.status === 429 && data.error === 'slow_down') {
 			return { status: 'pending', slowDown: true } as DeviceTokenPending;
 		}
 
-		// Handle errors
 		if (!response.ok) {
 			return data as TokenError;
 		}
 
-		// Success
 		return data as DeviceTokenData;
 	} catch (error) {
 		return {
@@ -294,9 +200,6 @@ export async function pollDeviceToken(
 	}
 }
 
-/**
- * Refresh access token
- */
 export async function refreshAccessToken(refreshToken: string): Promise<DeviceTokenData> {
 	const bodyData = {
 		grant_type: 'refresh_token',
@@ -322,9 +225,6 @@ export async function refreshAccessToken(refreshToken: string): Promise<DeviceTo
 	return data as DeviceTokenData;
 }
 
-/**
- * Open URL in browser
- */
 export function openBrowser(url: string): void {
 	const platform = process.platform;
 	let command: string;
@@ -340,38 +240,22 @@ export function openBrowser(url: string): void {
 	try {
 		spawn(command, [url], { detached: true, stdio: 'ignore' }).unref();
 	} catch (error) {
-		console.error('Failed to open browser:', error);
+		// Silent fail
 	}
 }
 
-/**
- * Complete OAuth flow
- */
 export async function authenticateWithQwen(): Promise<QwenCredentials> {
-	console.log('\n?? Starting Qwen OAuth Device Flow...\n');
-
-	// Request device authorization
 	const deviceAuth = await requestDeviceAuthorization();
 	const codeVerifier = (deviceAuth as any)._code_verifier;
 
-	console.log('?? Please authorize this application:\n');
-	console.log(`   ${deviceAuth.verification_uri_complete}\n`);
-	console.log('?? Opening browser automatically...\n');
-
-	// Open browser
 	openBrowser(deviceAuth.verification_uri_complete);
 
-	console.log('? Waiting for authorization...');
-	console.log('   (Complete the authorization in your browser)\n');
-
-	// Poll for token
-	let pollInterval = 2000; // 2 seconds
+	let pollInterval = 2000;
 	const maxAttempts = Math.ceil(deviceAuth.expires_in / (pollInterval / 1000));
 
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		const result = await pollDeviceToken(deviceAuth.device_code, codeVerifier);
 
-		// Check if token received
 		if ('access_token' in result && result.access_token) {
 			const tokenData = result as DeviceTokenData;
 			
@@ -384,26 +268,19 @@ export async function authenticateWithQwen(): Promise<QwenCredentials> {
 				resource_url: tokenData.resource_url,
 			};
 
-			// Save credentials
 			saveQwenCredentials(credentials);
-
-			console.log('? Authentication successful!');
-			console.log(`   Token expires in: ${Math.floor(tokenData.expires_in / 60)} minutes\n`);
 
 			return credentials;
 		}
 
-		// Handle pending
 		if ('status' in result && result.status === 'pending') {
 			if (result.slowDown) {
 				pollInterval = Math.min(pollInterval * 1.5, 10000);
-				console.log(`??  Slowing down polling (${pollInterval}ms)...`);
 			}
 			await new Promise(resolve => setTimeout(resolve, pollInterval));
 			continue;
 		}
 
-		// Handle errors
 		if ('error' in result) {
 			throw new Error(`OAuth error: ${result.error} - ${result.error_description || ''}`);
 		}
@@ -412,26 +289,19 @@ export async function authenticateWithQwen(): Promise<QwenCredentials> {
 	throw new Error('OAuth timeout: Authorization not completed in time');
 }
 
-/**
- * Get Qwen configuration for LLM
- */
 export function getQwenConfig() {
 	return {
 		endpoint: QWEN_API_ENDPOINT,
-		model: 'qwen3-coder-plus',  // Modelo correto e testado
+		model: 'qwen3-coder-plus',
 		provider: 'qwen',
 	};
 }
 
-/**
- * Get proper API endpoint from resource_url
- */
 function getApiEndpoint(resourceUrl?: string): string {
 	if (!resourceUrl) {
 		return QWEN_API_ENDPOINT;
 	}
 	
-	// Normalize URL: add protocol if missing, ensure /v1 suffix
 	const normalizedUrl = resourceUrl.startsWith('http')
 		? resourceUrl
 		: `https://${resourceUrl}`;
@@ -441,9 +311,6 @@ function getApiEndpoint(resourceUrl?: string): string {
 		: `${normalizedUrl}/v1`;
 }
 
-/**
- * Fetch available Qwen models
- */
 export async function fetchQwenModels(accessToken: string, resourceUrl?: string): Promise<string[]> {
 	try {
 		const endpoint = getApiEndpoint(resourceUrl);
@@ -460,23 +327,16 @@ export async function fetchQwenModels(accessToken: string, resourceUrl?: string)
 
 		const data: any = await response.json();
 		
-		// Parse models from response
 		if (data.data && Array.isArray(data.data)) {
 			return data.data.map((m: any) => m.id || m.name).filter(Boolean);
 		}
 		
-		// Fallback models (from official Qwen Code)
 		return ['qwen3-coder-plus', 'qwen-max', 'qwen-plus', 'qwen-turbo'];
 	} catch (error) {
-		console.error('Failed to fetch Qwen models:', error);
-		// Return default models (from official Qwen Code)
 		return ['qwen3-coder-plus', 'qwen-max', 'qwen-plus', 'qwen-turbo'];
 	}
 }
 
-/**
- * Get valid access token (refresh if needed)
- */
 export async function getValidAccessToken(): Promise<string | null> {
 	const creds = loadQwenCredentials();
 	
@@ -484,12 +344,9 @@ export async function getValidAccessToken(): Promise<string | null> {
 		return null;
 	}
 
-	// Check if expired
 	if (creds.expiry_date && Date.now() > creds.expiry_date) {
-		// Try to refresh
 		if (creds.refresh_token) {
 			try {
-				console.log('?? Refreshing access token...');
 				const newToken = await refreshAccessToken(creds.refresh_token);
 				
 				const newCreds: QwenCredentials = {
@@ -502,11 +359,9 @@ export async function getValidAccessToken(): Promise<string | null> {
 				};
 				
 				saveQwenCredentials(newCreds);
-				console.log('? Token refreshed successfully');
 				
 				return newCreds.access_token;
 			} catch (error) {
-				console.error('Failed to refresh token:', error);
 				clearQwenCredentials();
 				return null;
 			}

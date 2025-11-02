@@ -64,8 +64,7 @@ export function loadOrCreateContext(userInput?: string, cwd: string = process.cw
 			
 			return context;
 		} catch (error) {
-			// If parsing fails, create new context
-			console.error('[Context] Failed to load context, creating new one');
+		// If parsing fails, create new context
 		}
 	}
 	
