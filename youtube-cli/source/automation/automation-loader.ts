@@ -67,6 +67,12 @@ const AutomationSchema = z.object({
         logErrors: z.boolean(),
         notifyOnError: z.boolean().optional(),
     }),
+    webhookConfig: z.object({
+        enabled: z.boolean(),
+        requireAuth: z.boolean().optional(),
+        method: z.enum(['GET', 'POST']).optional(),
+        expectedPayload: z.record(z.string(), z.any()).optional(),
+    }).optional(),
 });
 
 export class AutomationLoader {
