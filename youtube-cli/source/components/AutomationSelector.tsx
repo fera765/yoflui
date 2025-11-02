@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Text } from 'ink';
+import React, { useState } from 'react';
+import { Box, Text, useInput } from 'ink';
 
 interface AutomationItem {
     id: string;
@@ -21,15 +21,19 @@ export const AutomationSelector: React.FC<AutomationSelectorProps> = ({
 }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
 
-    // Group by category
-    const grouped = automations.reduce((acc, auto) => {
-        const cat = auto.category || 'Other';
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(auto);
-        return acc;
-    }, {} as Record<string, AutomationItem[]>);
-
-    const categories = Object.keys(grouped).sort();
+    // Handle keyboard input
+    useInput((input, key) => {
+        if (key.upArrow) {
+            setSelectedIndex(prev => Math.max(0, prev - 1));
+        } else if (key.downArrow) {
+            setSelectedIndex(prev => Math.min(automations.length - 1, prev + 1));
+        } else if (key.return) {
+            const selectedAutomation = automations[selectedIndex];
+            if (selectedAutomation) {
+                onSelect(selectedAutomation);
+            }
+        }
+    });
 
     return (
         <Box
@@ -54,40 +58,32 @@ export const AutomationSelector: React.FC<AutomationSelectorProps> = ({
 
             {/* Automations list */}
             <Box flexDirection="column">
-                {categories.map((category) => (
-                    <Box key={category} flexDirection="column" marginBottom={1}>
-                        <Text bold color="magenta">
-                            {category.toUpperCase()}
-                        </Text>
-                        {grouped[category].map((auto, idx) => {
-                            const globalIndex = categories
-                                .slice(0, categories.indexOf(category))
-                                .reduce((sum, cat) => sum + grouped[cat].length, 0) + idx;
-                            
-                            const isSelected = globalIndex === selectedIndex;
+                {automations.map((auto, idx) => {
+                    const isSelected = idx === selectedIndex;
 
-                            return (
-                                <Box key={auto.id} marginLeft={2} marginY={0}>
-                                    <Text color={isSelected ? 'cyan' : 'white'}>
-                                        {isSelected ? '? ' : '  '}
-                                        <Text bold>{auto.name}</Text>
-                                        {' - '}
-                                        <Text dimColor>
-                                            {auto.description.length > 50
-                                                ? auto.description.substring(0, 50) + '...'
-                                                : auto.description}
-                                        </Text>
-                                    </Text>
-                                </Box>
-                            );
-                        })}
-                    </Box>
-                ))}
+                    return (
+                        <Box key={auto.id} marginY={0}>
+                            <Text 
+                                color={isSelected ? 'cyan' : 'white'} 
+                                backgroundColor={isSelected ? 'blue' : undefined}
+                            >
+                                {isSelected ? '? ' : '  '}
+                                <Text bold>{auto.name}</Text>
+                                {' - '}
+                                <Text dimColor={!isSelected}>
+                                    {auto.description.length > 60
+                                        ? auto.description.substring(0, 60) + '...'
+                                        : auto.description}
+                                </Text>
+                            </Text>
+                        </Box>
+                    );
+                })}
             </Box>
 
-            <Box marginTop={1}>
+            <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
                 <Text dimColor>
-                    ?? Click on an automation to execute it (LLM-coordinated)
+                    ?? Navigate ? Enter: Select ? Esc: Cancel
                 </Text>
             </Box>
         </Box>
