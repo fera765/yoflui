@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Box, useInput, useStdout, Text } from 'ink';
+import React, { useState, useCallback } from 'react';
+import { Box, useInput, useStdout } from 'ink';
 import { ChatTimeline, ChatInput, type ChatMessage } from './components/ChatComponents.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
@@ -25,11 +25,6 @@ export default function App() {
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
-	
-	const terminalHeight = stdout?.rows || 24;
-	const INPUT_HEIGHT = 4;
-	const COMMANDS_HEIGHT = cmds ? 10 : 0;
-	const availableHeight = Math.max(5, terminalHeight - INPUT_HEIGHT - COMMANDS_HEIGHT);
 	
 	useInput((_, key) => {
 		if (screen !== 'chat') return;
@@ -159,16 +154,6 @@ export default function App() {
 		setScreen('chat');
 	}, []);
 	
-	const visibleMessages = useMemo(() => {
-		if (msgs.length === 0) return [];
-		
-		if (msgs.length <= availableHeight) {
-			return msgs;
-		}
-		
-		return msgs.slice(msgs.length - availableHeight);
-	}, [msgs, availableHeight]);
-	
 	if (screen === 'auth') {
 		return (
 			<NewAuthScreen
@@ -198,9 +183,9 @@ export default function App() {
 	}
 	
 	return (
-		<Box flexDirection="column" height={terminalHeight}>
-			<Box flexDirection="column" flexGrow={1} overflow="hidden">
-				<ChatTimeline messages={visibleMessages} />
+		<Box flexDirection="column">
+			<Box flexDirection="column" flexGrow={1}>
+				<ChatTimeline messages={msgs} />
 			</Box>
 			
 			{cmds && (
