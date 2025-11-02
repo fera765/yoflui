@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Box, useInput, useStdout, Static } from 'ink';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Box, useInput, useStdout, Text } from 'ink';
 import { ChatTimeline, ChatInput, type ChatMessage } from './components/ChatComponents.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { NewAuthScreen } from './components/NewAuthScreen.js';
@@ -11,6 +11,8 @@ import { join } from 'path';
 
 type Screen = 'chat' | 'auth' | 'config' | 'tools';
 
+const MAX_MESSAGES_IN_MEMORY = 500;
+
 let msgIdCounter = 0;
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${++msgIdCounter}`;
 
@@ -20,14 +22,50 @@ export default function App() {
 	const [input, setInput] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [cmds, setCmds] = useState(false);
+	const [scrollOffset, setScrollOffset] = useState(0);
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
 	
+	const terminalHeight = stdout?.rows || 24;
+	const INPUT_HEIGHT = 4;
+	const COMMANDS_HEIGHT = cmds ? 10 : 0;
+	const SCROLL_INDICATOR_HEIGHT = 1;
+	const availableHeight = Math.max(5, terminalHeight - INPUT_HEIGHT - COMMANDS_HEIGHT - SCROLL_INDICATOR_HEIGHT);
+	
+	useEffect(() => {
+		setScrollOffset(0);
+	}, [msgs.length]);
+	
+	useEffect(() => {
+		setScrollOffset(0);
+	}, [terminalHeight]);
+	
 	useInput((_, key) => {
-		if (key.escape && screen === 'chat') {
+		if (screen !== 'chat') return;
+		
+		if (key.escape) {
 			setInput('');
 			setCmds(false);
+			return;
+		}
+		
+		if (cmds) return;
+		
+		if (key.upArrow) {
+			setScrollOffset(prev => {
+				const maxOffset = Math.max(0, msgs.length - availableHeight);
+				return Math.min(prev + 1, maxOffset);
+			});
+		} else if (key.downArrow) {
+			setScrollOffset(prev => Math.max(0, prev - 1));
+		} else if (key.pageUp) {
+			setScrollOffset(prev => {
+				const maxOffset = Math.max(0, msgs.length - availableHeight);
+				return Math.min(prev + Math.floor(availableHeight / 2), maxOffset);
+			});
+		} else if (key.pageDown) {
+			setScrollOffset(prev => Math.max(0, prev - Math.floor(availableHeight / 2)));
 		}
 	});
 	
@@ -46,6 +84,16 @@ export default function App() {
 		else if (cmd === '/exit') process.exit(0);
 	}, []);
 	
+	const addMessage = useCallback((msg: ChatMessage) => {
+		setMsgs(prev => {
+			const updated = [...prev, msg];
+			if (updated.length > MAX_MESSAGES_IN_MEMORY) {
+				return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
+			}
+			return updated;
+		});
+	}, []);
+	
 	const submitMsg = useCallback(async () => {
 		if (!input.trim() || busy) return;
 		
@@ -60,7 +108,7 @@ export default function App() {
 		setCmds(false);
 		
 		const userMsgId = generateId('user');
-		setMsgs(prev => [...prev, { id: userMsgId, role: 'user', content: txt }]);
+		addMessage({ id: userMsgId, role: 'user', content: txt });
 		
 		setBusy(true);
 		
@@ -74,21 +122,25 @@ export default function App() {
 				onKanbanUpdate: (tasks) => {
 					setMsgs(prev => {
 						const noKanban = prev.filter(m => m.role !== 'kanban');
-						return [...noKanban, {
+						const updated: ChatMessage[] = [...noKanban, {
 							id: generateId('kanban'),
-							role: 'kanban',
+							role: 'kanban' as const,
 							content: '',
 							kanban: tasks
 						}];
+						if (updated.length > MAX_MESSAGES_IN_MEMORY) {
+							return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
+						}
+						return updated;
 					});
 				},
 				onToolExecute: (name, args) => {
-					setMsgs(prev => [...prev, {
+					addMessage({
 						id: generateId('tool'),
 						role: 'tool',
 						content: '',
 						toolCall: { name, args, status: 'running' }
-					}]);
+					});
 				},
 				onToolComplete: (name, args, result, error) => {
 					setMsgs(prev => {
@@ -109,22 +161,22 @@ export default function App() {
 				}
 			});
 			
-			setMsgs(prev => [...prev, {
+			addMessage({
 				id: generateId('assistant'),
 				role: 'assistant',
 				content: reply
-			}]);
+			});
 			
 		} catch (err) {
-			setMsgs(prev => [...prev, {
+			addMessage({
 				id: generateId('error'),
 				role: 'assistant',
 				content: `Error: ${err instanceof Error ? err.message : String(err)}`
-			}]);
+			});
 		} finally {
 			setBusy(false);
 		}
-	}, [input, busy, selectCmd]);
+	}, [input, busy, selectCmd, addMessage]);
 	
 	const onAuthComplete = useCallback((mode: 'custom' | 'qwen', endpoint: string, apiKey: string, model: string) => {
 		setConfig({ endpoint, apiKey, model });
@@ -136,22 +188,21 @@ export default function App() {
 		setScreen('chat');
 	}, []);
 	
-	const terminalHeight = stdout?.rows || 24;
-	const maxVisibleMessages = terminalHeight - 6;
-	
 	const visibleMessages = useMemo(() => {
-		if (msgs.length <= maxVisibleMessages) {
+		if (msgs.length === 0) return [];
+		
+		if (msgs.length <= availableHeight) {
 			return msgs;
 		}
-		return msgs.slice(msgs.length - maxVisibleMessages);
-	}, [msgs, maxVisibleMessages]);
+		
+		const start = Math.max(0, msgs.length - availableHeight - scrollOffset);
+		const end = msgs.length - scrollOffset;
+		
+		return msgs.slice(start, end);
+	}, [msgs, availableHeight, scrollOffset]);
 	
-	const oldMessages = useMemo(() => {
-		if (msgs.length <= maxVisibleMessages) {
-			return [];
-		}
-		return msgs.slice(0, msgs.length - maxVisibleMessages);
-	}, [msgs, maxVisibleMessages]);
+	const hasMoreAbove = msgs.length > availableHeight && scrollOffset < msgs.length - availableHeight;
+	const hasMoreBelow = scrollOffset > 0;
 	
 	if (screen === 'auth') {
 		return (
@@ -184,13 +235,22 @@ export default function App() {
 	return (
 		<Box flexDirection="column" height={terminalHeight}>
 			<Box flexDirection="column" flexGrow={1} overflow="hidden">
-				{oldMessages.length > 0 && (
-					<Static items={oldMessages}>
-						{() => null}
-					</Static>
-				)}
 				<ChatTimeline messages={visibleMessages} />
 			</Box>
+			
+			{(hasMoreAbove || hasMoreBelow) && !cmds && (
+				<Box justifyContent="center" paddingX={2}>
+					{hasMoreAbove && hasMoreBelow && (
+						<Text color="gray" dimColor>? Scroll para ver mais | {scrollOffset} ocultas abaixo ?</Text>
+					)}
+					{hasMoreAbove && !hasMoreBelow && (
+						<Text color="gray" dimColor>? Scroll para cima para ver mais antigas</Text>
+					)}
+					{!hasMoreAbove && hasMoreBelow && (
+						<Text color="yellow">? {scrollOffset} novas mensagens abaixo</Text>
+					)}
+				</Box>
+			)}
 			
 			{cmds && (
 				<Box paddingX={2} paddingBottom={1}>
