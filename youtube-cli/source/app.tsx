@@ -25,7 +25,7 @@ export default function App() {
 	const cfg = getConfig();
 	
 	useInput((_, key) => {
-		if (key.escape) {
+		if (key.escape && screen === 'chat') {
 			setInput('');
 			setCmds(false);
 		}
@@ -136,6 +136,23 @@ export default function App() {
 		setScreen('chat');
 	}, []);
 	
+	const terminalHeight = stdout?.rows || 24;
+	const maxVisibleMessages = terminalHeight - 6;
+	
+	const visibleMessages = useMemo(() => {
+		if (msgs.length <= maxVisibleMessages) {
+			return msgs;
+		}
+		return msgs.slice(msgs.length - maxVisibleMessages);
+	}, [msgs, maxVisibleMessages]);
+	
+	const oldMessages = useMemo(() => {
+		if (msgs.length <= maxVisibleMessages) {
+			return [];
+		}
+		return msgs.slice(0, msgs.length - maxVisibleMessages);
+	}, [msgs, maxVisibleMessages]);
+	
 	if (screen === 'auth') {
 		return (
 			<NewAuthScreen
@@ -163,23 +180,6 @@ export default function App() {
 	if (screen === 'tools') {
 		return <ToolsScreen onClose={() => setScreen('chat')} />;
 	}
-	
-	const terminalHeight = stdout?.rows || 24;
-	const maxVisibleMessages = terminalHeight - 6;
-	
-	const visibleMessages = useMemo(() => {
-		if (msgs.length <= maxVisibleMessages) {
-			return msgs;
-		}
-		return msgs.slice(msgs.length - maxVisibleMessages);
-	}, [msgs, maxVisibleMessages]);
-	
-	const oldMessages = useMemo(() => {
-		if (msgs.length <= maxVisibleMessages) {
-			return [];
-		}
-		return msgs.slice(0, msgs.length - maxVisibleMessages);
-	}, [msgs, maxVisibleMessages]);
 	
 	return (
 		<Box flexDirection="column" height={terminalHeight}>
