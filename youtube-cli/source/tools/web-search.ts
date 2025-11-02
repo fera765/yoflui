@@ -309,19 +309,46 @@ function parseGoogleResults(html: string, maxResults: number = 100): SearchResul
  */
 function parseDuckDuckGoResults(html: string, maxResults: number = 100): SearchResult[] {
 	const results: SearchResult[] = [];
+	// DuckDuckGo HTML structure - updated to find results by result__title
+	// Results are in <div class="result results_links results_links_deep">
+	// Try finding result blocks by result__title first (more reliable)
+	const titleSections = html.match(/<h2[^>]*class="[^"]*result__title[^"]*"[^>]*>[\s\S]{0,2000}?<\/h2>/gi);
 	
-	// DuckDuckGo HTML structure
-	const resultPatterns = [
-		/<div[^>]*class="[^"]*result[^"]*"[^>]*>(.*?)<\/div><\/div>/gs,
-		/<div[^>]*class="[^"]*web-result[^"]*"[^>]*>(.*?)<\/div><\/div>/gs,
-	];
-
 	let matches: RegExpMatchArray[] = [];
-	for (const pattern of resultPatterns) {
-		const found = Array.from(html.matchAll(pattern));
-		if (found.length > 0) {
-			matches = found;
-			break;
+	if (titleSections && titleSections.length > 0) {
+		// Use title sections as matches - find the full result block for each
+		matches = titleSections.map((section) => {
+			const sectionIndex = html.indexOf(section);
+			if (sectionIndex !== -1) {
+				// Look backwards for the opening result div
+				const beforeSection = html.substring(Math.max(0, sectionIndex - 500), sectionIndex);
+				const divMatch = beforeSection.match(/<div[^>]*class="[^"]*result[^"]*results_links[^"]*"[^>]*>/i);
+				if (divMatch) {
+					const startIndex = html.indexOf(divMatch[0], sectionIndex - 500);
+					const restHtml = html.substring(startIndex);
+					const endPattern = /<\/div>\s*<\/div>/;
+					const endMatch = restHtml.match(endPattern);
+					if (endMatch) {
+						const fullBlock = restHtml.substring(0, endMatch.index! + endMatch[0].length);
+						return [fullBlock, fullBlock] as RegExpMatchArray;
+					}
+				}
+			}
+			return [section, section] as RegExpMatchArray;
+		});
+	}
+	
+	// Fallback to div patterns if title sections didn't work
+	if (matches.length === 0) {
+		const resultPatterns = [
+			/<div[^>]*class="[^"]*result[^"]*results_links[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,
+		];
+		for (const pattern of resultPatterns) {
+			const found = Array.from(html.matchAll(pattern));
+			if (found.length > 0) {
+				matches = found;
+				break;
+			}
 		}
 	}
 
@@ -332,6 +359,7 @@ function parseDuckDuckGoResults(html: string, maxResults: number = 100): SearchR
 	const snippetPatterns = [
 		/<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)<\/a>/s,
 		/<span[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)<\/span>/s,
+		/<div[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)<\/div>/s,
 	];
 
 	for (const match of matches) {
@@ -352,6 +380,22 @@ function parseDuckDuckGoResults(html: string, maxResults: number = 100): SearchR
 			}
 		}
 		
+		// If URL is a DuckDuckGo redirect, extract the actual URL from uddg parameter
+		if (url && url.includes('uddg=')) {
+			try {
+				const uddgMatch = url.match(/uddg=([^&]+)/);
+				if (uddgMatch) {
+					const decoded = decodeURIComponent(uddgMatch[1]);
+					// Check if it's a real URL (starts with http)
+					if (decoded.startsWith('http')) {
+						url = decoded;
+					}
+				}
+			} catch (e) {
+				// Keep original URL if decoding fails
+			}
+		}
+		
 		// Extract description
 		let description = '';
 		for (const snippetPattern of snippetPatterns) {
@@ -362,15 +406,40 @@ function parseDuckDuckGoResults(html: string, maxResults: number = 100): SearchR
 			}
 		}
 		
-		if (title && url && (url.startsWith('http') || url.startsWith('//'))) {
-			if (url.startsWith('//')) {
-				url = 'https:' + url;
+		// If no description found, try to find it in the result body
+		if (!description) {
+			const bodyPattern = new RegExp('<div[^>]*class="[^"]*result__body[^"]*"[^>]*>(.*?)</div>', 's');
+			const bodyMatch = resultHtml.match(bodyPattern);
+			if (bodyMatch) {
+				const bodyText = bodyMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+				// Take first meaningful sentence/paragraph
+				const sentences = bodyText.split(/[.!?]\s+/).filter(s => s.length > 20);
+				if (sentences.length > 0) {
+					description = sentences[0].substring(0, 500);
+				}
 			}
-			results.push({
-				title: title.substring(0, 200),
-				description: description.substring(0, 500),
-				url: url.substring(0, 500),
-			});
+		}
+		
+		// Validate and add result
+		if (title && url) {
+			// Accept URLs that start with http or are DuckDuckGo redirects
+			if (url.startsWith('http') || url.startsWith('//')) {
+				if (url.startsWith('//')) {
+					url = 'https:' + url;
+				}
+				results.push({
+					title: title.substring(0, 200),
+					description: description.substring(0, 500),
+					url: url.substring(0, 500),
+				});
+			} else if (url.includes('uddg=')) {
+				// Still include DuckDuckGo redirect links if we couldn't decode them
+				results.push({
+					title: title.substring(0, 200),
+					description: description.substring(0, 500),
+					url: url.substring(0, 500),
+				});
+			}
 		}
 	}
 	
