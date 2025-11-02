@@ -72,9 +72,25 @@ class WebhookAPI {
     }
 
     private setupRoutes() {
-        // Health check (silent)
-        this.app.get('/health', (req: Request, res: Response) => {
-            res.json({ status: 'ok' });
+        // Health check endpoints
+        this.app.get('/health', async (req: Request, res: Response) => {
+            const { healthChecker } = await import('./health/health-checker.js');
+            const health = await healthChecker.check();
+            const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+            res.status(statusCode).json(health);
+        });
+
+        this.app.get('/health/liveness', async (req: Request, res: Response) => {
+            const { healthChecker } = await import('./health/health-checker.js');
+            const liveness = await healthChecker.liveness();
+            res.json(liveness);
+        });
+
+        this.app.get('/health/readiness', async (req: Request, res: Response) => {
+            const { healthChecker } = await import('./health/health-checker.js');
+            const readiness = await healthChecker.readiness();
+            const statusCode = readiness.ready ? 200 : 503;
+            res.status(statusCode).json(readiness);
         });
 
         // Webhook endpoint

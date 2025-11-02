@@ -6,12 +6,14 @@ import type { Automation } from './automation/types.js';
 import { ExecutionContext } from './utils/execution-context.js';
 import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
 import { logger, formatToolArgs } from './utils/logger.js';
+import { checkpointManager } from './automation/checkpoint-manager.js';
 
 interface CoordinatorOptions {
     automation: Automation;
     workDir: string;
     webhookData?: any;
     onProgress?: (message: string) => void;
+    enableCheckpoints?: boolean;
 }
 
 /**
@@ -27,7 +29,16 @@ export class LLMAutomationCoordinator {
     }
 
     async executeAutomation(options: CoordinatorOptions): Promise<string> {
-        const { automation, workDir, webhookData, onProgress } = options;
+        const { automation, workDir, webhookData, onProgress, enableCheckpoints = true } = options;
+        
+        // Create initial checkpoint if enabled
+        if (enableCheckpoints) {
+            checkpointManager.createInitialCheckpoint(
+                this.executionContext.getExecutionId(),
+                automation,
+                webhookData ? { webhookData } : {}
+            );
+        }
 
         const config = getConfig();
         const qwenCreds = loadQwenCredentials();
@@ -79,6 +90,7 @@ Execute the automation now, step by step, using the tools available.`,
         let iterations = 0;
         const maxIterations = 20;
         const executionLog: string[] = [];
+        let currentStepIndex = 0;
 
         try {
             while (iterations < maxIterations) {
@@ -157,6 +169,18 @@ Execute the automation now, step by step, using the tools available.`,
                                 { resultLength: result.length },
                                 this.executionContext.getExecutionId()
                             );
+                            
+                            // Update checkpoint on success
+                            if (enableCheckpoints) {
+                                checkpointManager.updateCheckpointAfterStep(
+                                    this.executionContext.getExecutionId(),
+                                    currentStepIndex,
+                                    toolName,
+                                    'success',
+                                    result.substring(0, 500)
+                                );
+                                currentStepIndex++;
+                            }
                         } catch (error) {
                             result = error instanceof Error ? error.message : String(error);
                             hasError = true;
@@ -168,6 +192,19 @@ Execute the automation now, step by step, using the tools available.`,
                                 { error: result },
                                 this.executionContext.getExecutionId()
                             );
+                            
+                            // Update checkpoint on error
+                            if (enableCheckpoints) {
+                                checkpointManager.updateCheckpointAfterStep(
+                                    this.executionContext.getExecutionId(),
+                                    currentStepIndex,
+                                    toolName,
+                                    'error',
+                                    undefined,
+                                    result
+                                );
+                                currentStepIndex++;
+                            }
                         }
 
                         // Add tool result to conversation
@@ -182,16 +219,33 @@ Execute the automation now, step by step, using the tools available.`,
 
                 // No more tool calls, LLM is done
                 if (assistantMsg.content) {
+                    // Mark checkpoint as completed
+                    if (enableCheckpoints) {
+                        checkpointManager.markCheckpointCompleted(this.executionContext.getExecutionId());
+                    }
                     return assistantMsg.content;
                 }
 
                 break;
             }
 
+            // Mark checkpoint as completed
+            if (enableCheckpoints) {
+                checkpointManager.markCheckpointCompleted(this.executionContext.getExecutionId());
+            }
+            
             return executionLog.join('\n');
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
             executionLog.push(`[FATAL ERROR]: ${errorMsg}`);
+            
+            logger.error(
+                'LLMCoordinator',
+                'Automation execution failed',
+                { error: errorMsg },
+                this.executionContext.getExecutionId()
+            );
+            
             return executionLog.join('\n');
         }
     }
