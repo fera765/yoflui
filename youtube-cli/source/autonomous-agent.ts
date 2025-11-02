@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { mkdirSync, existsSync, readFileSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { getConfig } from './llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
@@ -18,6 +18,38 @@ interface AgentOptions {
 	onToolComplete?: (toolName: string, args: any, result: string, error?: boolean) => void;
 }
 
+/**
+ * Load flui.md file (case-insensitive) from current working directory
+ * Returns content if found, empty string otherwise
+ */
+function loadFluiKnowledge(cwd: string = process.cwd()): string {
+	try {
+		// List all files in directory
+		const files = readdirSync(cwd);
+		
+		// Find flui.md files (case-insensitive)
+		const fluiFile = files.find(file => {
+			const lowerFile = file.toLowerCase();
+			return lowerFile === 'flui.md';
+		});
+		
+		if (!fluiFile) {
+			return '';
+		}
+		
+		const fluiPath = join(cwd, fluiFile);
+		if (existsSync(fluiPath)) {
+			const content = readFileSync(fluiPath, 'utf-8');
+			return content.trim();
+		}
+		
+		return '';
+	} catch (error) {
+		// Silent fail - if directory doesn't exist or can't read, just return empty
+		return '';
+	}
+}
+
 export async function runAutonomousAgent(options: AgentOptions): Promise<string> {
 	const { userMessage, workDir, onProgress, onKanbanUpdate, onToolExecute, onToolComplete } = options;
 
@@ -28,6 +60,12 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	const cwd = process.cwd();
 	const context = loadOrCreateContext(userMessage, cwd);
 	const contextPrompt = generateContextPrompt(context);
+	
+	// Load flui.md knowledge base and notify if found
+	const fluiKnowledge = loadFluiKnowledge(cwd);
+	if (fluiKnowledge && onProgress) {
+		onProgress('[+] Loaded flui.md context');
+	}
 	
 	// Save user message to conversation history BEFORE processing
 	addToConversation('user', userMessage, cwd);
@@ -59,10 +97,14 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 		? `\n## SAVED MEMORIES:\n${savedMemories.map(m => `- [${m.category}] ${m.content}`).join('\n')}\n`
 		: '';
 
+	// Build flui.md knowledge context (already loaded above)
+	const fluiKnowledgeContext = fluiKnowledge 
+		? `\n## FLUI KNOWLEDGE BASE:\n${fluiKnowledge}\n`
+		: '';
+
 	const systemPrompt = `You are an AUTONOMOUS AI AGENT that helps users complete tasks efficiently.
 
-${contextPrompt}
-${memoryContext}
+${contextPrompt}${fluiKnowledgeContext}${memoryContext}
 
 Work directory: ${workDir}
 
