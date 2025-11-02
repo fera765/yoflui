@@ -1,4 +1,7 @@
 import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export interface SearchResult {
 	title: string;
@@ -52,9 +55,22 @@ const SEARXNG_INSTANCES = [
 // Inst?ncia personalizada pode ser configurada via vari?vel de ambiente
 const CUSTOM_SEARXNG_INSTANCE = process.env.SEARXNG_INSTANCE;
 
+// Lista de proxies para distribuir requisi??es e evitar rate limiting
+// Pode ser configurada via vari?vel de ambiente SEARXNG_PROXIES (separada por v?rgula)
+// Exemplo: export SEARXNG_PROXIES="http://proxy1:8080,http://proxy2:8080,socks5://proxy3:1080"
+const PROXY_LIST: string[] = process.env.SEARXNG_PROXIES 
+	? process.env.SEARXNG_PROXIES.split(',').map(p => p.trim()).filter(Boolean)
+	: [
+		// Lista padr?o de proxies p?blicos (opcional - pode estar vazia)
+		// Adicione proxies aqui ou configure via vari?vel de ambiente
+	];
+
 let currentInstanceIndex = 0;
+let currentProxyIndex = 0;
 let instanceFailures = new Map<string, number>();
+let proxyFailures = new Map<string, number>();
 const MAX_INSTANCE_FAILURES = 5;
+const MAX_PROXY_FAILURES = 3;
 
 /**
  * Get list of available instances (custom first, then public)
@@ -106,6 +122,83 @@ function resetInstanceFailures(): void {
 	if (instanceFailures.size > 15) {
 		instanceFailures.clear();
 	}
+}
+
+/**
+ * Get next proxy (rotate, skip failed ones)
+ */
+function getNextProxy(): string | null {
+	if (PROXY_LIST.length === 0) return null;
+	
+	// Remove proxies with too many failures
+	const availableProxies = PROXY_LIST.filter(proxy => {
+		const failures = proxyFailures.get(proxy) || 0;
+		return failures < MAX_PROXY_FAILURES;
+	});
+	
+	if (availableProxies.length === 0) {
+		// Reset failures if all proxies failed
+		proxyFailures.clear();
+		return PROXY_LIST[0] || null;
+	}
+	
+	currentProxyIndex = (currentProxyIndex + 1) % availableProxies.length;
+	return availableProxies[currentProxyIndex];
+}
+
+/**
+ * Mark proxy as failed
+ */
+function markProxyFailed(proxy: string): void {
+	const failures = proxyFailures.get(proxy) || 0;
+	proxyFailures.set(proxy, failures + 1);
+}
+
+/**
+ * Create fetch with proxy support
+ */
+async function createFetchWithProxy(url: string, useProxy: boolean = true): Promise<Response> {
+	const headers = {
+		'Accept': 'application/json',
+		'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+	};
+	
+	if (useProxy && PROXY_LIST.length > 0) {
+		const proxyUrl = getNextProxy();
+		if (proxyUrl) {
+			try {
+				let agent: any;
+				if (proxyUrl.startsWith('socks5://') || proxyUrl.startsWith('socks4://')) {
+					agent = new SocksProxyAgent(proxyUrl);
+				} else if (proxyUrl.startsWith('https://')) {
+					agent = new HttpsProxyAgent(proxyUrl);
+				} else {
+					agent = new HttpProxyAgent(proxyUrl);
+				}
+
+				// @ts-ignore - Node.js fetch with agent
+				const response = await fetch(url, {
+					method: 'GET',
+					headers,
+					// @ts-ignore
+					agent,
+				});
+				
+				return response;
+			} catch (error) {
+				// Mark proxy as failed
+				markProxyFailed(proxyUrl);
+				// Fallback to direct connection
+				console.warn(`Proxy ${proxyUrl} failed, using direct connection`);
+			}
+		}
+	}
+	
+	// Direct connection
+	return fetch(url, {
+		method: 'GET',
+		headers,
+	});
 }
 
 /**
@@ -350,20 +443,17 @@ async function searchWithSearXNG(query: string, maxResults: number = 10): Promis
 		try {
 			console.log(`Attempt ${attempt + 1}: Using SearXNG instance ${instance}`);
 			
-			// Build search URL
-			const searchUrl = `${instance}/search?q=${encodedQuery}&format=json&engines=${engines}&pageno=1`;
-			
-			const response = await withTimeout(
-				fetch(searchUrl, {
-					method: 'GET',
-					headers: {
-						'Accept': 'application/json',
-						'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-					},
-				}),
-				TIMEOUT_CONFIG.HTTP_REQUEST,
-				`SearXNG search: ${query}`
-			);
+		// Build search URL
+		const searchUrl = `${instance}/search?q=${encodedQuery}&format=json&engines=${engines}&pageno=1`;
+		
+		// Use proxy if available (helps avoid rate limiting)
+		const useProxy = PROXY_LIST.length > 0 && attempt % 2 === 0; // Use proxy for every other attempt
+		
+		const response = await withTimeout(
+			createFetchWithProxy(searchUrl, useProxy),
+			TIMEOUT_CONFIG.HTTP_REQUEST,
+			`SearXNG search: ${query}`
+		);
 			
 			if (!response.ok) {
 				if (response.status === 429 || response.status === 503) {
