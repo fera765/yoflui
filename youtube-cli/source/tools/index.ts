@@ -9,6 +9,8 @@ export * from './read-folder.js';
 export * from './kanban.js';
 export * from './intelligent-web-research.js';
 export * from './web-scraper.js';
+export * from './web-scraper-with-context.js';
+export * from './web-scraper-context.js';
 export * from './keyword-suggestions.js';
 export * from './memory.js';
 export * from './agent.js';
@@ -38,6 +40,7 @@ import { readFolderToolDefinition, executeReadFolderTool } from './read-folder.j
 import { kanbanToolDefinition, executeKanbanTool, type KanbanTask } from './kanban.js';
 import { webSearchToolDefinition, executeWebSearchTool } from './web-search.js';
 import { webScraperToolDefinition, executeWebScraperTool } from './web-scraper.js';
+import { webScraperWithContextToolDefinition, executeWebScraperWithContextTool } from './web-scraper-with-context.js';
 import { keywordSuggestionsToolDefinition, executeKeywordSuggestionsTool } from './keyword-suggestions.js';
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 import { memoryToolDefinition, executeSaveMemoryTool, loadMemories } from './memory.js';
@@ -58,6 +61,7 @@ export function getAllToolDefinitions() {
 		kanbanToolDefinition,
 		webSearchToolDefinition,
 		webScraperToolDefinition,
+		webScraperWithContextToolDefinition,
 		intelligentWebResearchToolDefinition,
 		keywordSuggestionsToolDefinition,
 		youtubeToolDefinition,
@@ -115,7 +119,15 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 		case 'update_kanban':
 			return executeKanbanTool(args.tasks, workDir);
 		case 'web_scraper':
-			return executeWebScraperTool(args.url);
+			return executeWebScraperTool(args.url, args.query);
+		case 'web_scraper_with_context':
+			return executeWebScraperWithContextTool(
+				args.query,
+				args.searchResults,
+				args.maxSites || 3,
+				args.minSites || 1,
+				args.confidenceThreshold || 75
+			);
 		case 'keyword_suggestions':
 			return executeKeywordSuggestionsTool(args.query, args.engines || ['all']);
 		case 'intelligent_web_research':
