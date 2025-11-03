@@ -223,7 +223,7 @@ export async function executeIntelligentWebResearchTool(
 		const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
 		// Step 1: Perform web search
-		console.log(`?? Searching web for: "${query}"`);
+		// Silent web search
 		const searchResultsJson = await executeWebSearchTool(query, 5);
 		const searchResults = JSON.parse(searchResultsJson);
 		
@@ -238,7 +238,7 @@ export async function executeIntelligentWebResearchTool(
 		}
 
 		// Step 2: Analyze and select most relevant URLs
-		console.log(`?? Analyzing ${searchResults.results.length} search results...`);
+		// Analyzing results
 		const relevantUrls = await analyzeSearchResults(searchResults, query, openai);
 		
 		if (relevantUrls.length === 0) {
@@ -260,7 +260,7 @@ export async function executeIntelligentWebResearchTool(
 		for (let i = 0; i < Math.min(relevantUrls.length, maxSites); i++) {
 			const url = relevantUrls[i];
 			
-			console.log(`?? Scraping site ${i + 1}/${Math.min(relevantUrls.length, maxSites)}: ${url}`);
+			// Scraping site
 			
 			try {
 				const content = await executeWebScraperTool(url);
@@ -276,7 +276,7 @@ export async function executeIntelligentWebResearchTool(
 					);
 					
 					if (sufficiencyCheck.sufficient && sufficiencyCheck.confidence >= 75) {
-						console.log(`? Sufficient information found after ${sitesScraped} sites (confidence: ${sufficiencyCheck.confidence}%)`);
+						// Sufficient info found
 						return JSON.stringify({
 							query,
 							status: 'complete',
@@ -290,7 +290,7 @@ export async function executeIntelligentWebResearchTool(
 					}
 				}
 			} catch (error) {
-				console.warn(`?? Failed to scrape ${url}: ${error instanceof Error ? error.message : String(error)}`);
+				// Failed to scrape
 				// Continue with next URL
 			}
 		}

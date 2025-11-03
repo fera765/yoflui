@@ -291,11 +291,11 @@ export async function scrapeUrlsWithEarlyStopping(
 
 			// Skip if already scraped
 			if (context.scrapedUrls.includes(url)) {
-				console.log(`?? Skipping already scraped URL: ${url}`);
+				// Already scraped
 				continue;
 			}
 
-			console.log(`?? Scraping site ${i + 1}/${Math.min(urls.length, maxSites)}: ${url}`);
+			// Scraping site
 
 			try {
 				const contentResult = await executeWebScraperTool(url);
@@ -335,7 +335,7 @@ export async function scrapeUrlsWithEarlyStopping(
 
 					// Stop if sufficient information found
 					if (sufficiencyCheck.sufficient && sufficiencyCheck.confidence >= confidenceThreshold) {
-						console.log(`? Sufficient information found after ${sitesScraped} sites (confidence: ${sufficiencyCheck.confidence}%)`);
+						// Sufficient info
 						stoppedEarly = true;
 						
 						// Clean up context after delay (for potential follow-up queries)
@@ -358,7 +358,7 @@ export async function scrapeUrlsWithEarlyStopping(
 					}
 				}
 			} catch (error) {
-				console.warn(`?? Failed to scrape ${url}: ${error instanceof Error ? error.message : String(error)}`);
+				// Failed to scrape
 				// Continue with next URL
 			}
 		}

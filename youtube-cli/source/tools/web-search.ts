@@ -296,7 +296,7 @@ async function searchDuckDuckGo(query: string, maxResults: number = 10): Promise
 			// Use proxy only on later attempts (try direct first)
 			const useProxy = attempt >= 4;
 			
-			console.log(`DuckDuckGo attempt ${attempt + 1}: ${useProxy ? 'with proxy' : 'direct'}`);
+			// Attempting search
 			
 			await randomDelay(1000, 2000);
 			
@@ -308,7 +308,7 @@ async function searchDuckDuckGo(query: string, maxResults: number = 10): Promise
 			
 			if (!response.ok) {
 				if (response.status === 403 || response.status === 429) {
-					console.warn(`DuckDuckGo blocked (HTTP ${response.status}), retrying direct...`);
+					// Blocked, retrying
 					await randomDelay(3000, 5000);
 					continue;
 				}
@@ -319,7 +319,7 @@ async function searchDuckDuckGo(query: string, maxResults: number = 10): Promise
 			
 			// Check for blocking
 			if (html.includes('403') || html.includes('blocked') || html.includes('Forbidden') || html.length < 5000) {
-				console.warn('DuckDuckGo returned blocked page, retrying...');
+				// Blocked page, retrying
 				await randomDelay(3000, 5000);
 				continue;
 			}
@@ -327,15 +327,15 @@ async function searchDuckDuckGo(query: string, maxResults: number = 10): Promise
 			const results = parseDuckDuckGoResults(html, maxResults);
 			
 			if (results.length > 0) {
-				console.log(`? DuckDuckGo: extracted ${results.length} results`);
+				// Results extracted
 				return results;
 			}
 			
-			console.warn('DuckDuckGo: no results found, retrying...');
+			// No results, retrying
 			await randomDelay(2000, 3000);
 			
 		} catch (error) {
-			console.warn(`DuckDuckGo attempt ${attempt + 1} failed: ${error instanceof Error ? error.message : String(error)}`);
+			// Attempt failed
 			if (attempt < 5) {
 				await randomDelay(2000, 4000);
 			}
