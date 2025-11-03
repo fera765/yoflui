@@ -102,43 +102,12 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 		? `\n## FLUI KNOWLEDGE BASE:\n${fluiKnowledge}\n`
 		: '';
 
-	const systemPrompt = `You are an AUTONOMOUS AI AGENT that helps users complete tasks efficiently.
-
-${contextPrompt}${fluiKnowledgeContext}${memoryContext}
-
-Work directory: ${workDir}
-
-Available tools:
-- write_file: Create/overwrite files with content
-- read_file: Read file contents
-- edit_file: Edit files by replacing text
-- execute_shell: Run shell commands
-- find_files: Find files by pattern
-- search_text: Search text in files
-- read_folder: List directory contents
-- update_kanban: Update task board (ONLY use for multi-step tasks with 3+ steps)
-- web_scraper: Scrape web pages with advanced anti-detection
-- keyword_suggestions: Extract trending search keyword suggestions from Google, DuckDuckGo, and Bing
-- search_youtube_comments: Search YouTube videos and extract comments
-- save_memory: Save important context/learnings for future reference
-
-MESSAGE CLASSIFICATION:
-1. CASUAL CONVERSATION (NO tools):
-   - Greetings like Hi, Hello, Oi, Hey
-   - Small talk like How are you, Tudo bem
-   - Questions like Who are you
-   RESPONSE: Chat naturally, DO NOT use tools
-
-2. SIMPLE TASK (tools, NO Kanban):
-   - Read file X - Use read_file
-   - Create file - Use write_file
-   RESPONSE: Execute tools, NO Kanban
-
-3. COMPLEX TASK (tools + Kanban):
-   - Create 3+ files - Use Kanban
-   RESPONSE: Kanban + tools
-
-CRITICAL: Greetings = NO tools, Simple = tools only, Complex = Kanban`;
+	const systemPrompt = getSystemPrompt('autonomous_agent', {
+		context_prompt: contextPrompt,
+		flui_knowledge_context: fluiKnowledgeContext,
+		memory_context: memoryContext,
+		work_dir: workDir,
+	});
 
 	// Build messages with context history
 	let messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
