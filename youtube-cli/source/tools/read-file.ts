@@ -1,10 +1,11 @@
 import { readFileSync } from 'fs';
+import { validateFilePath } from '../security/security.js';
 
 export const readFileToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'read_file',
-		description: 'Read contents of a file',
+		description: 'Read contents of a file. Access to node_modules, vendor, .git and other package directories is blocked for security.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -17,6 +18,12 @@ export const readFileToolDefinition = {
 
 export async function executeReadFileTool(filePath: string): Promise<string> {
 	try {
+		// Validate file path
+		const validation = validateFilePath(filePath);
+		if (!validation.valid) {
+			return `Error: ${validation.error}`;
+		}
+		
 		const content = readFileSync(filePath, 'utf-8');
 		return content;
 	} catch (error) {

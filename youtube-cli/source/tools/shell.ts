@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
+import { validateShellCommand, getSafeWorkingDirectory } from '../security/security.js';
 
 interface ActiveProcess {
 	process: ChildProcess;
@@ -16,7 +17,7 @@ export const shellToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'execute_shell',
-		description: 'Execute a shell command. Returns processId for interactive commands that may need input.',
+		description: 'Execute a shell command. Dangerous commands (rm -rf /, format, shutdown, etc.) and commands outside workspace are blocked. All commands execute within workspace root.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -65,12 +66,20 @@ export async function executeShellTool(
 	timeout: number = 30000,
 	interactive: boolean = false
 ): Promise<string> {
+	// Validate shell command
+	const validation = validateShellCommand(command);
+	if (!validation.valid) {
+		return `Error: ${validation.error}`;
+	}
+	
 	const processId = `shell-${++processCounter}-${Date.now()}`;
+	const safeWorkingDir = getSafeWorkingDirectory();
 
 	return new Promise((resolve, reject) => {
 		const childProcess = spawn(command, {
 			shell: true,
 			stdio: ['pipe', 'pipe', 'pipe'],
+			cwd: safeWorkingDir, // Always execute in workspace root
 		});
 
 		const processData: ActiveProcess = {

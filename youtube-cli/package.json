@@ -28,7 +28,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@types/cheerio": "^0.22.35",
     "@types/express": "^5.0.5",
+    "cheerio": "^1.1.2",
     "express": "^5.1.0",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6",
@@ -38,6 +40,7 @@
     "ink-text-input": "^6.0.0",
     "openai": "^6.7.0",
     "p-queue": "^9.0.0",
+    "puppeteer": "^24.27.0",
     "react": "^19.2.0",
     "scrape-youtube": "^2.4.0",
     "socks-proxy-agent": "^8.0.5",

@@ -1,10 +1,11 @@
 import { readFileSync, writeFileSync } from 'fs';
+import { validateFilePath } from '../security/security.js';
 
 export const editToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'edit_file',
-		description: 'Edit a file by replacing old text with new text',
+		description: 'Edit a file by replacing old text with new text. Access to node_modules, vendor, .git and other package directories is blocked for security.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -19,6 +20,12 @@ export const editToolDefinition = {
 
 export async function executeEditTool(filePath: string, oldStr: string, newStr: string): Promise<string> {
 	try {
+		// Validate file path
+		const validation = validateFilePath(filePath);
+		if (!validation.valid) {
+			return `Error: ${validation.error}`;
+		}
+		
 		const content = readFileSync(filePath, 'utf-8');
 		if (!content.includes(oldStr)) {
 			return `Error: Old string not found in ${filePath}`;

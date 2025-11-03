@@ -1,11 +1,12 @@
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { validateDirectoryPath } from '../security/security.js';
 
 export const readFolderToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'read_folder',
-		description: 'List files and folders in a directory',
+		description: 'List files and folders in a directory. Access to node_modules, vendor, .git and other package directories is blocked for security.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -18,6 +19,12 @@ export const readFolderToolDefinition = {
 
 export async function executeReadFolderTool(path: string): Promise<string> {
 	try {
+		// Validate directory path
+		const validation = validateDirectoryPath(path);
+		if (!validation.valid) {
+			return `Error: ${validation.error}`;
+		}
+		
 		const items = readdirSync(path);
 		const details = items.map(item => {
 			const fullPath = join(path, item);
