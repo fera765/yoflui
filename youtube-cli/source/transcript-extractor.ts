@@ -104,17 +104,20 @@ export async function fetchVideoTranscript(videoId: string): Promise<Transcript 
 			
 			// Get the URL for fetching captions
 			// The base_url might need query parameters
-			let captionUrl = captionTrack.base_url;
+			const baseUrlValue: any = captionTrack.base_url;
+			let captionUrl: string | undefined;
 			
 			// If base_url is a function, call it
-			if (typeof captionUrl === 'function') {
-				captionUrl = captionUrl();
+			if (typeof baseUrlValue === 'function') {
+				captionUrl = baseUrlValue();
+			} else if (typeof baseUrlValue === 'string') {
+				captionUrl = baseUrlValue;
 			}
 			
 			// Ensure it's a string URL
-			if (typeof captionUrl !== 'string' || !captionUrl.startsWith('http')) {
+			if (!captionUrl || typeof captionUrl !== 'string' || !captionUrl.startsWith('http')) {
 				// Try alternative: use the track's URL property
-				captionUrl = (captionTrack as any).url || captionUrl;
+				captionUrl = (captionTrack as any).url;
 			}
 			
 			if (!captionUrl || typeof captionUrl !== 'string') {

@@ -24,6 +24,7 @@ import { loadKanban } from './kanban.js';
 export { loadKanban };
 
 import { intelligentWebResearchToolDefinition, executeIntelligentWebResearchTool } from './intelligent-web-research.js';
+import { editToolDefinition, executeEditTool } from './edit.js';
 import { readFileToolDefinition, executeReadFileTool } from './read-file.js';
 import { writeFileToolDefinition, executeWriteFileTool } from './write-file.js';
 import { 

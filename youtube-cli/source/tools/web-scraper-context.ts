@@ -136,7 +136,7 @@ Do not include explanations outside the JSON object.`;
 /**
  * Analyze search results to select most relevant URLs
  */
-async function selectRelevantUrls(
+export async function selectRelevantUrls(
 	searchResults: any,
 	query: string,
 	openai: OpenAI,
