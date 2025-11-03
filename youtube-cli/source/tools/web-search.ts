@@ -1,7 +1,9 @@
 import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
+import * as cheerio from 'cheerio';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+import dns from 'dns';
 
 export interface SearchResult {
 	title: string;
@@ -18,7 +20,7 @@ export const webSearchToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'web_search',
-		description: 'Search the web using SearXNG metasearch engine with DuckDuckGo fallback. Returns results with title, description, and URL. SearXNG aggregates results from multiple search engines (Google, Bing, DuckDuckGo, etc.) without tracking users.',
+		description: 'Search the web using Google and DuckDuckGo. Returns results with title, description, and URL. Uses proxies and DNS alternatives to avoid blocking.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -39,120 +41,51 @@ export const webSearchToolDefinition = {
 	},
 };
 
-// Lista atualizada de inst?ncias p?blicas do SearXNG (prioridade: mais confi?veis primeiro)
-const SEARXNG_INSTANCES = [
-	'https://searx.be',
-	'https://searx.prvcy.eu',
-	'https://search.sapti.me',
-	'https://searx.tiekoetter.com',
-	'https://searx.sp-codes.de',
-	'https://searx.xyz',
-	'https://searx.org',
-	'https://searx.privacytools.io',
-	'https://searx.tuxcloud.net',
-	'https://searx.neocities.org',
-	'https://searx.info',
-	'https://searx.dresden.network',
+// Free proxy list (will rotate)
+const FREE_PROXIES = [
+	'http://103.149.162.194:80',
+	'http://45.79.159.226:8080',
+	'http://138.68.60.8:8080',
+	'http://51.159.24.172:3169',
+	'http://47.74.152.29:8888',
+	'http://165.227.71.60:8080',
 ];
 
-// Inst?ncia personalizada pode ser configurada via vari?vel de ambiente
-const CUSTOM_SEARXNG_INSTANCE = process.env.SEARXNG_INSTANCE;
+// DNS servers alternativos
+const DNS_SERVERS = [
+	'8.8.8.8',      // Google DNS
+	'8.8.4.4',      // Google DNS
+	'1.1.1.1',      // Cloudflare DNS
+	'1.0.0.1',      // Cloudflare DNS
+	'9.9.9.9',      // Quad9
+	'208.67.222.222', // OpenDNS
+];
 
-// Lista de proxies para distribuir requisi??es e evitar rate limiting
-const PROXY_LIST: string[] = process.env.SEARXNG_PROXIES 
-	? process.env.SEARXNG_PROXIES.split(',').map(p => p.trim()).filter(Boolean)
-	: [];
-
-let currentInstanceIndex = 0;
 let currentProxyIndex = 0;
-let instanceFailures = new Map<string, number>();
 let proxyFailures = new Map<string, number>();
-let instanceSuccesses = new Map<string, number>();
-const MAX_INSTANCE_FAILURES = 3;
 const MAX_PROXY_FAILURES = 3;
 
-/**
- * Get list of available instances (custom first, then public, prioritizing successful ones)
- */
-function getAvailableInstances(): string[] {
-	const instances = [];
-	if (CUSTOM_SEARXNG_INSTANCE) {
-		instances.push(CUSTOM_SEARXNG_INSTANCE);
-	}
-	
-	// Sort instances by success rate (most successful first)
-	const sortedInstances = [...SEARXNG_INSTANCES].sort((a, b) => {
-		const aSuccesses = instanceSuccesses.get(a) || 0;
-		const bSuccesses = instanceSuccesses.get(b) || 0;
-		return bSuccesses - aSuccesses;
-	});
-	
-	instances.push(...sortedInstances);
-	return instances;
+// Configure DNS
+try {
+	dns.setServers(DNS_SERVERS);
+} catch (e) {
+	// Ignore
 }
 
 /**
- * Get next instance (rotate, skip failed ones)
- */
-function getNextInstance(): string | null {
-	const instances = getAvailableInstances();
-	if (instances.length === 0) return null;
-	
-	// Remove instances with too many failures
-	const availableInstances = instances.filter(instance => {
-		const failures = instanceFailures.get(instance) || 0;
-		return failures < MAX_INSTANCE_FAILURES;
-	});
-	
-	if (availableInstances.length === 0) {
-		// Reset failures if all instances failed
-		instanceFailures.clear();
-		return instances[0];
-	}
-	
-	currentInstanceIndex = (currentInstanceIndex + 1) % availableInstances.length;
-	return availableInstances[currentInstanceIndex];
-}
-
-/**
- * Mark instance as failed
- */
-function markInstanceFailed(instance: string): void {
-	const failures = instanceFailures.get(instance) || 0;
-	instanceFailures.set(instance, failures + 1);
-}
-
-/**
- * Mark instance as successful
- */
-function markInstanceSuccessful(instance: string): void {
-	const successes = instanceSuccesses.get(instance) || 0;
-	instanceSuccesses.set(instance, successes + 1);
-}
-
-/**
- * Reset instance failures (periodic cleanup)
- */
-function resetInstanceFailures(): void {
-	if (instanceFailures.size > 20) {
-		instanceFailures.clear();
-	}
-}
-
-/**
- * Get next proxy (rotate, skip failed ones)
+ * Get next proxy
  */
 function getNextProxy(): string | null {
-	if (PROXY_LIST.length === 0) return null;
+	if (FREE_PROXIES.length === 0) return null;
 	
-	const availableProxies = PROXY_LIST.filter(proxy => {
+	const availableProxies = FREE_PROXIES.filter(proxy => {
 		const failures = proxyFailures.get(proxy) || 0;
 		return failures < MAX_PROXY_FAILURES;
 	});
 	
 	if (availableProxies.length === 0) {
 		proxyFailures.clear();
-		return PROXY_LIST[0] || null;
+		return FREE_PROXIES[0] || null;
 	}
 	
 	currentProxyIndex = (currentProxyIndex + 1) % availableProxies.length;
@@ -168,19 +101,49 @@ function markProxyFailed(proxy: string): void {
 }
 
 /**
- * Create fetch with proxy support and better headers
+ * Random delay
  */
-async function createFetchWithProxy(url: string, useProxy: boolean = true): Promise<Response> {
+function randomDelay(min: number = 500, max: number = 2000): Promise<void> {
+	const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+	return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+/**
+ * Get random User-Agent
+ */
+function getRandomUserAgent(): string {
+	const userAgents = [
+		'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+		'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+		'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+		'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+		'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+	];
+	return userAgents[Math.floor(Math.random() * userAgents.length)];
+}
+
+/**
+ * Create fetch with proxy
+ */
+async function fetchWithProxy(url: string, useProxy: boolean = false): Promise<Response> {
 	const headers = {
-		'Accept': 'application/json, text/html, */*',
+		'User-Agent': getRandomUserAgent(),
+		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
 		'Accept-Language': 'en-US,en;q=0.9',
-		'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+		'Accept-Encoding': 'gzip, deflate, br',
+		'Connection': 'keep-alive',
+		'Upgrade-Insecure-Requests': '1',
+		'Sec-Fetch-Dest': 'document',
+		'Sec-Fetch-Mode': 'navigate',
+		'Sec-Fetch-Site': 'none',
+		'Sec-Fetch-User': '?1',
+		'Cache-Control': 'max-age=0',
+		'DNT': '1',
 		'Referer': 'https://www.google.com/',
 		'Origin': 'https://www.google.com',
-		'Cache-Control': 'no-cache',
 	};
 	
-	if (useProxy && PROXY_LIST.length > 0) {
+	if (useProxy) {
 		const proxyUrl = getNextProxy();
 		if (proxyUrl) {
 			try {
@@ -193,23 +156,19 @@ async function createFetchWithProxy(url: string, useProxy: boolean = true): Prom
 					agent = new HttpProxyAgent(proxyUrl);
 				}
 
-				// @ts-ignore - Node.js fetch with agent
-				const response = await fetch(url, {
+				// @ts-ignore
+				return await fetch(url, {
 					method: 'GET',
 					headers,
 					// @ts-ignore
 					agent,
 				});
-				
-				return response;
 			} catch (error) {
 				markProxyFailed(proxyUrl);
-				console.warn(`Proxy ${proxyUrl} failed, using direct connection`);
 			}
 		}
 	}
 	
-	// Direct connection
 	return fetch(url, {
 		method: 'GET',
 		headers,
@@ -217,218 +176,69 @@ async function createFetchWithProxy(url: string, useProxy: boolean = true): Prom
 }
 
 /**
- * Random delay between requests (anti-rate-limiting)
+ * Parse Google search results
  */
-function randomDelay(min: number = 300, max: number = 1000): Promise<void> {
-	const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-	return new Promise(resolve => setTimeout(resolve, delay));
-}
-
-/**
- * Parse SearXNG JSON response - improved
- */
-function parseSearXNGResults(response: any, maxResults: number = 10): SearchResult[] {
+function parseGoogleResults(html: string, maxResults: number = 10): SearchResult[] {
 	const results: SearchResult[] = [];
+	const $ = cheerio.load(html);
 	
-	if (!response || typeof response !== 'object') {
-		return [];
-	}
-	
-	// Handle different response formats
-	let resultsArray: any[] = [];
-	
-	if (Array.isArray(response.results)) {
-		resultsArray = response.results;
-	} else if (response.results && typeof response.results === 'object') {
-		// Sometimes results is an object with nested arrays
-		if (Array.isArray(response.results.general)) {
-			resultsArray = response.results.general;
-		} else if (Array.isArray(response.results.web)) {
-			resultsArray = response.results.web;
-		}
-	}
-	
-	for (const result of resultsArray) {
-		if (results.length >= maxResults) break;
+	// Google uses various selectors for results
+	$('div.g, div[data-ved]').each((_, element) => {
+		if (results.length >= maxResults) return false;
 		
-		// SearXNG returns results with: title, url, content (description)
-		const title = result.title || result.Title || '';
-		const url = result.url || result.Url || result.url || '';
-		const description = result.content || result.Content || result.snippet || result.Snippet || '';
+		const $el = $(element);
 		
-		if (title && url && (url.startsWith('http') || url.startsWith('/'))) {
-			// Handle relative URLs
-			let finalUrl = url;
-			if (url.startsWith('/')) {
-				finalUrl = `https://${new URL(url).hostname}${url}`;
-			}
-			
-			// Avoid duplicates
-			const isDuplicate = results.some(r => r.url === finalUrl || r.title === title);
-			if (!isDuplicate) {
-				results.push({
-					title: title.substring(0, 200),
-					description: description.substring(0, 500),
-					url: finalUrl.substring(0, 500),
-				});
-			}
-		}
-	}
-	
-	return results.slice(0, maxResults);
-}
-
-/**
- * Search using DuckDuckGo API (fallback)
- */
-async function searchWithDuckDuckGo(query: string, maxResults: number = 10): Promise<SearchResult[]> {
-	try {
-		const encodedQuery = encodeURIComponent(query);
-		const apiUrl = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1`;
+		// Find title (h3)
+		const $title = $el.find('h3');
+		if ($title.length === 0) return;
 		
-		const apiResponse = await withTimeout(
-			fetch(apiUrl, {
-				method: 'GET',
-				headers: {
-					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-					'Accept': 'application/json',
-				},
-			}),
-			TIMEOUT_CONFIG.HTTP_REQUEST,
-			`DuckDuckGo API search: ${query}`
-		);
+		const title = $title.text().trim();
+		if (!title || title.length < 3) return;
 		
-		if (apiResponse.ok) {
-			const data = await apiResponse.json();
-			const results: SearchResult[] = [];
-			
-			if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
-				for (const topic of data.RelatedTopics) {
-					if (results.length >= maxResults) break;
-					
-					if (topic.FirstURL && topic.Text) {
-						const title = topic.Text.split(' - ')[0] || topic.Text.substring(0, 100);
-						const description = topic.Text.split(' - ').slice(1).join(' - ') || topic.Text;
-						
-						results.push({
-							title: title.substring(0, 200),
-							description: description.substring(0, 500),
-							url: topic.FirstURL.substring(0, 500),
-						});
-					}
-				}
-			}
-			
-			if (data.Results && Array.isArray(data.Results)) {
-				for (const result of data.Results) {
-					if (results.length >= maxResults) break;
-					
-					if (result.FirstURL && result.Text) {
-						results.push({
-							title: result.Text.substring(0, 200),
-							description: '',
-							url: result.FirstURL.substring(0, 500),
-						});
-					}
-				}
-			}
-			
-			if (results.length > 0) {
-				console.log(`? Successfully extracted ${results.length} results from DuckDuckGo API`);
-				return results.slice(0, maxResults);
-			}
+		// Skip navigation elements
+		if (title.toLowerCase().includes('google') || 
+		    title.toLowerCase().includes('search') ||
+		    title.toLowerCase().includes('sign in')) {
+			return;
 		}
 		
-		// If API didn't return results, try HTML fallback
-		console.warn('DuckDuckGo API returned no results, trying HTML fallback...');
-		return await searchWithDuckDuckGoHTML(query, maxResults);
-		
-	} catch (error) {
-		try {
-			return await searchWithDuckDuckGoHTML(query, maxResults);
-		} catch (htmlError) {
-			const errorMsg = error instanceof Error ? error.message : String(error);
-			console.warn(`DuckDuckGo fallback failed: ${errorMsg}`);
-			throw error;
-		}
-	}
-}
-
-/**
- * Search using DuckDuckGo HTML (fallback)
- */
-async function searchWithDuckDuckGoHTML(query: string, maxResults: number = 10): Promise<SearchResult[]> {
-	const encodedQuery = encodeURIComponent(query);
-	const url = `https://html.duckduckgo.com/html/?q=${encodedQuery}`;
-	
-	const response = await withTimeout(
-		fetch(url, {
-			method: 'GET',
-			headers: {
-				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-				'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-				'Accept-Language': 'en-US,en;q=0.9',
-			},
-		}),
-		TIMEOUT_CONFIG.HTTP_REQUEST,
-		`DuckDuckGo HTML search: ${query}`
-	);
-	
-	if (!response.ok) {
-		throw new Error(`DuckDuckGo HTML search failed: HTTP ${response.status}`);
-	}
-	
-	const html = await response.text();
-	const results = parseDuckDuckGoResults(html, maxResults);
-	
-	if (results.length > 0) {
-		console.log(`? Successfully extracted ${results.length} results from DuckDuckGo HTML`);
-		return results;
-	}
-	
-	return [];
-}
-
-/**
- * Parse DuckDuckGo HTML results
- */
-function parseDuckDuckGoResults(html: string, maxResults: number = 10): SearchResult[] {
-	const results: SearchResult[] = [];
-	
-	const resultPattern = /<div[^>]*class="[^"]*result[^"]*"[^>]*>(.*?)<\/div>/gis;
-	const matches = Array.from(html.matchAll(resultPattern));
-	
-	for (const match of matches) {
-		if (results.length >= maxResults) break;
-		
-		const resultHtml = match[1];
-		
-		const titleMatch = resultHtml.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*>(.*?)<\/a>/is);
-		if (!titleMatch) continue;
-		
-		const title = titleMatch[1].replace(/<[^>]*>/g, '').trim();
-		if (!title || title.length < 3) continue;
-		
+		// Find URL
 		let url = '';
-		const urlMatch = resultHtml.match(/href="[^"]*uddg=([^&"]+)"/i);
-		if (urlMatch) {
-			try {
-				url = decodeURIComponent(urlMatch[1]);
-			} catch (e) {
-				url = urlMatch[1];
+		const $link = $el.find('a[href]').first();
+		if ($link.length > 0) {
+			url = $link.attr('href') || '';
+			
+			// Handle Google redirect URLs
+			if (url.startsWith('/url?q=')) {
+				const match = url.match(/q=([^&]+)/);
+				if (match) {
+					try {
+						url = decodeURIComponent(match[1]);
+					} catch (e) {
+						url = match[1];
+					}
+				}
+			}
+			
+			// Handle data-ved URLs
+			if (url.startsWith('/url')) {
+				const match = html.match(/href="\/url\?q=([^&"]+)"/);
+				if (match) {
+					try {
+						url = decodeURIComponent(match[1]);
+					} catch (e) {
+						url = match[1];
+					}
+				}
 			}
 		}
 		
-		if (!url || !url.startsWith('http')) {
-			const directUrlMatch = resultHtml.match(/href="(https?:\/\/[^"]+)"/i);
-			if (directUrlMatch) {
-				url = directUrlMatch[1];
-			}
+		// Find description/snippet
+		let description = '';
+		const $snippet = $el.find('span[class*="VwiC3b"], span[class*="MUxGbd"], div[class*="VwiC3b"]');
+		if ($snippet.length > 0) {
+			description = $snippet.first().text().trim();
 		}
-		
-		const snippetMatch = resultHtml.match(/<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)<\/a>/is) ||
-			resultHtml.match(/<span[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)<\/span>/is);
-		const description = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
 		
 		if (title && url && url.startsWith('http')) {
 			const isDuplicate = results.some(r => r.url === url || r.title === title);
@@ -440,175 +250,265 @@ function parseDuckDuckGoResults(html: string, maxResults: number = 10): SearchRe
 				});
 			}
 		}
-	}
+	});
 	
 	return results.slice(0, maxResults);
 }
 
 /**
- * Search using SearXNG API - improved version
+ * Parse DuckDuckGo search results
  */
-async function searchWithSearXNG(query: string, maxResults: number = 10): Promise<SearchResult[]> {
-	await randomDelay();
-	resetInstanceFailures();
+function parseDuckDuckGoResults(html: string, maxResults: number = 10): SearchResult[] {
+	const results: SearchResult[] = [];
+	const $ = cheerio.load(html);
 	
-	const encodedQuery = encodeURIComponent(query);
-	// Try different engine combinations - start without engines (use defaults)
-	const engineCombinations = [
-		null, // Try without engines first (use instance defaults)
-		'duckduckgo',
-		'google',
-		'bing',
-		'google,duckduckgo,bing',
-	];
-	
-	let lastError: Error | null = null;
-	const instances = getAvailableInstances();
-	
-	// Try multiple instances with different engine combinations
-	for (let attempt = 0; attempt < instances.length * 3; attempt++) {
-		const instance = getNextInstance();
-		if (!instance) {
-			break;
+	// DuckDuckGo uses .result or .results_links
+	$('.result, .results_links').each((_, element) => {
+		if (results.length >= maxResults) return false;
+		
+		const $el = $(element);
+		
+		// Find title - can be in h2.result__title or a.result__a
+		let title = '';
+		const $title = $el.find('h2.result__title, .result__title');
+		if ($title.length > 0) {
+			title = $title.text().trim();
+		} else {
+			const $link = $el.find('a.result__a');
+			if ($link.length > 0) {
+				title = $link.text().trim();
+			}
 		}
 		
-		// Try different engine combinations
-		const engines = engineCombinations[attempt % engineCombinations.length];
+		if (!title || title.length < 3) return;
 		
-		try {
-			const enginesStr = engines || 'default';
-			console.log(`Attempt ${attempt + 1}: Using SearXNG instance ${instance} with engines: ${enginesStr}`);
+		// Skip ads
+		if ($el.hasClass('result--ad') || $el.find('.result--ad').length > 0) {
+			return;
+		}
+		
+		// Find URL
+		let url = '';
+		const $link = $el.find('a.result__a');
+		if ($link.length > 0) {
+			const href = $link.attr('href') || '';
 			
-			// Build search URL - try without engines parameter first
-			let searchUrl = `${instance}/search?q=${encodedQuery}&format=json&pageno=1`;
-			if (engines) {
-				searchUrl += `&engines=${engines}`;
+			// Skip ad URLs
+			if (href.includes('y.js') || href.includes('aclick') || href.includes('bing.com')) {
+				return;
 			}
 			
-			// Use proxy occasionally
-			const useProxy = PROXY_LIST.length > 0 && attempt % 3 === 0;
+			if (href.includes('uddg=')) {
+				const match = href.match(/uddg=([^&]+)/);
+				if (match) {
+					try {
+						url = decodeURIComponent(match[1]);
+					} catch (e) {
+						url = match[1];
+					}
+				}
+			} else if (href.startsWith('http')) {
+				url = href;
+			}
+		}
+		
+		// Find description - can be in .result__snippet, .result__body, or .result__body span
+		let description = '';
+		const $snippet = $el.find('.result__snippet, .result__body span, .result__body');
+		if ($snippet.length > 0) {
+			// Get text from snippet, excluding title
+			$snippet.each((_, snippetEl) => {
+				const snippetText = $(snippetEl).text().trim();
+				if (snippetText && !snippetText.includes(title) && snippetText.length > description.length) {
+					description = snippetText;
+				}
+			});
+		}
+		
+		if (title && url && url.startsWith('http')) {
+			const isDuplicate = results.some(r => r.url === url || r.title === title);
+			if (!isDuplicate) {
+				results.push({
+					title: title.substring(0, 200),
+					description: description.substring(0, 500),
+					url: url.substring(0, 500),
+				});
+			}
+		}
+	});
+	
+	return results.slice(0, maxResults);
+}
+
+/**
+ * Search Google
+ */
+async function searchGoogle(query: string, maxResults: number = 10): Promise<SearchResult[]> {
+	const encodedQuery = encodeURIComponent(query);
+	const url = `https://www.google.com/search?q=${encodedQuery}&num=${Math.min(maxResults, 20)}&hl=en`;
+	
+	// Try with proxy first, then direct
+	for (let attempt = 0; attempt < 3; attempt++) {
+		try {
+			const useProxy = attempt < 2;
+			
+			console.log(`Google attempt ${attempt + 1}: ${useProxy ? 'with proxy' : 'direct'}`);
+			
+			await randomDelay(500, 1500);
 			
 			const response = await withTimeout(
-				createFetchWithProxy(searchUrl, useProxy),
+				fetchWithProxy(url, useProxy),
 				TIMEOUT_CONFIG.HTTP_REQUEST,
-				`SearXNG search: ${query}`
+				`Google search: ${query}`
 			);
 			
 			if (!response.ok) {
-				if (response.status === 429 || response.status === 503) {
-					console.warn(`Instance ${instance} rate limited (HTTP ${response.status})`);
-					markInstanceFailed(instance);
-					await randomDelay(2000, 3000);
+				if (response.status === 403 || response.status === 429) {
+					console.warn(`Google blocked (HTTP ${response.status}), retrying...`);
+					await randomDelay(2000, 4000);
 					continue;
 				}
-				if (response.status === 403) {
-					console.warn(`Instance ${instance} forbidden (HTTP ${response.status})`);
-					markInstanceFailed(instance);
-					continue;
-				}
-				throw new Error(`SearXNG search failed: HTTP ${response.status}`);
+				throw new Error(`Google search failed: HTTP ${response.status}`);
 			}
 			
-			const contentType = response.headers.get('content-type') || '';
-			let data: any;
-			let text = '';
+			const html = await response.text();
 			
-			// Always read as text first to check for errors
-			text = await response.text();
-			
-			// Check for blocking/rate limiting indicators
-			if (text.includes('Too Many Requests') || text.includes('403 Forbidden') || 
-			    text.includes('Rate limit') || text.includes('blocked') ||
-			    text.includes('<title>403') || text.includes('Access Denied')) {
-				console.warn(`Instance ${instance} blocked or rate limited`);
-				markInstanceFailed(instance);
-				await randomDelay(2000, 3000);
+			// Check for blocking
+			if (html.includes('captcha') || html.includes('CAPTCHA') || 
+			    html.includes('Our systems have detected') || html.length < 5000) {
+				console.warn('Google returned CAPTCHA or blocked page');
+				await randomDelay(3000, 5000);
 				continue;
 			}
 			
-			// Try to parse as JSON
-			if (contentType.includes('application/json')) {
-				try {
-					data = JSON.parse(text);
-				} catch (e) {
-					// Content-type says JSON but parsing failed - might be HTML error page
-					if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
-						// Looks like JSON, try harder
-						const jsonMatch = text.match(/\{[\s\S]*\}/);
-						if (jsonMatch) {
-							try {
-								data = JSON.parse(jsonMatch[0]);
-							} catch (e2) {
-								throw new Error(`Failed to parse JSON: ${e instanceof Error ? e.message : String(e)}`);
-							}
-						} else {
-							throw new Error(`Expected JSON but got ${contentType}`);
-						}
-					} else {
-						throw new Error(`Expected JSON but got ${contentType}`);
-					}
-				}
-			} else {
-				// Content-type not JSON, but try to parse anyway
-				if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
-					try {
-						data = JSON.parse(text);
-					} catch (e) {
-						// Try to extract JSON from HTML
-						const jsonMatch = text.match(/\{[\s\S]*\}/);
-						if (jsonMatch) {
-							try {
-								data = JSON.parse(jsonMatch[0]);
-							} catch (e2) {
-								throw new Error(`Expected JSON but got ${contentType}`);
-							}
-						} else {
-							throw new Error(`Expected JSON but got ${contentType}`);
-						}
-					}
-				} else {
-					throw new Error(`Expected JSON but got ${contentType}`);
-				}
-			}
-			
-			const results = parseSearXNGResults(data, maxResults);
+			const results = parseGoogleResults(html, maxResults);
 			
 			if (results.length > 0) {
-				console.log(`? Successfully extracted ${results.length} results from ${instance}`);
-				markInstanceSuccessful(instance);
+				console.log(`? Google: extracted ${results.length} results`);
 				return results;
 			}
 			
-			// If no results, try next instance
-			if (attempt < instances.length * 2 - 1) {
-				console.warn(`No results from ${instance}, trying next instance...`);
-				await randomDelay(800, 1500);
-				continue;
-			}
-			
-			return [];
+			console.warn('Google: no results found, retrying...');
+			await randomDelay(1000, 2000);
 			
 		} catch (error) {
-			lastError = error instanceof Error ? error : new Error(String(error));
-			const errorMsg = lastError.message;
-			
-			if (!errorMsg.includes('fetch failed') && !errorMsg.includes('timeout')) {
-				console.warn(`Attempt ${attempt + 1} failed (${instance}): ${errorMsg}`);
-			}
-			
-			markInstanceFailed(instance);
-			
-			if (attempt < instances.length * 2 - 1) {
+			console.warn(`Google attempt ${attempt + 1} failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (attempt < 2) {
 				await randomDelay(1000, 2000);
 			}
 		}
 	}
 	
-	throw new Error(`SearXNG search error: ${lastError?.message || 'All instances failed'}`);
+	throw new Error('Google search failed after all attempts');
 }
 
 /**
- * Execute web search tool using SearXNG with DuckDuckGo fallback
+ * Create fetch for DuckDuckGo with specific headers
+ */
+async function fetchDuckDuckGo(url: string, useProxy: boolean = false): Promise<Response> {
+	const headers = {
+		'User-Agent': getRandomUserAgent(),
+		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+		'Accept-Language': 'en-US,en;q=0.9',
+		'Accept-Encoding': 'gzip, deflate, br',
+		'Connection': 'keep-alive',
+		'Upgrade-Insecure-Requests': '1',
+		'Referer': 'https://duckduckgo.com/',
+	};
+	
+	if (useProxy) {
+		const proxyUrl = getNextProxy();
+		if (proxyUrl) {
+			try {
+				let agent: any;
+				if (proxyUrl.startsWith('socks5://') || proxyUrl.startsWith('socks4://')) {
+					agent = new SocksProxyAgent(proxyUrl);
+				} else if (proxyUrl.startsWith('https://')) {
+					agent = new HttpsProxyAgent(proxyUrl);
+				} else {
+					agent = new HttpProxyAgent(proxyUrl);
+				}
+
+				// @ts-ignore
+				return await fetch(url, {
+					method: 'GET',
+					headers,
+					// @ts-ignore
+					agent,
+				});
+			} catch (error) {
+				markProxyFailed(proxyUrl);
+			}
+		}
+	}
+	
+	return fetch(url, {
+		method: 'GET',
+		headers,
+	});
+}
+
+/**
+ * Search DuckDuckGo
+ */
+async function searchDuckDuckGo(query: string, maxResults: number = 10): Promise<SearchResult[]> {
+	const encodedQuery = encodeURIComponent(query);
+	const url = `https://html.duckduckgo.com/html/?q=${encodedQuery}`;
+	
+	for (let attempt = 0; attempt < 3; attempt++) {
+		try {
+			const useProxy = attempt < 2;
+			
+			console.log(`DuckDuckGo attempt ${attempt + 1}: ${useProxy ? 'with proxy' : 'direct'}`);
+			
+			await randomDelay(1000, 2000);
+			
+			const response = await withTimeout(
+				fetchDuckDuckGo(url, useProxy),
+				TIMEOUT_CONFIG.HTTP_REQUEST,
+				`DuckDuckGo search: ${query}`
+			);
+			
+			if (!response.ok) {
+				if (response.status === 403) {
+					console.warn(`DuckDuckGo blocked (HTTP ${response.status}), retrying direct...`);
+					await randomDelay(3000, 5000);
+					continue;
+				}
+				throw new Error(`DuckDuckGo search failed: HTTP ${response.status}`);
+			}
+			
+			const html = await response.text();
+			
+			// Check for blocking
+			if (html.includes('403') || html.includes('blocked') || html.length < 5000) {
+				console.warn('DuckDuckGo returned blocked page, retrying...');
+				await randomDelay(3000, 5000);
+				continue;
+			}
+			const results = parseDuckDuckGoResults(html, maxResults);
+			
+			if (results.length > 0) {
+				console.log(`? DuckDuckGo: extracted ${results.length} results`);
+				return results;
+			}
+			
+			console.warn('DuckDuckGo: no results found, retrying...');
+			await randomDelay(1000, 2000);
+			
+		} catch (error) {
+			console.warn(`DuckDuckGo attempt ${attempt + 1} failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (attempt < 2) {
+				await randomDelay(1000, 2000);
+			}
+		}
+	}
+	
+	throw new Error('DuckDuckGo search failed after all attempts');
+}
+
+/**
+ * Execute web search tool
  */
 export async function executeWebSearchTool(
 	query: string,
@@ -620,17 +520,18 @@ export async function executeWebSearchTool(
 		let results: SearchResult[] = [];
 		let engine = 'unknown';
 		
-		// Try SearXNG first
+		// Try Google first
 		try {
-			results = await searchWithSearXNG(query, limit);
-			engine = 'searxng';
-		} catch (searxError) {
-			console.warn('SearXNG failed, trying DuckDuckGo fallback...');
+			results = await searchGoogle(query, limit);
+			engine = 'google';
+		} catch (googleError) {
+			console.warn('Google failed, trying DuckDuckGo...');
+			// Try DuckDuckGo
 			try {
-				results = await searchWithDuckDuckGo(query, limit);
+				results = await searchDuckDuckGo(query, limit);
 				engine = 'duckduckgo';
 			} catch (ddgError) {
-				throw new Error(`Both SearXNG and DuckDuckGo failed. SearXNG: ${searxError instanceof Error ? searxError.message : String(searxError)}. DuckDuckGo: ${ddgError instanceof Error ? ddgError.message : String(ddgError)}`);
+				throw new Error(`Both Google and DuckDuckGo failed. Google: ${googleError instanceof Error ? googleError.message : String(googleError)}. DuckDuckGo: ${ddgError instanceof Error ? ddgError.message : String(ddgError)}`);
 			}
 		}
 		
