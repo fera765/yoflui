@@ -148,6 +148,19 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 				totalVideos: result.totalVideos,
 				totalComments: result.totalComments,
 				comments: result.comments.slice(0, 50), // Limit to first 50 for response
+				videos: result.videos.map(v => ({
+					videoTitle: v.videoTitle,
+					videoUrl: v.videoUrl,
+					videoId: v.videoId,
+					commentsCount: v.comments.length,
+					hasTranscript: !!v.transcript,
+					transcript: v.transcript ? {
+						language: v.transcript.language,
+						fullText: v.transcript.fullText.substring(0, 2000), // Limit transcript preview
+						segmentsCount: v.transcript.segmentsCount,
+					} : undefined,
+					comments: v.comments.slice(0, 10), // Limit comments per video
+				})),
 			}, null, 2);
 		}
 		case 'save_memory':
