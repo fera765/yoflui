@@ -22,19 +22,8 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
 }) => {
 	const lines = useMemo(() => text.split('\n'), [text]);
 	
-	const content = (
-		<Box flexDirection="column">
-			{lines.map((line, index) => (
-				<Box key={index}>
-					<Text wrap="wrap">{line || ' '}</Text>
-				</Box>
-			))}
-			{isPending && (
-				<Text color="yellow">?</Text>
-			)}
-		</Box>
-	);
-	
+	// MaxSizedBox expects Box elements as direct children
+	// Each Box represents one line
 	if (availableTerminalHeight !== undefined) {
 		return (
 			<Box marginY={1} paddingLeft={2}>
@@ -43,15 +32,29 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
 					maxWidth={terminalWidth - 4}
 					overflowDirection="top"
 				>
-					{content}
+					{lines.map((line, index) => (
+						<Box key={index}>
+							<Text wrap="wrap" color="green">{line || ' '}</Text>
+						</Box>
+					))}
+					{isPending && (
+						<Box>
+							<Text color="yellow">?</Text>
+						</Box>
+					)}
 				</MaxSizedBox>
 			</Box>
 		);
 	}
 	
+	// Fallback without MaxSizedBox
 	return (
-		<Box marginY={1} paddingLeft={2}>
-			<Text color="green">{text}</Text>
+		<Box marginY={1} paddingLeft={2} flexDirection="column">
+			{lines.map((line, index) => (
+				<Box key={index}>
+					<Text color="green">{line || ' '}</Text>
+				</Box>
+			))}
 			{isPending && <Text color="yellow">?</Text>}
 		</Box>
 	);
