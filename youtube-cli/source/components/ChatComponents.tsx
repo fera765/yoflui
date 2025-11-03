@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
-import TextInput from 'ink-text-input';
 import { ToolBox } from './ToolBox.js';
 
 export interface ChatMessage {
@@ -96,27 +95,4 @@ export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = React.memo(({
 	);
 });
 
-export const ChatInput: React.FC<{
-	value: string;
-	onChange: (val: string) => void;
-	onSubmit: () => void;
-	disabled: boolean;
-}> = React.memo(({ value, onChange, onSubmit, disabled }) => {
-	return (
-		<Box width="98%" borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginX={1} marginBottom={1}>
-			{disabled ? (
-				<Box>
-					<Text color="yellow">[...]</Text>
-					<Text color="gray"> Processing...</Text>
-				</Box>
-			) : (
-				<Box width="100%">
-					<Text color="magenta" bold>&gt; </Text>
-					<Box flexGrow={1}>
-						<TextInput value={value} onChange={onChange} onSubmit={onSubmit} />
-					</Box>
-				</Box>
-			)}
-		</Box>
-	);
-});
+// ChatInput moved to input/components/ChatInput.tsx
