@@ -22,13 +22,15 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
 }) => {
 	const lines = useMemo(() => text.split('\n'), [text]);
 	
-	// MaxSizedBox expects Box elements as direct children
-	// Each Box represents one line
-	if (availableTerminalHeight !== undefined) {
+	// NEVER truncate assistant messages - always show full content
+	// MaxSizedBox should only be used for extremely long messages (>1000 lines)
+	const shouldTruncate = availableTerminalHeight !== undefined && lines.length > 1000;
+	
+	if (shouldTruncate) {
 		return (
 			<Box marginY={1} paddingLeft={2}>
 				<MaxSizedBox 
-					maxHeight={availableTerminalHeight} 
+					maxHeight={1000} 
 					maxWidth={terminalWidth - 4}
 					overflowDirection="top"
 				>
@@ -47,7 +49,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
 		);
 	}
 	
-	// Fallback without MaxSizedBox
+	// Default: show all content without truncation
 	return (
 		<Box marginY={1} paddingLeft={2} flexDirection="column">
 			{lines.map((line, index) => (

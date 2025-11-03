@@ -100,6 +100,17 @@ export default function App() {
 		else if (cmd === '/config') setScreen('config');
 		else if (cmd === '/tools') setScreen('tools');
 		else if (cmd === '/mcp') setScreen('mcp');
+		else if (cmd === '/clear-memory') {
+			// Clear all messages and context
+			setMsgs([]);
+			llmCoordinator = null;
+			msgIdCounter = 0;
+			addMessage({
+				id: generateId('info'),
+				role: 'assistant',
+				content: '??? Memory cleared! Starting fresh conversation.'
+			});
+		}
 		else if (cmd === '/exit') process.exit(0);
 	}, []);
 	
