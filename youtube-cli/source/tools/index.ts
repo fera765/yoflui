@@ -7,7 +7,7 @@ export * from './find-files.js';
 export * from './search-text.js';
 export * from './read-folder.js';
 export * from './kanban.js';
-export * from './web-search.js';
+export * from './intelligent-web-research.js';
 export * from './web-scraper.js';
 export * from './keyword-suggestions.js';
 export * from './memory.js';
@@ -21,7 +21,7 @@ import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
 import { loadKanban } from './kanban.js';
 export { loadKanban };
 
-import { editToolDefinition, executeEditTool } from './edit.js';
+import { intelligentWebResearchToolDefinition, executeIntelligentWebResearchTool } from './intelligent-web-research.js';
 import { readFileToolDefinition, executeReadFileTool } from './read-file.js';
 import { writeFileToolDefinition, executeWriteFileTool } from './write-file.js';
 import { 
@@ -58,6 +58,7 @@ export function getAllToolDefinitions() {
 		kanbanToolDefinition,
 		webSearchToolDefinition,
 		webScraperToolDefinition,
+		intelligentWebResearchToolDefinition,
 		keywordSuggestionsToolDefinition,
 		youtubeToolDefinition,
 		memoryToolDefinition,
@@ -117,6 +118,12 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeWebScraperTool(args.url);
 		case 'keyword_suggestions':
 			return executeKeywordSuggestionsTool(args.query, args.engines || ['all']);
+		case 'intelligent_web_research':
+			return executeIntelligentWebResearchTool(
+				args.query,
+				args.maxSites || 3,
+				args.minSites || 1
+			);
 		case 'web_search':
 			return executeWebSearchTool(args.query, args.maxResults || 10);
 		case 'search_youtube_comments': {
