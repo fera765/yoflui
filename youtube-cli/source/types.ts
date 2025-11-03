@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+// Transcript schema
+export const TranscriptSegmentSchema = z.object({
+	text: z.string(),
+	start: z.number(),
+	duration: z.number(),
+});
+
+export const TranscriptSchema = z.object({
+	language: z.string(),
+	segments: z.array(TranscriptSegmentSchema),
+	fullText: z.string(),
+}).nullable().optional();
+
 // Zod schemas for validation
 export const CommentSchema = z.object({
 	author: z.string(),
@@ -19,6 +32,7 @@ export const VideoSchema = z.object({
 export const VideoWithCommentsSchema = z.object({
 	video: VideoSchema,
 	comments: z.array(CommentSchema).min(1).max(500),
+	transcript: TranscriptSchema, // Add transcript support
 });
 
 export const ScraperResultSchema = z.object({
@@ -28,6 +42,8 @@ export const ScraperResultSchema = z.object({
 });
 
 // TypeScript types derived from Zod schemas
+export type TranscriptSegment = z.infer<typeof TranscriptSegmentSchema>;
+export type Transcript = z.infer<typeof TranscriptSchema>;
 export type Comment = z.infer<typeof CommentSchema>;
 export type Video = z.infer<typeof VideoSchema>;
 export type VideoWithComments = z.infer<typeof VideoWithCommentsSchema>;

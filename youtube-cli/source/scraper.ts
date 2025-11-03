@@ -15,6 +15,7 @@ import {
 	type ScraperResult,
 	type VideoWithComments,
 } from './types.js';
+import { fetchVideoTranscript } from './transcript-extractor.js';
 
 // Maximum concurrency for scraping
 const MAX_CONCURRENCY = 3;
@@ -236,13 +237,16 @@ export async function scrapeYouTubeData(
 				const normalizedVideo = normalizeVideo(rawVideo);
 				const rawComments = await fetchVideoComments(rawVideo.id, maxCommentsPerVideo);
 
-			// Normalize comments
-			const normalizedComments = rawComments
-				.map(normalizeComment)
-				.filter((comment: any) => comment.text && comment.text.length > 0);
+				// Normalize comments
+				const normalizedComments = rawComments
+					.map(normalizeComment)
+					.filter((comment: any) => comment.text && comment.text.length > 0);
 
-			// Only include videos that have at least 1 comment
+				// Only include videos that have at least 1 comment
 				if (normalizedComments.length > 0) {
+					// Fetch transcript (optional - will be null if not available)
+					const transcript = await fetchVideoTranscript(rawVideo.id);
+					
 					// Validate with Zod
 					const validatedVideo = VideoSchema.parse(normalizedVideo);
 					const validatedComments = normalizedComments.map((c: any) => CommentSchema.parse(c));
@@ -250,13 +254,14 @@ export async function scrapeYouTubeData(
 					const videoWithComments = VideoWithCommentsSchema.parse({
 						video: validatedVideo,
 						comments: validatedComments,
+						transcript: transcript || undefined, // Include transcript if available
 					});
 
 					videosWithComments.push(videoWithComments);
 				}
-		} catch (error) {
-			// Silently skip videos that fail to process
-		}
+			} catch (error) {
+				// Silently skip videos that fail to process
+			}
 		})
 	);
 

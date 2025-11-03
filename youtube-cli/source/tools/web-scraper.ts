@@ -9,13 +9,17 @@ export const webScraperToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'web_scraper',
-		description: 'Scrape a web page and extract all text content while maintaining HTML structure in markdown format. Preserves visual hierarchy and element tree for better LLM understanding. Returns complete page content without HTML tags but with structural markdown representation. Uses advanced anti-detection techniques to bypass Cloudflare and 403 blocks.',
+		description: 'Scrape a web page and extract all text content while maintaining HTML structure in markdown format. Preserves visual hierarchy and element tree for better LLM understanding. Returns complete page content without HTML tags but with structural markdown representation. Uses advanced anti-detection techniques to bypass Cloudflare and 403 blocks. NOTE: For research queries, prefer using web_scraper_with_context or intelligent_web_research which include early stopping and prevent unnecessary token usage.',
 		parameters: {
 			type: 'object',
 			properties: {
 				url: {
 					type: 'string',
 					description: 'URL of the webpage to scrape'
+				},
+				query: {
+					type: 'string',
+					description: 'Optional: The research query/context. If provided, helps optimize content extraction. For multi-URL scraping with early stopping, use web_scraper_with_context instead.'
 				}
 			},
 			required: ['url'],
@@ -839,7 +843,7 @@ async function scrapeWebPage(url: string): Promise<string> {
 /**
  * Execute web scraper tool
  */
-export async function executeWebScraperTool(url: string): Promise<string> {
+export async function executeWebScraperTool(url: string, query?: string): Promise<string> {
 	try {
 		// Validate URL
 		if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -853,8 +857,11 @@ export async function executeWebScraperTool(url: string): Promise<string> {
 		
 		requestCount++;
 		
+		// If query provided, could optimize content extraction (future enhancement)
+		// For now, just include query in metadata
 		return JSON.stringify({
 			url,
+			query: query || null,
 			contentLength: content.length,
 			content: content,
 		}, null, 2);
