@@ -57,7 +57,7 @@ export const NewAuthScreen: React.FC<Props> = ({
 			<Box flexDirection="column" padding={1}>
 			<Box borderStyle="double" borderColor="#8B5CF6" paddingX={2} paddingY={1} flexDirection="column">
 				<Box marginBottom={1}>
-					<Text bold color="#A78BFA">?? CUSTOM ENDPOINT</Text>
+					<Text bold color="#A78BFA">⚙️  CUSTOM ENDPOINT</Text>
 				</Box>
 
 					<Box flexDirection="column" gap={1}>
@@ -149,13 +149,13 @@ export const NewAuthScreen: React.FC<Props> = ({
 		<Box flexDirection="column" padding={1}>
 		<Box borderStyle="double" borderColor="#8B5CF6" paddingX={2} paddingY={1} flexDirection="column">
 			<Box marginBottom={1}>
-				<Text bold color="#A78BFA">?? LLM AUTHENTICATION</Text>
+				<Text bold color="#A78BFA">🔐 LLM AUTHENTICATION</Text>
 			</Box>
 
 			<SelectInput
 				items={[
-				{ label: '?? Qwen OAuth (2000 req/day FREE)', value: 'qwen' },
-				{ label: '?? Custom Endpoint', value: 'custom' },
+				{ label: '🔑 Qwen OAuth (2000 req/day FREE)', value: 'qwen' },
+				{ label: '⚙️  Custom Endpoint', value: 'custom' },
 					]}
 					onSelect={item => setScreen(item.value as Screen)}
 				/>

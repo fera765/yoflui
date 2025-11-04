@@ -29,7 +29,7 @@ export async function executeReadFolderTool(path: string): Promise<string> {
 		const details = items.map(item => {
 			const fullPath = join(path, item);
 			const stats = statSync(fullPath);
-			return `${stats.isDirectory() ? '??' : '??'} ${item}`;
+			return `${stats.isDirectory() ? '📁' : '📄'} ${item}`;
 		});
 		return details.join('\n');
 	} catch (error) {

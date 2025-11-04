@@ -801,7 +801,7 @@ async function scrapeWebPage(url: string): Promise<string> {
 				if (html.length > 100) {
 					const content = extractStructuredContent(html);
 					if (content.length > 100) {
-						return content + '\n\n?? Note: Received HTTP ' + response.status + ' but content was extracted.';
+						return content + '\n\nℹ️ Note: Received HTTP ' + response.status + ' but content was extracted.';
 					}
 				}
 				

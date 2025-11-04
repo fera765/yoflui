@@ -209,11 +209,11 @@ export function classifyError(error: unknown): { category: string; isRetryable: 
 
 export function getUserFriendlyErrorMessage(error: unknown): string {
     if (error instanceof TimeoutError) {
-        return `?? Operation timed out. The service might be slow or unavailable. Please try again.`;
+        return `⏱️ Operation timed out. The service might be slow or unavailable. Please try again.`;
     }
 
     if (error instanceof RateLimitError) {
-        return `?? Too many requests. Please wait a moment before trying again.`;
+        return `⚠️ Too many requests. Please wait a moment before trying again.`;
     }
 
     if (error instanceof ValidationError) {
@@ -221,23 +221,23 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
     }
 
     if (error instanceof MCPNotFoundError) {
-        return `?? External service not available: ${error.mcpPackage}. Please check your MCP configuration.`;
+        return `⚠️ External service not available: ${error.mcpPackage}. Please check your MCP configuration.`;
     }
 
     if (error instanceof WebhookAuthError) {
-        return `?? Authentication failed. Please check your webhook API key.`;
+        return `🔑 Authentication failed. Please check your webhook API key.`;
     }
 
     if (error instanceof CircuitBreakerOpenError) {
-        return `?? Service temporarily unavailable due to repeated failures. Please try again in a few minutes.`;
+        return `⚠️ Service temporarily unavailable due to repeated failures. Please try again in a few minutes.`;
     }
 
     if (error instanceof PayloadTooLargeError) {
-        return `?? Request too large. Please reduce the data size and try again.`;
+        return `📦 Request too large. Please reduce the data size and try again.`;
     }
 
     if (error instanceof NetworkError) {
-        return `?? Network error. Please check your internet connection and try again.`;
+        return `🌐 Network error. Please check your internet connection and try again.`;
     }
 
     // Generic fallback

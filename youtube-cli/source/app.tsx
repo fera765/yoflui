@@ -178,7 +178,7 @@ export default function App() {
 		addMessage({
 			id: generateId('assistant'),
 			role: 'assistant',
-			content: `?? Executing automation: ${automation.metadata.name}...\n${automation.metadata.description}`
+			content: `🤖 Executing automation: ${automation.metadata.name}...\n${automation.metadata.description}`
 		});
 		
 		// Create new LLM coordinator with context
@@ -209,7 +209,7 @@ export default function App() {
 		addMessage({
 			id: generateId('assistant'),
 			role: 'assistant',
-			content: `? Automation completed in ${Math.round(summary.duration / 1000)}s`
+			content: `✅ Automation completed in ${Math.round(summary.duration / 1000)}s`
 		});
 		
 		setBusy(false);
@@ -244,7 +244,7 @@ export default function App() {
 				addMessage({
 					id: generateId('assistant'),
 					role: 'assistant',
-					content: `?? Setting up webhook for: ${automation.metadata.name}`
+					content: `🔔 Setting up webhook for: ${automation.metadata.name}`
 				});
 				
 				const webhookInfo = await webhookTriggerHandler.setupWebhook(
@@ -356,7 +356,7 @@ export default function App() {
 					addMessage({
 						id: generateId('assistant'),
 						role: 'assistant',
-						content: `?? Setting up webhook for: ${automation.metadata.name}`
+						content: `🔔 Setting up webhook for: ${automation.metadata.name}`
 					});
 					
 					const webhookInfo = await webhookTriggerHandler.setupWebhook(

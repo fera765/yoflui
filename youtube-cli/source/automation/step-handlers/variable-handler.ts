@@ -22,7 +22,7 @@ export class VariableStepHandler extends BaseStepHandler {
 
             this.stateManager.setVariable(step.variableName, resolvedValue);
 
-            console.log(`? Variable set: ${step.variableName} = ${JSON.stringify(resolvedValue)}`);
+            console.log(`📊 Variable set: ${step.variableName} = ${JSON.stringify(resolvedValue)}`);
 
             return this.success(step.id, resolvedValue, Date.now() - startTime);
         } catch (error) {

@@ -154,7 +154,7 @@ export class AutomationExecutor {
             }
 
             if (attempt < maxRetries) {
-                console.log(`?? Step ${step.id} failed, retrying... (${attempt + 1}/${maxRetries})`);
+                console.log(`🔄 Step ${step.id} failed, retrying... (${attempt + 1}/${maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             }
         }

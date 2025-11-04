@@ -20,7 +20,7 @@ export class UserInputStepHandler extends BaseStepHandler {
             const variables = this.stateManager.getAllVariables();
             const resolvedPrompt = this.resolver.resolve(step.promptMessage, variables);
 
-            console.log(`? ${resolvedPrompt}`);
+            console.log(`⌨️  ${resolvedPrompt}`);
 
             if (!this.options.onUserInputRequired) {
                 throw new Error('onUserInputRequired callback is not provided');
@@ -37,7 +37,7 @@ export class UserInputStepHandler extends BaseStepHandler {
 
             this.stateManager.setVariable(step.inputVariable, userInput);
 
-            console.log(`? Input received: ${userInput}`);
+            console.log(`✅ Input received: ${userInput}`);
 
             return this.success(step.id, userInput, Date.now() - startTime);
         } catch (error) {
