@@ -176,19 +176,21 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 						onKanbanUpdate?.(kanban);
 					}
 				} catch (error) {
-					result = error instanceof Error ? error.message : String(error);
+					result = `Error: ${error instanceof Error ? error.message : String(error)}`;
 					hasError = true;
 				}
 
-				// Notify UI that tool execution completed
+				// Notify UI that tool execution completed (with error flag)
 				onToolComplete?.(toolName, args, result, hasError);
 
+				// Add result to conversation (continue flow even on error)
 				messages.push({
 					role: 'tool',
 					content: result,
 					tool_call_id: toolCall.id,
 				});
 			}
+			// Continue loop even if tool failed - LLM can handle errors
 			continue;
 		}
 

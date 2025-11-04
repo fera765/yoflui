@@ -48,17 +48,47 @@ export const ToolMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
 export const KanbanMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
 	if (!msg.kanban) return null;
 	
+	const todoTasks = msg.kanban.filter(t => t.status === 'todo');
+	const inProgressTasks = msg.kanban.filter(t => t.status === 'in_progress');
+	const doneTasks = msg.kanban.filter(t => t.status === 'done');
+	
 	return (
-		<Box marginY={1} borderStyle="round" borderColor="magenta" paddingX={2} paddingY={1}>
+		<Box marginY={1} borderStyle="round" borderColor="#8B5CF6" paddingX={2} paddingY={1}>
 			<Box flexDirection="column">
-				<Text color="magenta" bold>[TASKS]</Text>
-				{msg.kanban.map(task => (
-					<Box key={task.id} marginTop={1}>
-						<Text color={task.status === 'done' ? 'green' : task.status === 'in_progress' ? 'yellow' : 'gray'}>
-							{task.status === 'done' ? '[V]' : task.status === 'in_progress' ? '[>]' : '[ ]'} {task.title}
-						</Text>
+				<Text color="#A78BFA" bold>📋 KANBAN BOARD</Text>
+				
+				{todoTasks.length > 0 && (
+					<Box flexDirection="column" marginTop={1}>
+						<Text color="#E5E7EB" bold>TODO ({todoTasks.length})</Text>
+						{todoTasks.map(task => (
+							<Box key={task.id} marginLeft={2}>
+								<Text color="#9CA3AF">  ⚪ {task.title}</Text>
+							</Box>
+						))}
 					</Box>
-				))}
+				)}
+				
+				{inProgressTasks.length > 0 && (
+					<Box flexDirection="column" marginTop={1}>
+						<Text color="#FBBF24" bold>IN PROGRESS ({inProgressTasks.length})</Text>
+						{inProgressTasks.map(task => (
+							<Box key={task.id} marginLeft={2}>
+								<Text color="#FBBF24">  🟠 {task.title}</Text>
+							</Box>
+						))}
+					</Box>
+				)}
+				
+				{doneTasks.length > 0 && (
+					<Box flexDirection="column" marginTop={1}>
+						<Text color="#10B981" bold>DONE ({doneTasks.length})</Text>
+						{doneTasks.map(task => (
+							<Box key={task.id} marginLeft={2}>
+								<Text color="#10B981">  🟢 {task.title}</Text>
+							</Box>
+						))}
+					</Box>
+				)}
 			</Box>
 		</Box>
 	);

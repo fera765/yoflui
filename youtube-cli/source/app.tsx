@@ -101,15 +101,37 @@ export default function App() {
 		else if (cmd === '/tools') setScreen('tools');
 		else if (cmd === '/mcp') setScreen('mcp');
 		else if (cmd === '/clear-memory') {
-			// Clear all messages and context
+			// Clear all messages, context, and .flui files
 			setMsgs([]);
 			llmCoordinator = null;
 			msgIdCounter = 0;
-			addMessage({
-				id: generateId('info'),
-				role: 'assistant',
-				content: '??? Memory cleared! Starting fresh conversation.'
-			});
+			
+			// Clear .flui directory and files
+			try {
+				const { rmSync, existsSync } = require('fs');
+				const { join } = require('path');
+				const cwd = process.cwd();
+				const fluiDir = join(cwd, '.flui');
+				const fluiMemory = join(cwd, '.flui-memory.json');
+				const fluiHistory = join(cwd, '.flui-history.json');
+				
+				// Remove .flui directory
+				if (existsSync(fluiDir)) {
+					rmSync(fluiDir, { recursive: true, force: true });
+				}
+				
+				// Remove .flui-memory.json
+				if (existsSync(fluiMemory)) {
+					rmSync(fluiMemory, { force: true });
+				}
+				
+				// Remove .flui-history.json
+				if (existsSync(fluiHistory)) {
+					rmSync(fluiHistory, { force: true });
+				}
+			} catch (err) {
+				// Silent fail - just continue
+			}
 		}
 		else if (cmd === '/exit') process.exit(0);
 	}, []);

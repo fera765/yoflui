@@ -80,8 +80,9 @@ export const ToolBox: React.FC<ToolBoxProps> = React.memo(({ name, args, status,
 		}
 	}, [status]);
 	
-	const icon = status === 'running' ? SPINNER_FRAMES[frame] : status === 'error' ? '[X]' : '[OK]';
+	const icon = status === 'running' ? SPINNER_FRAMES[frame] : status === 'error' ? '✗' : '✓';
 	const iconColor = status === 'running' ? 'cyan' : status === 'error' ? 'red' : 'green';
+	const borderColor = status === 'running' ? 'cyan' : status === 'error' ? 'red' : 'green';
 	const toolName = name.toUpperCase();
 	
 	const fileName = args?.file_path || args?.path || '';
@@ -125,7 +126,7 @@ export const ToolBox: React.FC<ToolBoxProps> = React.memo(({ name, args, status,
 	}
 	
 	return (
-		<Box flexDirection="column" borderStyle="round" borderColor={iconColor} paddingX={2} paddingY={1} marginY={1}>
+		<Box flexDirection="column" borderStyle="round" borderColor={borderColor} paddingX={2} paddingY={1} marginY={1}>
 			<Box marginBottom={displayContent ? 1 : 0}>
 				<Text color={iconColor} bold>{icon} </Text>
 				<Text color="white" bold>{toolName}</Text>
