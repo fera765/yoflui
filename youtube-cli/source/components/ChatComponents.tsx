@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
-import TextInput from 'ink-text-input';
 import { ToolBox } from './ToolBox.js';
 
 export interface ChatMessage {
@@ -73,50 +72,8 @@ export const KanbanMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) =>
 	);
 });
 
-export const ChatTimeline: React.FC<{ messages: ChatMessage[] }> = React.memo(({ messages }) => {
-	if (messages.length === 0) {
-		return (
-			<Box paddingY={5} justifyContent="center">
-				<Text color="cyan" bold>[ READY ]</Text>
-			</Box>
-		);
-	}
-	
-	return (
-		<Box flexDirection="column" paddingX={2} paddingY={1}>
-			{messages.map(msg => {
-				if (msg.role === 'user') return <UserMsg key={msg.id} msg={msg} />;
-				if (msg.role === 'assistant') return <AssistantMsg key={msg.id} msg={msg} />;
-				if (msg.role === 'tool') return <ToolMsg key={msg.id} msg={msg} />;
-				if (msg.role === 'kanban') return <KanbanMsg key={msg.id} msg={msg} />;
-				
-				return null;
-			})}
-		</Box>
-	);
-});
+// ChatTimeline moved to ui/components/ChatTimeline.tsx (new implementation)
+// Using Static/Dynamic separation for better performance
+export { ChatTimeline } from '../ui/components/ChatTimeline.js';
 
-export const ChatInput: React.FC<{
-	value: string;
-	onChange: (val: string) => void;
-	onSubmit: () => void;
-	disabled: boolean;
-}> = React.memo(({ value, onChange, onSubmit, disabled }) => {
-	return (
-		<Box width="98%" borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginX={1} marginBottom={1}>
-			{disabled ? (
-				<Box>
-					<Text color="yellow">[...]</Text>
-					<Text color="gray"> Processing...</Text>
-				</Box>
-			) : (
-				<Box width="100%">
-					<Text color="magenta" bold>&gt; </Text>
-					<Box flexGrow={1}>
-						<TextInput value={value} onChange={onChange} onSubmit={onSubmit} />
-					</Box>
-				</Box>
-			)}
-		</Box>
-	);
-});
+// ChatInput moved to input/components/ChatInput.tsx

@@ -68,7 +68,7 @@ export async function executeWebScraperWithContextTool(
 
 		// Step 1: Get search results if not provided
 		if (!searchResults) {
-			console.log(`?? Performing web search for: "${query}"`);
+			// Performing search
 			const searchResultsJson = await executeWebSearchTool(query, 10);
 			searchResultsData = JSON.parse(searchResultsJson);
 		} else {
@@ -86,7 +86,7 @@ export async function executeWebScraperWithContextTool(
 		}
 
 		// Step 2: Select most relevant URLs
-		console.log(`?? Analyzing ${searchResultsData.results.length} search results to select most relevant URLs...`);
+		// Analyzing results
 		
 		const config = getConfig();
 		const qwenCreds = loadQwenCredentials();
@@ -116,7 +116,7 @@ export async function executeWebScraperWithContextTool(
 			}, null, 2);
 		}
 
-		console.log(`? Selected ${relevantUrls.length} most relevant URLs for scraping`);
+		// URLs selected
 
 		// Step 3: Scrape with early stopping
 		const result = await scrapeUrlsWithEarlyStopping(query, relevantUrls, {

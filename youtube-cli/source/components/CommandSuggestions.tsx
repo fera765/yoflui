@@ -10,6 +10,7 @@ const COMMANDS = [
 	{ cmd: '/config', desc: 'Ajustar configuracoes' },
 	{ cmd: '/tools', desc: 'Ver ferramentas disponiveis' },
 	{ cmd: '/mcp', desc: 'Gerenciar MCPs (Model Context Protocol)' },
+	{ cmd: '/clear-memory', desc: 'Limpar memoria e resetar conversa' },
 	{ cmd: '/exit', desc: 'Sair da aplicacao' }
 ];
 

@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, useInput, useStdout } from 'ink';
-import { ChatTimeline, ChatInput, type ChatMessage } from './components/ChatComponents.js';
+import { ChatTimeline, type ChatMessage } from './components/ChatComponents.js';
+import { ChatInput } from './input/index.js';
+import { KeypressProvider } from './input/index.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
 import { AutomationSelector } from './components/AutomationSelector.js';
 import { formatAutomationStart, formatWebhookSetup, formatWebhookTriggered } from './prompts/prompt-loader.js';
@@ -98,6 +100,17 @@ export default function App() {
 		else if (cmd === '/config') setScreen('config');
 		else if (cmd === '/tools') setScreen('tools');
 		else if (cmd === '/mcp') setScreen('mcp');
+		else if (cmd === '/clear-memory') {
+			// Clear all messages and context
+			setMsgs([]);
+			llmCoordinator = null;
+			msgIdCounter = 0;
+			addMessage({
+				id: generateId('info'),
+				role: 'assistant',
+				content: '??? Memory cleared! Starting fresh conversation.'
+			});
+		}
 		else if (cmd === '/exit') process.exit(0);
 	}, []);
 	
@@ -464,35 +477,43 @@ export default function App() {
 	}
 	
 	return (
-		<Box flexDirection="column">
-			<Box flexDirection="column" flexGrow={1}>
-				<ChatTimeline messages={msgs} />
-			</Box>
-			
-			{cmds && (
-				<Box paddingX={2} paddingBottom={1}>
-					<CommandSuggestions onSelect={selectCmd} />
+		<KeypressProvider>
+			<Box flexDirection="column">
+				<Box flexDirection="column" flexGrow={1}>
+					<ChatTimeline messages={msgs} />
 				</Box>
-			)}
-			
-			{showAutomations && (
-				<Box paddingX={2} paddingBottom={1}>
-					<AutomationSelector
-						automations={automationManager.listAutomations().map(a => ({
-							id: a.id,
-							name: a.name,
-							description: a.description,
-							category: a.category
-						}))}
-						onSelect={selectAutomation}
-						apiConnected={apiConnected}
+				
+				{cmds && (
+					<Box paddingX={2} paddingBottom={1}>
+						<CommandSuggestions onSelect={selectCmd} />
+					</Box>
+				)}
+				
+				{showAutomations && (
+					<Box paddingX={2} paddingBottom={1}>
+						<AutomationSelector
+							automations={automationManager.listAutomations().map(a => ({
+								id: a.id,
+								name: a.name,
+								description: a.description,
+								category: a.category
+							}))}
+							onSelect={selectAutomation}
+							apiConnected={apiConnected}
+						/>
+					</Box>
+				)}
+				
+				<Box flexShrink={0}>
+					<ChatInput 
+						value={input} 
+						onChange={changeInput} 
+						onSubmit={submitMsg} 
+						disabled={busy}
+						preventSubmit={() => showAutomations || cmds}
 					/>
 				</Box>
-			)}
-			
-			<Box flexShrink={0}>
-				<ChatInput value={input} onChange={changeInput} onSubmit={submitMsg} disabled={busy} />
 			</Box>
-		</Box>
+		</KeypressProvider>
 	);
 }

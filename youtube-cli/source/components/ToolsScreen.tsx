@@ -30,7 +30,7 @@ export const ToolsScreen: React.FC<Props> = ({ onClose }) => {
 	return (
 		<Box flexDirection="column" paddingX={2} paddingY={1}>
 			<Box marginBottom={1}>
-				<Text color={MONOKAI.blue} bold>??  AVAILABLE TOOLS ({ALL_TOOL_DEFINITIONS.length})</Text>
+				<Text color={MONOKAI.blue} bold>?? AVAILABLE TOOLS ({ALL_TOOL_DEFINITIONS.length})</Text>
 			</Box>
 
 			{ALL_TOOL_DEFINITIONS.map((tool, idx) => {

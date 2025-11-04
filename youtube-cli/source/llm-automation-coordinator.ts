@@ -134,7 +134,7 @@ export class LLMAutomationCoordinator {
                         // Emit tool execution notification (deduplicated)
                         const toolKey = `tool:${toolName}:${Date.now()}`;
                         if (this.executionContext.shouldEmitMessage(toolKey) && onProgress) {
-                            onProgress(`??  Executing: ${toolName}`);
+                            onProgress(`?? Executing: ${toolName}`);
                         }
 
                         executionLog.push(`[TOOL]: ${toolName} with args: ${JSON.stringify(args)}`);

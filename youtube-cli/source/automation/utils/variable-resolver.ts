@@ -14,7 +14,7 @@ export class VariableResolver {
             try {
                 return String(this.evaluateExpression(expression.trim(), variables));
             } catch (error) {
-                console.warn(`??  Error resolving ${match}:`, error);
+                console.warn(`?? Error resolving ${match}:`, error);
                 return match;
             }
         });
