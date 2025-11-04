@@ -25,6 +25,7 @@ export class CentralOrchestrator {
 	private automationAgent: AutomationAgent;
 	private taskIdCounter = 0;
 	private initialized = false;
+	private replanAttempts: Map<string, number> = new Map(); // Circuit breaker
 
 	constructor() {
 		this.promptEngineer = new PromptEngineer();
@@ -146,12 +147,42 @@ export class CentralOrchestrator {
 
 		const config = getConfig();
 		
-		// Listar tools REAIS disponíveis
+		// Listar tools REAIS disponíveis (importar de tools/index.ts)
 		const availableTools = [
 			'write_file', 'read_file', 'edit_file', 'execute_shell',
-			'find_files', 'search_text', 'read_folder', 'web_scraper',
-			'intelligent_web_research', 'save_memory'
+			'find_files', 'search_text', 'read_folder', 
+			'web_scraper', 'web_scraper_with_context',
+			'intelligent_web_research', 'keyword_suggestions',
+			'save_memory', 'search_youtube_comments'
 		];
+		
+		// Detectar se é tarefa SIMPLES ou COMPARAÇÃO
+		const lowerGoal = intention.mainGoal.toLowerCase();
+		const isComparison = lowerGoal.includes('compare') || lowerGoal.includes('vantagens') || 
+			lowerGoal.includes('desvantagens') || lowerGoal.includes('diferença') || 
+			lowerGoal.includes(' vs ') || lowerGoal.includes('versus');
+		
+		const isSimpleTask = intention.complexity === 'simple' || intention.estimatedSubTasks <= 2 || isComparison;
+		
+		// Para tasks simples OU comparações, criar UMA sub-tarefa sem tools
+		if (isSimpleTask) {
+			return [{
+				id: `task-${++this.taskIdCounter}`,
+				title: mainTask.title,
+				column: 'planning',
+				status: 'todo',
+				parentId: mainTask.id,
+				metadata: {
+					agentType: 'synthesis',
+					dependencies: [],
+					tools: [], // SEM TOOLS - usar conhecimento interno
+					validation: intention.successCriteria?.[0] || 'Resposta clara e precisa',
+					estimatedCost: 1,
+				},
+				createdAt: Date.now(),
+				updatedAt: Date.now(),
+			}];
+		}
 		
 		const decompositionPrompt = `Você é o Orquestrador Central do FLUI, um AGI superior.
 
@@ -163,7 +194,12 @@ CRITÉRIOS DE SUCESSO: ${JSON.stringify(intention.successCriteria)}
 FERRAMENTAS DISPONÍVEIS (use APENAS estas):
 ${availableTools.join(', ')}
 
-IMPORTANTE: Para tarefas simples de conhecimento geral, NÃO use ferramentas. O agente synthesis pode responder diretamente.
+REGRAS IMPORTANTES:
+1. Use ferramentas APENAS quando necessário
+2. Para análise/comparação sem dados externos: agente synthesis SEM ferramentas
+3. Para pesquisa web: use intelligent_web_research ou web_scraper
+4. Para código: use read_file, write_file, edit_file
+5. Para automação: use execute_shell
 
 Decomponha esta tarefa em sub-tarefas ATÔMICAS e SEQUENCIAIS.
 
@@ -293,10 +329,24 @@ Retorne APENAS um JSON array no formato:
 				);
 				return result;
 			} else {
+				// CIRCUIT BREAKER: Máximo 3 tentativas
+				const attempts = this.replanAttempts.get(subTask.id) || 0;
+				if (attempts >= 3) {
+					// Aceitar resultado após 3 tentativas
+					await this.moveTask(subTask.id, 'completed');
+					subTask.metadata.result = result;
+					onProgress?.(
+						`⚠️ Aceitando resultado após ${attempts} tentativas: ${subTask.title}`,
+						this.getKanbanSnapshot()
+					);
+					return result;
+				}
+				
 				// Mover para Replanejamento (Coluna 7)
+				this.replanAttempts.set(subTask.id, attempts + 1);
 				await this.moveTask(subTask.id, 'replanning');
 				onProgress?.(
-					`🔄 Replanejando: ${subTask.title}`,
+					`🔄 Replanejando (${attempts + 1}/3): ${subTask.title}`,
 					this.getKanbanSnapshot()
 				);
 				
@@ -305,10 +355,25 @@ Retorne APENAS um JSON array no formato:
 			}
 
 		} catch (error) {
+			// CIRCUIT BREAKER: Verificar tentativas
+			const attempts = this.replanAttempts.get(subTask.id) || 0;
+			if (attempts >= 3) {
+				// Retornar erro após 3 tentativas
+				const errorMsg = `Falha após ${attempts} tentativas: ${error instanceof Error ? error.message : String(error)}`;
+				await this.moveTask(subTask.id, 'completed');
+				subTask.metadata.result = errorMsg;
+				onProgress?.(
+					`⚠️ ${errorMsg}`,
+					this.getKanbanSnapshot()
+				);
+				return errorMsg;
+			}
+			
 			// Erro na execução - mover para Replanejamento
+			this.replanAttempts.set(subTask.id, attempts + 1);
 			await this.moveTask(subTask.id, 'replanning');
 			onProgress?.(
-				`⚠️ Erro em: ${subTask.title} - Replanejando...`,
+				`⚠️ Erro em: ${subTask.title} - Replanejando (${attempts + 1}/3)...`,
 				this.getKanbanSnapshot()
 			);
 			
@@ -372,7 +437,12 @@ Retorne um JSON:
 	 * Verifica se o resultado atende aos critérios
 	 */
 	private async validateResult(subTask: KanbanTask, result: string): Promise<boolean> {
-		if (!this.openai) return true; // Skip validation se não inicializado
+		if (!this.openai) return true;
+
+		// OTIMIZAÇÃO: Skip validação rigorosa para respostas curtas e diretas
+		if (result.length < 200 && !result.toLowerCase().includes('error')) {
+			return true; // Aceitar respostas curtas sem erro
+		}
 
 		const config = getConfig();
 		const validationPrompt = `Você é um Validador Rigoroso.

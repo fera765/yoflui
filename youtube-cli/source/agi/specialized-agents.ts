@@ -163,12 +163,12 @@ Você é especialista em:
 	 */
 	private getTemperatureForAgent(): number {
 		switch (this.type) {
-			case 'research': return 0.3;  // Preciso e factual
-			case 'code': return 0.1;      // Muito preciso
-			case 'automation': return 0.2; // Preciso e seguro
-			case 'analysis': return 0.4;  // Balanceado
-			case 'synthesis': return 0.6; // Criativo para integração
-			default: return 0.5;
+			case 'research': return 0.2;  // Muito preciso e factual
+			case 'code': return 0.05;     // Extremamente preciso
+			case 'automation': return 0.1; // Muito preciso e seguro
+			case 'analysis': return 0.3;  // Preciso mas permite insights
+			case 'synthesis': return 0.4; // Balanceado para síntese
+			default: return 0.3;
 		}
 	}
 }

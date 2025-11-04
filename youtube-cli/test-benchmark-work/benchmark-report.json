@@ -1,0 +1,82 @@
+{
+  "timestamp": "2025-11-04T17:45:35.242Z",
+  "totalTests": 10,
+  "successful": 10,
+  "failed": 0,
+  "successRate": 100,
+  "totalTime": 550.01,
+  "avgTime": 55.001,
+  "tokensEstimated": 3763,
+  "results": [
+    {
+      "category": "Conhecimento Simples",
+      "name": "Matemática básica",
+      "success": true,
+      "time": 9.96,
+      "resultLength": 209
+    },
+    {
+      "category": "Conhecimento Simples",
+      "name": "Pergunta factual",
+      "success": true,
+      "time": 9.82,
+      "resultLength": 616
+    },
+    {
+      "category": "Análise",
+      "name": "Comparação técnica",
+      "success": true,
+      "time": 224.33,
+      "resultLength": 2520
+    },
+    {
+      "category": "Análise",
+      "name": "Vantagens e desvantagens",
+      "success": true,
+      "time": 17.2,
+      "resultLength": 2370
+    },
+    {
+      "category": "Codificação",
+      "name": "Código simples",
+      "success": true,
+      "time": 13.98,
+      "resultLength": 779
+    },
+    {
+      "category": "Codificação",
+      "name": "Exemplo prático",
+      "success": true,
+      "time": 79.76,
+      "resultLength": 1834
+    },
+    {
+      "category": "Benchmark",
+      "name": "Problema matemático",
+      "success": true,
+      "time": 21.2,
+      "resultLength": 841
+    },
+    {
+      "category": "Benchmark",
+      "name": "Lógica",
+      "success": true,
+      "time": 134.91,
+      "resultLength": 3045
+    },
+    {
+      "category": "Explicação",
+      "name": "Conceito técnico",
+      "success": true,
+      "time": 17.45,
+      "resultLength": 532
+    },
+    {
+      "category": "Explicação",
+      "name": "Conceito complexo simplificado",
+      "success": true,
+      "time": 21.4,
+      "resultLength": 1760
+    }
+  ]
+}

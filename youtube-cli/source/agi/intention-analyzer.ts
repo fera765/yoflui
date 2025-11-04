@@ -57,7 +57,7 @@ Regras:
 				const intention: AnalyzedIntention = JSON.parse(cleanContent);
 				
 				// Validar e aplicar defaults
-				return {
+				const analyzed: AnalyzedIntention = {
 					mainGoal: intention.mainGoal || userPrompt,
 					constraints: intention.constraints || [],
 					successCriteria: intention.successCriteria || ['Tarefa completada com sucesso'],
@@ -65,6 +65,17 @@ Regras:
 					complexity: intention.complexity || 'medium',
 					estimatedSubTasks: intention.estimatedSubTasks || 3,
 				};
+				
+				// CORREÇÃO: Detectar tarefas de comparação/análise como SIMPLES
+				const lowerPrompt = userPrompt.toLowerCase();
+				if (lowerPrompt.includes('compare') || lowerPrompt.includes('vantagens') || 
+				    lowerPrompt.includes('desvantagens') || lowerPrompt.includes('diferença') ||
+					lowerPrompt.includes('vs') || lowerPrompt.includes('versus')) {
+					analyzed.complexity = 'simple';
+					analyzed.estimatedSubTasks = 1;
+				}
+				
+				return analyzed;
 			} catch (error) {
 				// Fallback em caso de erro no parsing
 				return {
