@@ -12,6 +12,9 @@ import { ToolsScreen } from './components/ToolsScreen.js';
 import { MCPScreen } from './components/MCPScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
+import { CentralOrchestrator } from './agi/orchestrator.js';
+import { KanbanTask as AGIKanbanTask } from './agi/types.js';
+import { OrchestrationView } from './components/OrchestrationView.js';
 import { mcpManager } from './mcp/mcp-manager.js';
 import { automationManager } from './automation/automation-manager.js';
 import { webhookAPI } from './webhook-api.js';
@@ -32,6 +35,7 @@ let mcpStarted = false;
 let automationInitialized = false;
 let webhookApiStarted = false;
 let llmCoordinator: LLMAutomationCoordinator | null = null;
+let centralOrchestrator: CentralOrchestrator | null = null;
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
@@ -41,6 +45,8 @@ export default function App() {
 	const [cmds, setCmds] = useState(false);
 	const [showAutomations, setShowAutomations] = useState(false);
 	const [apiConnected, setApiConnected] = useState(false);
+	const [agiMode, setAgiMode] = useState(true); // AGI habilitado por padrão
+	const [agiKanban, setAgiKanban] = useState<AGIKanbanTask[]>([]);
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
@@ -100,6 +106,14 @@ export default function App() {
 		else if (cmd === '/config') setScreen('config');
 		else if (cmd === '/tools') setScreen('tools');
 		else if (cmd === '/mcp') setScreen('mcp');
+		else if (cmd === '/agi') {
+			setAgiMode(!agiMode);
+			addMessage({
+				id: generateId('info'),
+				role: 'assistant',
+				content: `🧠 Modo AGI ${!agiMode ? 'ATIVADO' : 'DESATIVADO'}\n\n${!agiMode ? 'Usando orquestração multi-agente com Kanban autônomo de 8 colunas.' : 'Usando modo LLM autônomo padrão.'}`
+			});
+		}
 		else if (cmd === '/clear-memory') {
 			// Clear all messages, context, and .flui files
 			setMsgs([]);
@@ -392,59 +406,91 @@ export default function App() {
 				}
 			}
 			
-			// Normal flow (LLM)
-			const reply = await runAutonomousAgent({
-				userMessage: txt,
-				workDir,
-				onProgress: () => {},
-				onKanbanUpdate: (tasks) => {
-					setMsgs(prev => {
-						const noKanban = prev.filter(m => m.role !== 'kanban');
-						const updated: ChatMessage[] = [...noKanban, {
-							id: generateId('kanban'),
-							role: 'kanban' as const,
-							content: '',
-							kanban: tasks
-						}];
-						if (updated.length > MAX_MESSAGES_IN_MEMORY) {
-							return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
-						}
-						return updated;
-					});
-				},
-				onToolExecute: (name, args) => {
-					addMessage({
-						id: generateId('tool'),
-						role: 'tool',
-						content: '',
-						toolCall: { name, args, status: 'running' }
-					});
-				},
-				onToolComplete: (name, args, result, error) => {
-					setMsgs(prev => {
-						const copy = [...prev];
-						for (let i = copy.length - 1; i >= 0; i--) {
-							if (copy[i].role === 'tool' && 
-								copy[i].toolCall?.name === name &&
-								copy[i].toolCall?.status === 'running') {
-								copy[i] = {
-									...copy[i],
-									toolCall: { name, args, status: error ? 'error' : 'complete', result }
-								};
-								break;
-							}
-						}
-						return copy;
-					});
+			// Verificar se deve usar modo AGI
+			if (agiMode && shouldUseAGI(txt)) {
+				// MODO AGI - Orquestração Multi-Agente
+				if (!centralOrchestrator) {
+					centralOrchestrator = new CentralOrchestrator();
 				}
-			});
-			
-			addMessage({
-				id: generateId('assistant'),
-				role: 'assistant',
-				content: reply
-			});
-			
+
+				const reply = await centralOrchestrator.orchestrate(
+					txt,
+					workDir,
+					(message, kanban) => {
+						// Atualizar mensagem de progresso
+						addMessage({
+							id: generateId('assistant'),
+							role: 'assistant',
+							content: message
+						});
+
+						// Atualizar Kanban AGI
+						if (kanban) {
+							setAgiKanban(kanban);
+						}
+					}
+				);
+
+				// Resultado final
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: reply
+				});
+			} else {
+				// Modo Normal (LLM Autônomo)
+				const reply = await runAutonomousAgent({
+					userMessage: txt,
+					workDir,
+					onProgress: () => {},
+					onKanbanUpdate: (tasks) => {
+						setMsgs(prev => {
+							const noKanban = prev.filter(m => m.role !== 'kanban');
+							const updated: ChatMessage[] = [...noKanban, {
+								id: generateId('kanban'),
+								role: 'kanban' as const,
+								content: '',
+								kanban: tasks
+							}];
+							if (updated.length > MAX_MESSAGES_IN_MEMORY) {
+								return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
+							}
+							return updated;
+						});
+					},
+					onToolExecute: (name, args) => {
+						addMessage({
+							id: generateId('tool'),
+							role: 'tool',
+							content: '',
+							toolCall: { name, args, status: 'running' }
+						});
+					},
+					onToolComplete: (name, args, result, error) => {
+						setMsgs(prev => {
+							const copy = [...prev];
+							for (let i = copy.length - 1; i >= 0; i--) {
+								if (copy[i].role === 'tool' && 
+									copy[i].toolCall?.name === name &&
+									copy[i].toolCall?.status === 'running') {
+									copy[i] = {
+										...copy[i],
+										toolCall: { name, args, status: error ? 'error' : 'complete', result }
+									};
+									break;
+								}
+							}
+							return copy;
+						});
+					}
+				});
+
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: reply
+				});
+			}
 		} catch (err) {
 			addMessage({
 				id: generateId('error'),
@@ -498,11 +544,29 @@ export default function App() {
 		return <MCPScreen onClose={() => setScreen('chat')} />;
 	}
 	
+	// Função auxiliar para determinar se deve usar AGI
+	const shouldUseAGI = (userMessage: string): boolean => {
+		// Usar AGI para tarefas complexas
+		const complexityIndicators = [
+			'criar', 'implementar', 'desenvolver', 'analisar', 'comparar',
+			'pesquisar', 'gerar relatório', 'automatizar', 'integrar',
+			'multi-step', 'várias etapas', 'complexo'
+		];
+
+		const messageLower = userMessage.toLowerCase();
+		return complexityIndicators.some(indicator => messageLower.includes(indicator));
+	};
+
 	return (
 		<KeypressProvider>
 			<Box flexDirection="column">
 				<Box flexDirection="column" flexGrow={1}>
 					<ChatTimeline messages={msgs} />
+					
+					{/* Mostrar Kanban AGI se ativo */}
+					{agiMode && agiKanban.length > 0 && (
+						<OrchestrationView tasks={agiKanban} />
+					)}
 				</Box>
 				
 				{cmds && (
