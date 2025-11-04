@@ -44,7 +44,7 @@ export class AutomationManager {
                 console.log(`\n🤖 Automation System Ready - ${this.automations.length} automation(s) loaded\n`);
             }
         } catch (error) {
-            console.error('? Error initializing automation system:', error);
+            console.error('❌ Error initializing automation system:', error);
         }
     }
 
@@ -52,7 +52,7 @@ export class AutomationManager {
      * Reload all automations (hot-reload)
      */
     reload(): void {
-        console.log('?? Reloading automations...');
+        console.log('🔄 Reloading automations...');
         this.automations = this.loader.loadAll();
         this.matcher.setAutomations(this.automations);
     }

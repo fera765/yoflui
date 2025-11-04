@@ -88,7 +88,7 @@ export class AutomationLoader {
      */
     loadAll(): Automation[] {
         if (!existsSync(this.automationsDir)) {
-            console.log(`?? Creating automations directory: ${this.automationsDir}`);
+            console.log(`📁 Creating automations directory: ${this.automationsDir}`);
             return [];
         }
 
@@ -103,7 +103,7 @@ export class AutomationLoader {
                 automations.push(automation);
                 this.automationsCache.set(automation.id, automation);
             } catch (error) {
-                console.error(`? Error loading ${file}:`, error instanceof Error ? error.message : error);
+                console.error(`❌ Error loading ${file}:`, error instanceof Error ? error.message : error);
             }
         }
 
