@@ -1,0 +1,86 @@
+{
+  "id": "webhook-router",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Webhook Router",
+    "description": "Roteador de webhooks baseado em condições",
+    "author": "FLUI Team",
+    "created": "2025-11-04",
+    "tags": ["webhook", "router", "condition"],
+    "category": "flows"
+  },
+  "triggers": [
+    {
+      "type": "exact",
+      "pattern": "@webhook-router"
+    }
+  ],
+  "variables": {
+    "objetivo": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "nextFlow": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "steps": [
+    {
+      "id": "step_1",
+      "type": "log",
+      "message": "🔀 Webhook Router iniciado",
+      "level": "info"
+    },
+    {
+      "id": "step_2",
+      "type": "set_variable",
+      "variableName": "objetivo",
+      "value": "COMPRAR"
+    },
+    {
+      "id": "step_3",
+      "type": "tool",
+      "toolName": "condition",
+      "toolArgs": {
+        "value": "${variables.objetivo}",
+        "conditions": [
+          {
+            "pattern": "COMPRAR",
+            "nextFlow": "flow-compra",
+            "matchType": "exact"
+          },
+          {
+            "pattern": "VENDER",
+            "nextFlow": "flow-venda",
+            "matchType": "exact"
+          },
+          {
+            "pattern": "AJUDA",
+            "nextFlow": "flow-suporte",
+            "matchType": "exact"
+          }
+        ],
+        "defaultFlow": "flow-default",
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "step_4",
+      "type": "log",
+      "message": "➡️  Redirecionando para: ${variables.nextFlow}",
+      "level": "info"
+    },
+    {
+      "id": "step_5",
+      "type": "log",
+      "message": "✅ Roteamento concluído!",
+      "level": "success"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "abort",
+    "maxRetries": 0,
+    "logErrors": true
+  }
+}

@@ -14,6 +14,8 @@ export * from './web-scraper-context.js';
 export * from './keyword-suggestions.js';
 export * from './memory.js';
 export * from './agent.js';
+export * from './condition.js';
+export * from './trigger-webhook.js';
 
 // Import retry logic
 import { retryWithBackoff } from '../errors/retry-manager.js';
@@ -46,6 +48,8 @@ import { keywordSuggestionsToolDefinition, executeKeywordSuggestionsTool } from 
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 import { memoryToolDefinition, executeSaveMemoryTool, loadMemories } from './memory.js';
 import { delegateAgentToolDefinition, executeDelegateAgent } from './agent.js';
+import { conditionToolDefinition, executeConditionTool } from './condition.js';
+import { triggerWebhookToolDefinition, executeTriggerWebhookTool } from './trigger-webhook.js';
 import { getMCPToolDefinitions, executeMCPTool, isMCPTool } from '../mcp/mcp-tools-adapter.js';
 
 export function getAllToolDefinitions() {
@@ -68,6 +72,8 @@ export function getAllToolDefinitions() {
 		youtubeToolDefinition,
 		memoryToolDefinition,
 		delegateAgentToolDefinition,
+		conditionToolDefinition,
+		triggerWebhookToolDefinition,
 	];
 
 	const mcpTools = getMCPToolDefinitions();
@@ -173,6 +179,10 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeSaveMemoryTool(args.content, args.category, workDir);
 		case 'delegate_to_agent':
 			return executeDelegateAgent(args.task, workDir, args.kanban_task_id);
+		case 'condition':
+			return executeConditionTool(args);
+		case 'trigger_webhook':
+			return executeTriggerWebhookTool(args);
 		default:
 			return `Unknown tool: ${toolName}`;
 	}
