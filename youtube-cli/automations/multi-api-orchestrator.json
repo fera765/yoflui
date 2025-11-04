@@ -2,114 +2,60 @@
   "id": "multi-api-orchestrator",
   "version": "1.0.0",
   "metadata": {
-    "name": "Multi-API Orchestrator",
-    "description": "Orquestra múltiplas chamadas de API em sequência, valida respostas e consolida dados",
+    "name": "API Orchestrator",
+    "description": "Orquestra chamadas de múltiplas APIs",
     "author": "FLUI Team",
     "created": "2025-11-04",
-    "tags": ["api", "orchestration", "integration"],
+    "tags": ["api", "integration"],
     "category": "integrations"
   },
   "triggers": [
     {
       "type": "contains",
-      "pattern": "orquestrar apis"
-    },
-    {
-      "type": "contains",
-      "pattern": "orchestrate apis"
+      "pattern": "orquestrar"
     }
   ],
   "variables": {
     "api1Response": {"type": "string", "defaultValue": ""},
-    "api2Response": {"type": "string", "defaultValue": ""},
-    "consolidatedData": {"type": "string", "defaultValue": ""},
     "timestamp": {"type": "string", "defaultValue": ""}
   },
   "steps": [
     {
       "id": "1",
       "type": "log",
-      "message": "🌐 Iniciando orquestração de múltiplas APIs...",
+      "message": "🌐 Iniciando orquestração...",
       "level": "info"
     },
     {
       "id": "2",
-      "type": "set_variable",
-      "variableName": "timestamp",
-      "value": "${Date.now()}"
+      "type": "tool",
+      "toolName": "trigger_webhook",
+      "toolArgs": {
+        "url": "https://httpbin.org/get",
+        "method": "GET",
+        "timeout": 10000
+      },
+      "saveResultAs": "api1Response"
     },
     {
       "id": "3",
-      "type": "log",
-      "message": "📡 Chamada 1: Buscando dados de IP...",
-      "level": "info"
-    },
-    {
-      "id": "4",
-      "type": "tool",
-      "toolName": "trigger_webhook",
-      "toolArgs": {
-        "url": "https://httpbin.org/ip",
-        "method": "GET",
-        "timeout": 10000
-      }
-    },
-    {
-      "id": "5",
-      "type": "log",
-      "message": "📡 Chamada 2: Enviando dados consolidados...",
-      "level": "info"
-    },
-    {
-      "id": "6",
-      "type": "tool",
-      "toolName": "trigger_webhook",
-      "toolArgs": {
-        "url": "https://httpbin.org/post",
-        "method": "POST",
-        "payload": {
-          "source": "api-orchestrator",
-          "timestamp": "${variables.timestamp}",
-          "api1_completed": true,
-          "orchestration_id": "flui-${variables.timestamp}"
-        },
-        "headers": {
-          "Content-Type": "application/json",
-          "X-Orchestrator": "FLUI"
-        }
-      }
-    },
-    {
-      "id": "7",
-      "type": "tool",
-      "toolName": "condition",
-      "toolArgs": {
-        "value": "success",
-        "conditions": [
-          {"pattern": "success", "nextFlow": "consolidate-data", "matchType": "exact"}
-        ],
-        "defaultFlow": "error-handler"
-      }
-    },
-    {
-      "id": "8",
       "type": "tool",
       "toolName": "write_file",
       "toolArgs": {
-        "file_path": "api-orchestration-${variables.timestamp}.json",
-        "content": "{\"orchestration_id\": \"flui-${variables.timestamp}\", \"apis_called\": 2, \"status\": \"success\", \"timestamp\": ${variables.timestamp}}"
+        "file_path": "api-result.json",
+        "content": "${variables.api1Response}"
       }
     },
     {
-      "id": "9",
+      "id": "4",
       "type": "log",
-      "message": "✅ Orquestração concluída! Dados salvos em api-orchestration-${variables.timestamp}.json",
+      "message": "✅ Orquestração concluída!",
       "level": "success"
     }
   ],
   "errorHandling": {
     "onStepError": "skip",
-    "maxRetries": 2,
+    "maxRetries": 0,
     "logErrors": true
   }
 }

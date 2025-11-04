@@ -2,143 +2,65 @@
   "id": "smart-backup-system",
   "version": "1.0.0",
   "metadata": {
-    "name": "Smart Backup System",
-    "description": "Sistema de backup inteligente: analisa arquivos, cria backups, valida integridade e notifica",
+    "name": "Smart Backup",
+    "description": "Sistema inteligente de backup",
     "author": "FLUI Team",
     "created": "2025-11-04",
-    "tags": ["backup", "files", "integrity"],
+    "tags": ["backup", "files"],
     "category": "system"
   },
   "triggers": [
     {
       "type": "contains",
       "pattern": "backup"
-    },
-    {
-      "type": "contains",
-      "pattern": "fazer backup"
     }
   ],
   "variables": {
     "backupId": {"type": "string", "defaultValue": ""},
-    "filesCount": {"type": "string", "defaultValue": "0"},
-    "backupPath": {"type": "string", "defaultValue": ""},
-    "integrity": {"type": "string", "defaultValue": ""}
+    "filesList": {"type": "string", "defaultValue": ""}
   },
   "steps": [
     {
       "id": "1",
       "type": "log",
-      "message": "💾 Smart Backup System iniciado...",
+      "message": "💾 Backup iniciado...",
       "level": "info"
     },
     {
       "id": "2",
       "type": "set_variable",
       "variableName": "backupId",
-      "value": "backup-${Date.now()}"
+      "value": "backup-001"
     },
     {
       "id": "3",
-      "type": "set_variable",
-      "variableName": "backupPath",
-      "value": "backups/${variables.backupId}"
-    },
-    {
-      "id": "4",
-      "type": "log",
-      "message": "📂 ETAPA 1: Analisando arquivos para backup...",
-      "level": "info"
-    },
-    {
-      "id": "5",
       "type": "tool",
       "toolName": "find_files",
       "toolArgs": {
         "pattern": "*.json",
         "directory": "automations"
-      }
+      },
+      "saveResultAs": "filesList"
     },
     {
-      "id": "6",
-      "type": "tool",
-      "toolName": "execute_shell",
-      "toolArgs": {
-        "command": "find automations -name '*.json' | wc -l",
-        "timeout": 5000
-      }
-    },
-    {
-      "id": "7",
-      "type": "log",
-      "message": "📦 ETAPA 2: Criando backup de ${variables.filesCount} arquivos...",
-      "level": "info"
-    },
-    {
-      "id": "8",
+      "id": "4",
       "type": "tool",
       "toolName": "write_file",
       "toolArgs": {
-        "file_path": "${variables.backupPath}-manifest.json",
-        "content": "{\"backup_id\": \"${variables.backupId}\", \"files_count\": \"${variables.filesCount}\", \"created_at\": ${Date.now()}, \"type\": \"automations\", \"status\": \"completed\"}"
+        "file_path": "backup-${variables.backupId}-manifest.json",
+        "content": "{\"backup_id\":\"${variables.backupId}\",\"files\":\"${variables.filesList}\",\"status\":\"completed\"}"
       }
     },
     {
-      "id": "9",
+      "id": "5",
       "type": "log",
-      "message": "🔍 ETAPA 3: Validando integridade do backup...",
-      "level": "info"
-    },
-    {
-      "id": "10",
-      "type": "tool",
-      "toolName": "condition",
-      "toolArgs": {
-        "value": "valid",
-        "conditions": [
-          {"pattern": "valid", "nextFlow": "notify-success", "matchType": "exact"},
-          {"pattern": "invalid", "nextFlow": "notify-error", "matchType": "exact"}
-        ],
-        "defaultFlow": "retry-validation"
-      }
-    },
-    {
-      "id": "11",
-      "type": "log",
-      "message": "📡 ETAPA 4: Notificando sistema...",
-      "level": "info"
-    },
-    {
-      "id": "12",
-      "type": "tool",
-      "toolName": "trigger_webhook",
-      "toolArgs": {
-        "url": "https://httpbin.org/post",
-        "method": "POST",
-        "payload": {
-          "backup_id": "${variables.backupId}",
-          "files_count": "${variables.filesCount}",
-          "backup_path": "${variables.backupPath}",
-          "integrity": "valid",
-          "status": "completed",
-          "timestamp": "${Date.now()}"
-        },
-        "headers": {
-          "Content-Type": "application/json",
-          "X-Backup-ID": "${variables.backupId}"
-        }
-      }
-    },
-    {
-      "id": "13",
-      "type": "log",
-      "message": "✅ Backup concluído com sucesso! ID: ${variables.backupId}",
+      "message": "✅ Backup ${variables.backupId} concluído!",
       "level": "success"
     }
   ],
   "errorHandling": {
     "onStepError": "skip",
-    "maxRetries": 2,
+    "maxRetries": 0,
     "logErrors": true
   }
 }
