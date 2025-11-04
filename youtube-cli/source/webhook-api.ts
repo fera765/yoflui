@@ -345,6 +345,56 @@ class WebhookAPI {
             }
         }
     }
+
+    /**
+     * Get API information
+     */
+    getInfo(): {
+        url: string;
+        port: number;
+        running: boolean;
+        apiKey: string;
+        webhookCount: number;
+    } {
+        // Generate a default API key for testing
+        const defaultApiKey = 'flui_' + randomBytes(16).toString('hex');
+        
+        return {
+            url: `http://127.0.0.1:${this.port}`,
+            port: this.port,
+            running: this.isRunning,
+            apiKey: defaultApiKey,
+            webhookCount: this.webhooks.size
+        };
+    }
+
+    /**
+     * List all webhook endpoints
+     */
+    listEndpoints(): Array<{
+        path: string;
+        method: string;
+        triggerId: string;
+        hasAuth: boolean;
+    }> {
+        const endpoints: Array<{
+            path: string;
+            method: string;
+            triggerId: string;
+            hasAuth: boolean;
+        }> = [];
+
+        for (const [key, webhook] of this.webhooks.entries()) {
+            endpoints.push({
+                path: `/webhook/${webhook.automationId}/${webhook.uniqueId}`,
+                method: webhook.method,
+                triggerId: webhook.automationId,
+                hasAuth: !!webhook.apiKey
+            });
+        }
+
+        return endpoints;
+    }
 }
 
 // Singleton instance
