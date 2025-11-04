@@ -103,8 +103,13 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeEditTool(args.file_path, args.old_string, args.new_string);
 		case 'read_file':
 			return executeReadFileTool(args.file_path);
-		case 'write_file':
-			return executeWriteFileTool(args.file_path, args.content);
+		case 'write_file': {
+			// Resolve relative paths against workDir
+			const { join } = await import('path');
+			const { isAbsolute } = await import('path');
+			const resolvedPath = isAbsolute(args.file_path) ? args.file_path : join(workDir, args.file_path);
+			return executeWriteFileTool(resolvedPath, args.content);
+		}
 		case 'execute_shell':
 			return executeShellTool(args.command, args.timeout, args.interactive);
 		case 'shell_input':
