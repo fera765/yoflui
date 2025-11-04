@@ -17,47 +17,58 @@ import { AutomationAgent } from './automation-agent.js';
  * 4. Monitorar execução e replanejar quando necessário
  */
 export class CentralOrchestrator {
-	private openai: OpenAI;
+	private openai: OpenAI | null = null;
 	private kanban: Map<string, KanbanTask> = new Map();
 	private agents: Map<AgentType, SpecializedAgent> = new Map();
-	private intentionAnalyzer: IntentionAnalyzer;
+	private intentionAnalyzer: IntentionAnalyzer | null = null;
 	private promptEngineer: PromptEngineer;
 	private automationAgent: AutomationAgent;
 	private taskIdCounter = 0;
+	private initialized = false;
 
 	constructor() {
-		this.intentionAnalyzer = new IntentionAnalyzer();
 		this.promptEngineer = new PromptEngineer();
 		this.automationAgent = new AutomationAgent();
-		this.initializeOpenAI();
-		this.initializeAgents();
 	}
 
-	private async initializeOpenAI(): Promise<void> {
-		const config = getConfig();
-		const qwenCreds = loadQwenCredentials();
-		let endpoint = config.endpoint;
-		let apiKey = config.apiKey || 'not-needed';
+	/**
+	 * INICIALIZAÇÃO ASSÍNCRONA (deve ser chamada antes de orchestrate)
+	 */
+	private async initialize(): Promise<void> {
+		if (this.initialized) return;
 
-		if (qwenCreds?.access_token) {
-			const validToken = await getValidAccessToken();
-			if (validToken) {
-				apiKey = validToken;
-				const resourceUrl = qwenCreds.resource_url || 'portal.qwen.ai';
-				endpoint = `https://${resourceUrl}/v1`;
+		try {
+			// 1. Inicializar OpenAI primeiro
+			const config = getConfig();
+			const qwenCreds = loadQwenCredentials();
+			let endpoint = config.endpoint;
+			let apiKey = config.apiKey || 'not-needed';
+
+			if (qwenCreds?.access_token) {
+				const validToken = await getValidAccessToken();
+				if (validToken) {
+					apiKey = validToken;
+					const resourceUrl = qwenCreds.resource_url || 'portal.qwen.ai';
+					endpoint = `https://${resourceUrl}/v1`;
+				}
 			}
+
+			this.openai = new OpenAI({ baseURL: endpoint, apiKey });
+
+			// 2. Criar intention analyzer com OpenAI válido
+			this.intentionAnalyzer = new IntentionAnalyzer();
+
+			// 3. Inicializar agentes COM openai já criado
+			this.agents.set('research', new SpecializedAgent('research', this.openai));
+			this.agents.set('code', new SpecializedAgent('code', this.openai));
+			this.agents.set('automation', new SpecializedAgent('automation', this.openai));
+			this.agents.set('analysis', new SpecializedAgent('analysis', this.openai));
+			this.agents.set('synthesis', new SpecializedAgent('synthesis', this.openai));
+
+			this.initialized = true;
+		} catch (error) {
+			throw new Error(`Falha ao inicializar Orquestrador: ${error instanceof Error ? error.message : String(error)}`);
 		}
-
-		this.openai = new OpenAI({ baseURL: endpoint, apiKey });
-	}
-
-	private initializeAgents(): void {
-		// Inicializar agentes especializados
-		this.agents.set('research', new SpecializedAgent('research', this.openai));
-		this.agents.set('code', new SpecializedAgent('code', this.openai));
-		this.agents.set('automation', new SpecializedAgent('automation', this.openai));
-		this.agents.set('analysis', new SpecializedAgent('analysis', this.openai));
-		this.agents.set('synthesis', new SpecializedAgent('synthesis', this.openai));
 	}
 
 	/**
@@ -70,6 +81,12 @@ export class CentralOrchestrator {
 		onProgress?: (message: string, kanban?: KanbanTask[]) => void
 	): Promise<string> {
 		try {
+			// Garantir que está inicializado
+			await this.initialize();
+
+			if (!this.openai || !this.intentionAnalyzer) {
+				throw new Error('Orquestrador não inicializado corretamente');
+			}
 			// FASE 1: Análise de Intenção
 			onProgress?.('🧠 Analisando intenção e extraindo requisitos...');
 			const intention = await this.intentionAnalyzer.analyze(userPrompt, this.openai);
@@ -125,6 +142,17 @@ export class CentralOrchestrator {
 		mainTask: KanbanTask,
 		intention: any
 	): Promise<KanbanTask[]> {
+		if (!this.openai) throw new Error('OpenAI not initialized');
+
+		const config = getConfig();
+		
+		// Listar tools REAIS disponíveis
+		const availableTools = [
+			'write_file', 'read_file', 'edit_file', 'execute_shell',
+			'find_files', 'search_text', 'read_folder', 'web_scraper',
+			'intelligent_web_research', 'save_memory'
+		];
+		
 		const decompositionPrompt = `Você é o Orquestrador Central do FLUI, um AGI superior.
 
 TAREFA PRINCIPAL: ${mainTask.title}
@@ -132,13 +160,18 @@ OBJETIVO: ${intention.mainGoal}
 RESTRIÇÕES: ${JSON.stringify(intention.constraints)}
 CRITÉRIOS DE SUCESSO: ${JSON.stringify(intention.successCriteria)}
 
+FERRAMENTAS DISPONÍVEIS (use APENAS estas):
+${availableTools.join(', ')}
+
+IMPORTANTE: Para tarefas simples de conhecimento geral, NÃO use ferramentas. O agente synthesis pode responder diretamente.
+
 Decomponha esta tarefa em sub-tarefas ATÔMICAS e SEQUENCIAIS.
 
 Para cada sub-tarefa, defina:
 1. Título claro e específico
-2. Tipo de agente necessário (research, code, automation, analysis, synthesis)
-3. Dependências (IDs de sub-tarefas que devem ser concluídas antes)
-4. Ferramentas necessárias
+2. Tipo de agente (research, code, automation, analysis, synthesis)
+3. Dependências (IDs de sub-tarefas anteriores)
+4. Ferramentas necessárias (APENAS da lista acima, ou [] se não precisar)
 5. Critério de validação
 
 Retorne APENAS um JSON array no formato:
@@ -154,13 +187,34 @@ Retorne APENAS um JSON array no formato:
 ]`;
 
 		const response = await this.openai.chat.completions.create({
-			model: getConfig().model,
+			model: config.model || 'qwen-max',
 			messages: [{ role: 'user', content: decompositionPrompt }],
-			temperature: 0.3, // Baixa temperatura para planejamento preciso
+			temperature: 0.3,
 		});
 
 		const content = response.choices[0]?.message?.content || '[]';
-		const subTasksData = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, ''));
+		
+		let subTasksData: any[];
+		try {
+			const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+			subTasksData = JSON.parse(cleanContent);
+			
+			// FILTRAR tools inexistentes
+			subTasksData = subTasksData.map(task => ({
+				...task,
+				tools: (task.tools || []).filter((tool: string) => availableTools.includes(tool))
+			}));
+		} catch (error) {
+			// Fallback: criar sub-tarefa única se parsing falhar
+			subTasksData = [{
+				title: mainTask.title,
+				agentType: 'synthesis',
+				dependencies: [],
+				tools: [],
+				validation: intention.successCriteria?.[0] || 'Tarefa completada',
+				estimatedCost: 5,
+			}];
+		}
 
 		// Criar sub-tarefas no Kanban
 		const subTasks: KanbanTask[] = [];
@@ -216,8 +270,8 @@ Retorne APENAS um JSON array no formato:
 		);
 
 		try {
-			// Executar com o agente especializado
-			const result = await agent.execute(agentPrompt, subTask.metadata.tools);
+			// Executar com o agente especializado (passar workDir)
+			const result = await agent.execute(agentPrompt, subTask.metadata.tools, workDir);
 
 			// Mover para Revisão (Coluna 5)
 			await this.moveTask(subTask.id, 'review');
@@ -271,6 +325,9 @@ Retorne APENAS um JSON array no formato:
 		workDir: string,
 		onProgress?: (message: string, kanban?: KanbanTask[]) => void
 	): Promise<string> {
+		if (!this.openai) throw new Error('OpenAI not initialized');
+
+		const config = getConfig();
 		const replanPrompt = `A sub-tarefa "${subTask.title}" falhou ou não passou na validação.
 
 VALIDAÇÃO ESPERADA: ${subTask.metadata.validation}
@@ -290,7 +347,7 @@ Retorne um JSON:
 }`;
 
 		const response = await this.openai.chat.completions.create({
-			model: getConfig().model,
+			model: config.model || 'qwen-max',
 			messages: [{ role: 'user', content: replanPrompt }],
 			temperature: 0.5,
 		});
@@ -315,6 +372,9 @@ Retorne um JSON:
 	 * Verifica se o resultado atende aos critérios
 	 */
 	private async validateResult(subTask: KanbanTask, result: string): Promise<boolean> {
+		if (!this.openai) return true; // Skip validation se não inicializado
+
+		const config = getConfig();
 		const validationPrompt = `Você é um Validador Rigoroso.
 
 SUB-TAREFA: ${subTask.title}
@@ -331,7 +391,7 @@ Retorne APENAS um JSON:
 }`;
 
 		const response = await this.openai.chat.completions.create({
-			model: getConfig().model,
+			model: config.model || 'qwen-max',
 			messages: [{ role: 'user', content: validationPrompt }],
 			temperature: 0.1,
 		});

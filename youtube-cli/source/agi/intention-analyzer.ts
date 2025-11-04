@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { AnalyzedIntention } from './types.js';
+import { getConfig } from '../llm-config.js';
 
 /**
  * AGENTE DE ANÁLISE DE INTENÇÃO
@@ -12,7 +13,8 @@ export class IntentionAnalyzer {
 	 * Analisa o prompt do usuário e extrai a estrutura de intenção
 	 */
 	async analyze(userPrompt: string, openai: OpenAI): Promise<AnalyzedIntention> {
-		const analysisPrompt = `Você é o Agente de Análise de Intenção do FLUI AGI.
+		try {
+			const analysisPrompt = `Você é o Agente de Análise de Intenção do FLUI AGI.
 
 Sua tarefa é extrair informações estruturadas do prompt do usuário para planeamento eficiente.
 
@@ -39,37 +41,50 @@ Regras:
 - complexity: simple (1-2 etapas), medium (3-5 etapas), complex (6+ etapas)
 - estimatedSubTasks: Quantas sub-tarefas você estima que serão necessárias`;
 
+		// Usar model da config
+		const config = getConfig();
 		const response = await openai.chat.completions.create({
-			model: 'qwen-max',
+			model: config.model || 'qwen-max',
 			messages: [{ role: 'user', content: analysisPrompt }],
-			temperature: 0.2, // Baixa temperatura para análise precisa
+			temperature: 0.2,
 		});
 
-		const content = response.choices[0]?.message?.content || '{}';
-		
-		try {
-			// Limpar markdown se presente
-			const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-			const intention: AnalyzedIntention = JSON.parse(cleanContent);
+			const content = response.choices[0]?.message?.content || '{}';
 			
-			// Validar e aplicar defaults
-			return {
-				mainGoal: intention.mainGoal || userPrompt,
-				constraints: intention.constraints || [],
-				successCriteria: intention.successCriteria || ['Tarefa completada com sucesso'],
-				outputFormat: intention.outputFormat || 'texto claro e estruturado',
-				complexity: intention.complexity || 'medium',
-				estimatedSubTasks: intention.estimatedSubTasks || 3,
-			};
+			try {
+				// Limpar markdown se presente
+				const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+				const intention: AnalyzedIntention = JSON.parse(cleanContent);
+				
+				// Validar e aplicar defaults
+				return {
+					mainGoal: intention.mainGoal || userPrompt,
+					constraints: intention.constraints || [],
+					successCriteria: intention.successCriteria || ['Tarefa completada com sucesso'],
+					outputFormat: intention.outputFormat || 'texto claro e estruturado',
+					complexity: intention.complexity || 'medium',
+					estimatedSubTasks: intention.estimatedSubTasks || 3,
+				};
+			} catch (error) {
+				// Fallback em caso de erro no parsing
+				return {
+					mainGoal: userPrompt,
+					constraints: [],
+					successCriteria: ['Tarefa completada com sucesso'],
+					outputFormat: 'texto claro',
+					complexity: 'medium',
+					estimatedSubTasks: 3,
+				};
+			}
 		} catch (error) {
-			// Fallback em caso de erro no parsing
+			// Erro geral na análise - retornar fallback seguro
 			return {
 				mainGoal: userPrompt,
 				constraints: [],
 				successCriteria: ['Tarefa completada com sucesso'],
 				outputFormat: 'texto claro',
-				complexity: 'medium',
-				estimatedSubTasks: 3,
+				complexity: 'simple',
+				estimatedSubTasks: 1,
 			};
 		}
 	}

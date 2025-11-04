@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { AgentResult } from './types.js';
 import { getAllToolDefinitions, executeToolCall } from '../tools/index.js';
+import { getConfig } from '../llm-config.js';
 
 export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis';
 
@@ -70,19 +71,21 @@ Você é especialista em:
 	 */
 	async execute(
 		agentPrompt: string,
-		allowedTools: string[]
+		allowedTools: string[],
+		workDir?: string
 	): Promise<string> {
 		const startTime = Date.now();
 		const systemPrompt = this.systemPrompts.get(this.type) || '';
 
 		try {
-			// Filtrar tools permitidas
+			// Filtrar tools permitidas (excluir update_kanban que é gerenciado pelo orquestrador)
 			const allTools = getAllToolDefinitions();
 			const filteredTools = allowedTools.length > 0
-				? allTools.filter(tool => 
-					allowedTools.includes((tool as any).function.name)
-				)
-				: allTools;
+				? allTools.filter(tool => {
+					const toolName = (tool as any).function.name;
+					return allowedTools.includes(toolName) && toolName !== 'update_kanban';
+				})
+				: allTools.filter(tool => (tool as any).function.name !== 'update_kanban');
 
 			const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 				{ role: 'system', content: systemPrompt },
@@ -95,8 +98,11 @@ Você é especialista em:
 			while (iterations < maxIterations) {
 				iterations++;
 
+				// Usar model dinâmico da config
+				const config = getConfig();
+				
 				const response = await this.openai.chat.completions.create({
-					model: 'qwen-max',
+					model: config.model || 'qwen-max',
 					messages,
 					tools: filteredTools.length > 0 ? filteredTools : undefined,
 					tool_choice: filteredTools.length > 0 ? 'auto' : undefined,
@@ -121,7 +127,9 @@ Você é especialista em:
 
 						let result: string;
 						try {
-							result = await executeToolCall(toolName, args, process.cwd());
+							// Usar workDir fornecido ou fallback para cwd
+							const execDir = workDir || process.cwd();
+							result = await executeToolCall(toolName, args, execDir);
 						} catch (error) {
 							result = `Error: ${error instanceof Error ? error.message : String(error)}`;
 						}
