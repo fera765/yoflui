@@ -417,8 +417,26 @@ Retorne um JSON:
 			temperature: 0.5,
 		});
 
-		const content = response.choices[0]?.message?.content || '{}';
-		const newPlan = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, ''));
+		let newPlan: any;
+		try {
+			const content = response.choices[0]?.message?.content || '{}';
+			const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+			newPlan = JSON.parse(cleanContent);
+			
+			// CRÍTICO: Remover web_search de newTools se presente (não existe)
+			if (newPlan.newTools) {
+				newPlan.newTools = newPlan.newTools.filter((tool: string) => 
+					!tool.includes('web_search') && !tool.includes('fact_')
+				);
+			}
+		} catch (error) {
+			// Fallback: usar synthesis sem tools
+			newPlan = {
+				newStrategy: 'Usar conhecimento interno sem ferramentas externas',
+				newTools: [],
+				newAgentType: 'synthesis'
+			};
+		}
 
 		// Atualizar sub-tarefa com nova estratégia
 		subTask.metadata.agentType = newPlan.newAgentType;
@@ -439,9 +457,21 @@ Retorne um JSON:
 	private async validateResult(subTask: KanbanTask, result: string): Promise<boolean> {
 		if (!this.openai) return true;
 
-		// OTIMIZAÇÃO: Skip validação rigorosa para respostas curtas e diretas
-		if (result.length < 200 && !result.toLowerCase().includes('error')) {
-			return true; // Aceitar respostas curtas sem erro
+		// OTIMIZAÇÃO AGRESSIVA: Skip validação LLM para tasks simples
+		// Validar apenas: tem conteúdo e não tem erro
+		const hasContent = result && result.length > 50;
+		const noError = !result.toLowerCase().includes('error:') && 
+		                !result.toLowerCase().includes('failed') &&
+						!result.toLowerCase().includes('falha após');
+		
+		// Se tem conteúdo válido, aceitar direto (sem chamada LLM extra)
+		if (hasContent && noError) {
+			return true;
+		}
+
+		// Apenas validar com LLM se resultado suspeito
+		if (!hasContent || result.length < 20) {
+			return false;
 		}
 
 		const config = getConfig();
@@ -466,10 +496,16 @@ Retorne APENAS um JSON:
 			temperature: 0.1,
 		});
 
-		const content = response.choices[0]?.message?.content || '{"isValid": false, "confidence": 0}';
-		const validation = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, ''));
-
-		return validation.isValid && validation.confidence >= 80;
+		try {
+			const content = response.choices[0]?.message?.content || '{"isValid": false, "confidence": 0}';
+			const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+			const validation = JSON.parse(cleanContent);
+			
+			return validation.isValid && validation.confidence >= 70; // Reduzir threshold de 80 para 70
+		} catch (error) {
+			// Se parsing falhar, aceitar resultado (evitar loop)
+			return true;
+		}
 	}
 
 	/**

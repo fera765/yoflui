@@ -4,11 +4,11 @@
  * @param {number} b - Segundo número
  * @returns {number} - A soma dos dois números
  */
-function soma(a, b) {
+function somar(a, b) {
     return a + b;
 }
 
 // Exemplo de uso:
-// soma(5, 3) retorna 8
-// soma(2.5, 1.5) retorna 4
-// soma(-1, 5) retorna 4
+// somar(5, 3) retorna 8
+// somar(2.5, 1.5) retorna 4
+// somar(-1, 5) retorna 4
