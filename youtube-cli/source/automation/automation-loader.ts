@@ -108,7 +108,7 @@ export class AutomationLoader {
         }
 
         if (automations.length > 0) {
-            console.log(`? Loaded ${automations.length} automation(s)`);
+            console.log(`🔄 Loaded ${automations.length} automation(s)`);
         }
 
         return automations;

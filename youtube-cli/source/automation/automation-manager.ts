@@ -41,7 +41,7 @@ export class AutomationManager {
             this.isInitialized = true;
 
             if (this.automations.length > 0) {
-                console.log(`\n? Automation System Ready - ${this.automations.length} automation(s) loaded\n`);
+                console.log(`\n🤖 Automation System Ready - ${this.automations.length} automation(s) loaded\n`);
             }
         } catch (error) {
             console.error('? Error initializing automation system:', error);
@@ -74,10 +74,11 @@ export class AutomationManager {
         automation: Automation,
         options: ExecutionOptions
     ): Promise<ExecutionResult> {
-        console.log(`\n${'?'.repeat(50)}`);
-        console.log(`?? Executing: ${automation.metadata.name}`);
-        console.log(`?? ${automation.metadata.description}`);
-        console.log(`${'?'.repeat(50)}\n`);
+        const { AutomationUIFormatter } = await import('./ui-formatter.js');
+        console.log(AutomationUIFormatter.formatStart(
+            automation.metadata.name,
+            automation.metadata.description
+        ));
 
         return this.executor.execute(automation, options);
     }
