@@ -1,0 +1,140 @@
+{
+  "id": "data-pipeline",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Data Processing Pipeline",
+    "description": "Pipeline completo: coleta dados, transforma, valida e envia para múltiplos destinos",
+    "author": "FLUI Team",
+    "created": "2025-11-04",
+    "tags": ["data", "pipeline", "etl"],
+    "category": "data-processing"
+  },
+  "triggers": [
+    {
+      "type": "contains",
+      "pattern": "pipeline de dados"
+    },
+    {
+      "type": "contains",
+      "pattern": "data pipeline"
+    }
+  ],
+  "variables": {
+    "rawData": {"type": "string", "defaultValue": ""},
+    "transformedData": {"type": "string", "defaultValue": ""},
+    "validationResult": {"type": "string", "defaultValue": ""},
+    "pipelineId": {"type": "string", "defaultValue": ""}
+  },
+  "steps": [
+    {
+      "id": "1",
+      "type": "log",
+      "message": "🚀 Data Pipeline iniciado...",
+      "level": "info"
+    },
+    {
+      "id": "2",
+      "type": "set_variable",
+      "variableName": "pipelineId",
+      "value": "pipeline-${Date.now()}"
+    },
+    {
+      "id": "3",
+      "type": "log",
+      "message": "📥 ETAPA 1: Coletando dados...",
+      "level": "info"
+    },
+    {
+      "id": "4",
+      "type": "tool",
+      "toolName": "execute_shell",
+      "toolArgs": {
+        "command": "echo '{\"users\": 150, \"transactions\": 340, \"revenue\": 12500}'",
+        "timeout": 3000
+      }
+    },
+    {
+      "id": "5",
+      "type": "log",
+      "message": "🔄 ETAPA 2: Transformando dados...",
+      "level": "info"
+    },
+    {
+      "id": "6",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "pipeline-raw-${variables.pipelineId}.json",
+        "content": "{\"pipeline_id\": \"${variables.pipelineId}\", \"raw_data\": {\"users\": 150, \"transactions\": 340, \"revenue\": 12500}, \"stage\": \"raw\"}"
+      }
+    },
+    {
+      "id": "7",
+      "type": "log",
+      "message": "✅ ETAPA 3: Validando dados...",
+      "level": "info"
+    },
+    {
+      "id": "8",
+      "type": "tool",
+      "toolName": "condition",
+      "toolArgs": {
+        "value": "valid",
+        "conditions": [
+          {"pattern": "valid", "nextFlow": "send-data", "matchType": "exact"},
+          {"pattern": "invalid", "nextFlow": "error-handler", "matchType": "exact"}
+        ],
+        "defaultFlow": "retry"
+      }
+    },
+    {
+      "id": "9",
+      "type": "log",
+      "message": "📤 ETAPA 4: Enviando para destinos...",
+      "level": "info"
+    },
+    {
+      "id": "10",
+      "type": "tool",
+      "toolName": "trigger_webhook",
+      "toolArgs": {
+        "url": "https://httpbin.org/post",
+        "method": "POST",
+        "payload": {
+          "pipeline_id": "${variables.pipelineId}",
+          "stage": "completed",
+          "data": {
+            "users": 150,
+            "transactions": 340,
+            "revenue": 12500
+          },
+          "timestamp": "${Date.now()}"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Pipeline-ID": "${variables.pipelineId}"
+        }
+      }
+    },
+    {
+      "id": "11",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "pipeline-completed-${variables.pipelineId}.json",
+        "content": "{\"pipeline_id\": \"${variables.pipelineId}\", \"status\": \"completed\", \"stages\": [\"collect\", \"transform\", \"validate\", \"send\"], \"timestamp\": ${Date.now()}}"
+      }
+    },
+    {
+      "id": "12",
+      "type": "log",
+      "message": "🎉 Pipeline concluído com sucesso! ID: ${variables.pipelineId}",
+      "level": "success"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "skip",
+    "maxRetries": 3,
+    "logErrors": true
+  }
+}

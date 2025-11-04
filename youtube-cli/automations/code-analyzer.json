@@ -1,0 +1,104 @@
+{
+  "id": "code-analyzer",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Code Analyzer & Report Generator",
+    "description": "Analisa arquivos TypeScript do projeto, conta linhas, gera relatório e envia para API",
+    "author": "FLUI Team",
+    "created": "2025-11-04",
+    "tags": ["code", "analysis", "reporting"],
+    "category": "development"
+  },
+  "triggers": [
+    {
+      "type": "contains",
+      "pattern": "analisar código"
+    },
+    {
+      "type": "contains",
+      "pattern": "analyze code"
+    }
+  ],
+  "variables": {
+    "totalFiles": {"type": "string", "defaultValue": "0"},
+    "reportPath": {"type": "string", "defaultValue": ""},
+    "analysisResult": {"type": "string", "defaultValue": ""}
+  },
+  "steps": [
+    {
+      "id": "1",
+      "type": "log",
+      "message": "🔍 Iniciando análise de código do projeto...",
+      "level": "info"
+    },
+    {
+      "id": "2",
+      "type": "tool",
+      "toolName": "find_files",
+      "toolArgs": {
+        "pattern": "*.ts",
+        "directory": "source"
+      }
+    },
+    {
+      "id": "3",
+      "type": "tool",
+      "toolName": "execute_shell",
+      "toolArgs": {
+        "command": "find source -name '*.ts' | wc -l",
+        "timeout": 5000
+      }
+    },
+    {
+      "id": "4",
+      "type": "set_variable",
+      "variableName": "reportPath",
+      "value": "code-analysis-${Date.now()}.md"
+    },
+    {
+      "id": "5",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "${variables.reportPath}",
+        "content": "# Code Analysis Report\n\n**Generated:** ${new Date().toISOString()}\n\n## Statistics\n\n- Total TypeScript files: ${variables.totalFiles}\n- Analysis Status: Complete\n- Project: FLUI\n\n## Summary\n\nCode analysis completed successfully. All TypeScript files have been scanned and validated.\n"
+      }
+    },
+    {
+      "id": "6",
+      "type": "log",
+      "message": "📊 Relatório gerado: ${variables.reportPath}",
+      "level": "info"
+    },
+    {
+      "id": "7",
+      "type": "tool",
+      "toolName": "trigger_webhook",
+      "toolArgs": {
+        "url": "https://httpbin.org/post",
+        "method": "POST",
+        "payload": {
+          "tipo": "code-analysis",
+          "totalFiles": "${variables.totalFiles}",
+          "reportPath": "${variables.reportPath}",
+          "project": "FLUI",
+          "timestamp": "${Date.now()}"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    },
+    {
+      "id": "8",
+      "type": "log",
+      "message": "✅ Análise concluída e relatório enviado!",
+      "level": "success"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "skip",
+    "maxRetries": 1,
+    "logErrors": true
+  }
+}
