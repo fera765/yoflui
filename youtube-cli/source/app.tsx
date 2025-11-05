@@ -56,7 +56,7 @@ export default function App() {
 		startTime: number;
 		endTime?: number;
 		llmMessages: Array<{ timestamp: number; content: string; type: 'thinking' | 'response' }>;
-		tools: Array<{ name: string; status: string; result?: string; startTime: number; endTime?: number }>;
+		tools: Array<{ name: string; status: 'running' | 'complete' | 'error'; result?: string; startTime: number; endTime?: number }>;
 	} | null>(null);
 	
 	const { stdout } = useStdout();
@@ -178,6 +178,19 @@ export default function App() {
 	) => {
 		setBusy(true);
 		
+		const startTime = Date.now();
+		
+		// Inicializar UI de automação
+		setAutomationUI({
+			active: true,
+			name: automation.metadata.name,
+			description: automation.metadata.description,
+			status: 'running',
+			startTime,
+			llmMessages: [],
+			tools: []
+		});
+		
 		// Create execution context for deduplication
 		const execContext = new ExecutionContext(automation.id, {
 			automationName: automation.metadata.name,
@@ -185,45 +198,99 @@ export default function App() {
 			hasWebhookData: !!webhookData,
 		});
 		
-		// Single initial message
-		addMessage({
-			id: generateId('assistant'),
-			role: 'assistant',
-			content: `🤖 Executing automation: ${automation.metadata.name}...\n${automation.metadata.description}`
-		});
-		
 		// Create new LLM coordinator with context
 		llmCoordinator = new LLMAutomationCoordinator(execContext);
 		
-		const result = await llmCoordinator.executeAutomation({
-			automation,
-			workDir,
-			webhookData,
-			// Only onProgress callback - no duplicates
-			onProgress: (message) => {
-				if (message && message.trim()) {
-					// Check if should emit (deduplication)
-					const messageKey = message.substring(0, 100);
-					if (execContext.shouldEmitMessage(messageKey)) {
-						addMessage({
-							id: generateId('assistant'),
-							role: 'assistant',
-							content: message
+		try {
+			const result = await llmCoordinator.executeAutomation({
+				automation,
+				workDir,
+				webhookData,
+				// Parse JSON messages for UI
+				onProgress: (message) => {
+					if (!message || !message.trim()) return;
+					
+					try {
+						const parsed = JSON.parse(message);
+						
+						setAutomationUI(prev => {
+							if (!prev) return prev;
+							
+							if (parsed.type === 'llm_message') {
+								return {
+									...prev,
+									llmMessages: [...prev.llmMessages, {
+										timestamp: parsed.timestamp,
+										content: parsed.content,
+										type: 'response'
+									}]
+								};
+							}
+							
+							if (parsed.type === 'tool_start') {
+								return {
+									...prev,
+									tools: [...prev.tools, {
+										name: parsed.toolName,
+										status: 'running' as const,
+										startTime: parsed.timestamp
+									}]
+								};
+							}
+							
+							if (parsed.type === 'tool_complete') {
+								const toolIndex = prev.tools.findIndex(
+									t => t.name === parsed.toolName && t.status === 'running'
+								);
+								if (toolIndex >= 0) {
+									const newTools = [...prev.tools];
+									newTools[toolIndex] = {
+										...newTools[toolIndex],
+										status: (parsed.hasError ? 'error' : 'complete') as const,
+										result: parsed.result,
+										endTime: parsed.timestamp
+									};
+									return { ...prev, tools: newTools };
+								}
+							}
+							
+							return prev;
 						});
+					} catch {
+						// Fallback para mensagens de texto simples
+						const messageKey = message.substring(0, 100);
+						if (execContext.shouldEmitMessage(messageKey)) {
+							addMessage({
+								id: generateId('assistant'),
+								role: 'assistant',
+								content: message
+							});
+						}
 					}
 				}
-			}
-		});
-		
-		// Single final message (result already emitted via onProgress)
-		const summary = execContext.getSummary();
-		addMessage({
-			id: generateId('assistant'),
-			role: 'assistant',
-			content: `✅ Automation completed in ${Math.round(summary.duration / 1000)}s`
-		});
+			});
+			
+			// Sucesso
+			setAutomationUI(prev => prev ? {
+				...prev,
+				status: 'complete',
+				endTime: Date.now()
+			} : null);
+		} catch (error) {
+			// Erro
+			setAutomationUI(prev => prev ? {
+				...prev,
+				status: 'error',
+				endTime: Date.now()
+			} : null);
+		}
 		
 		setBusy(false);
+		
+		// Limpar UI após 5 segundos
+		setTimeout(() => {
+			setAutomationUI(null);
+		}, 5000);
 	}, [addMessage]);
 	
 	const selectAutomation = useCallback(async (automationItem: any) => {
