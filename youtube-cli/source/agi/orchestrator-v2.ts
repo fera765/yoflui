@@ -494,9 +494,38 @@ CRITÉRIOS DE SUCESSO: ${JSON.stringify(intention.successCriteria)}
 FERRAMENTAS DISPONÍVEIS:
 ${availableTools.join(', ')}
 
+⚠️ REGRAS CRÍTICAS DE DECOMPOSIÇÃO:
+
+1. CRIAR/ESCREVER ARQUIVO:
+   → agentType: "code"
+   → tools: ["write_file"]
+   → Exemplo: Criar arquivo.txt → {"agentType":"code", "tools":["write_file"]}
+
+2. LER ARQUIVO:
+   → agentType: "code"
+   → tools: ["read_file"]
+
+3. LISTAR ARQUIVOS/DIRETÓRIOS:
+   → agentType: "code"
+   → tools: ["find_files", "read_folder"]
+
+4. EXECUTAR COMANDO SHELL:
+   → agentType: "automation"
+   → tools: ["execute_shell"]
+
+5. PESQUISA WEB:
+   → agentType: "research"
+   → tools: ["web_scraper", "intelligent_web_research"]
+
+6. ANÁLISE/COMPARAÇÃO SEM FERRAMENTAS:
+   → agentType: "synthesis"
+   → tools: []
+
+❌ NUNCA use agentType="synthesis" com tools=[] para tarefas que MODIFICAM ou LEEM o sistema!
+
 Decomponha em sub-tarefas ATÔMICAS e SEQUENCIAIS.
 
-Retorne JSON array:
+Retorne APENAS JSON array:
 [
   {
     "title": "string",
@@ -536,17 +565,48 @@ Retorne JSON array:
 			}];
 		}
 
+		// CRIAR SUB-TAREFAS COM VALIDAÇÃO E FALLBACK CRÍTICO
 		const subTasks: KanbanTask[] = [];
 		for (let i = 0; i < subTasksData.length; i++) {
 			const data = subTasksData[i];
+			
+			// FALLBACK CRÍTICO: Detectar e corrigir ferramentas vazias
+			let finalTools = data.tools || [];
+			let finalAgentType = data.agentType || 'synthesis';
+			
+			const taskLower = (data.title || '').toLowerCase();
+			
+			// Se tarefa claramente requer ferramenta mas tools está vazio, corrigir!
+			if (finalTools.length === 0) {
+				if (taskLower.includes('criar arquivo') || taskLower.includes('escrever arquivo') || 
+				    taskLower.includes('create file') || taskLower.includes('write file') ||
+				    taskLower.includes('criar um arquivo') || taskLower.includes('crie um arquivo')) {
+					finalTools = ['write_file'];
+					finalAgentType = 'code';
+					console.log(`[FALLBACK] Corrigido: "${data.title}" → tools=["write_file"], agentType="code"`);
+				} else if (taskLower.includes('ler arquivo') || taskLower.includes('read file')) {
+					finalTools = ['read_file'];
+					finalAgentType = 'code';
+					console.log(`[FALLBACK] Corrigido: "${data.title}" → tools=["read_file"]`);
+				} else if (taskLower.includes('listar') || taskLower.includes('list')) {
+					finalTools = ['find_files', 'read_folder'];
+					finalAgentType = 'code';
+					console.log(`[FALLBACK] Corrigido: "${data.title}" → tools=["find_files"]`);
+				} else if (taskLower.includes('executar') || taskLower.includes('execute') || taskLower.includes('run')) {
+					finalTools = ['execute_shell'];
+					finalAgentType = 'automation';
+					console.log(`[FALLBACK] Corrigido: "${data.title}" → tools=["execute_shell"]`);
+				}
+			}
+			
 			const subTask = this.createTask(
 				data.title,
 				'planning',
 				mainTask.id,
 				{
-					agentType: data.agentType,
+					agentType: finalAgentType,
 					dependencies: data.dependencies,
-					tools: data.tools,
+					tools: finalTools,
 					validation: data.validation,
 					estimatedCost: data.estimatedCost,
 					stepIndex: i,
