@@ -244,9 +244,10 @@ export default function App() {
 								);
 								if (toolIndex >= 0) {
 									const newTools = [...prev.tools];
+									const newStatus: 'error' | 'complete' = parsed.hasError ? 'error' : 'complete';
 									newTools[toolIndex] = {
 										...newTools[toolIndex],
-										status: (parsed.hasError ? 'error' : 'complete') as const,
+										status: newStatus,
 										result: parsed.result,
 										endTime: parsed.timestamp
 									};
