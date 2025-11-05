@@ -62,6 +62,31 @@ export class ShortCircuitExecutor {
 			}
 		}
 
+		// 3. ANÁLISE DE PACKAGE.JSON (dependências)
+		const packageAnalysis = this.matchPackageAnalysis(userPrompt);
+		if (packageAnalysis) {
+			try {
+				const { readFile } = await import('fs/promises');
+				const pkgPath = join(workDir, 'package.json');
+				const pkgContent = await readFile(pkgPath, 'utf-8');
+				const pkg = JSON.parse(pkgContent);
+				
+				if (packageAnalysis.type === 'dependencies') {
+					const depCount = Object.keys(pkg.dependencies || {}).length;
+					const devDepCount = Object.keys(pkg.devDependencies || {}).length;
+					return {
+						handled: true,
+						result: `✅ Análise de package.json:\n\n**Dependências de Produção:** ${depCount}\n**Dependências de Desenvolvimento:** ${devDepCount}\n**Total:** ${depCount + devDepCount}`,
+						toolUsed: 'read_file + analysis (short-circuit)',
+					};
+				}
+			} catch (error) {
+				return {
+					handled: false,
+				};
+			}
+		}
+
 		// Não detectou comando short-circuit
 		return {
 			handled: false,
@@ -74,12 +99,12 @@ export class ShortCircuitExecutor {
 	private matchCreateFile(prompt: string): { filename: string; content: string } | null {
 		// Padrões para detectar criação de arquivo (MUITO FLEXÍVEIS)
 		const patterns = [
-			// "Crie um arquivo chamado X contendo o texto: Y" ou "contendo Y"
-			/(?:crie|criar|create)\s+(?:um\s+)?arquivo\s+(?:chamado\s+)?([^\s]+)\s+(?:contendo|containing)\s+(?:o\s+)?(?:texto\s*)?[:\s]+(.+)/i,
-			// "Crie arquivo X com o conteúdo Y" ou "com Y"
-			/(?:crie|criar|create)\s+(?:um\s+)?arquivo\s+([^\s]+)\s+com\s+(?:o\s+)?(?:conteúdo|texto)[:\s]+(.+)/i,
+			// "Crie um arquivo chamado X contendo Y" (mais flexível - aceita qualquer espaço)
+			/(?:crie|criar|create)\s+(?:um\s+)?arquivo\s+(?:chamado\s+)?([^\s]+)\s+(?:contendo|containing)\s+(.+)/i,
+			// "Crie arquivo X com Y"
+			/(?:crie|criar|create)\s+(?:um\s+)?arquivo\s+([^\s]+)\s+com\s+(?:o\s+)?(?:conteúdo|texto|text)?\s*(.+)/i,
 			// "Criar X contendo Y" (para extensões específicas)
-			/(?:crie|criar|create)\s+([^\s]+\.txt|[^\s]+\.json|[^\s]+\.md)\s+(?:contendo|with|containing)[:\s]+(.+)/i,
+			/(?:crie|criar|create)\s+([^\s]+\.txt|[^\s]+\.json|[^\s]+\.md)\s+(?:contendo|with|containing)\s+(.+)/i,
 		];
 
 		for (const pattern of patterns) {
@@ -118,6 +143,30 @@ export class ShortCircuitExecutor {
 					extension: match[1],
 				};
 			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Detectar análise de package.json
+	 */
+	private matchPackageAnalysis(prompt: string): { type: string } | null {
+		const lower = prompt.toLowerCase();
+		
+		// Detectar análise de dependências
+		if ((lower.includes('dependência') || lower.includes('dependencies')) && 
+		    lower.includes('package.json')) {
+			return {
+				type: 'dependencies',
+			};
+		}
+
+		if ((lower.includes('quantas') || lower.includes('how many')) && 
+		    lower.includes('package.json')) {
+			return {
+				type: 'dependencies',
+			};
 		}
 
 		return null;
