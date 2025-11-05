@@ -113,7 +113,11 @@ export class LLMAutomationCoordinator {
                 if (assistantMsg.content && onProgress) {
                     const messageKey = `llm:${assistantMsg.content.substring(0, 50)}`;
                     if (this.executionContext.shouldEmitMessage(messageKey)) {
-                        onProgress(assistantMsg.content);
+                        onProgress(JSON.stringify({
+                            type: 'llm_message',
+                            content: assistantMsg.content,
+                            timestamp: Date.now()
+                        }));
                         logger.info(
                             'LLMCoordinator',
                             'LLM response',
@@ -134,7 +138,12 @@ export class LLMAutomationCoordinator {
                         // Emit tool execution notification (deduplicated)
                         const toolKey = `tool:${toolName}:${Date.now()}`;
                         if (this.executionContext.shouldEmitMessage(toolKey) && onProgress) {
-                            onProgress(`🔧 Executing: ${toolName}`);
+                            onProgress(JSON.stringify({
+                                type: 'tool_start',
+                                toolName,
+                                args,
+                                timestamp: Date.now()
+                            }));
                         }
 
                         executionLog.push(`[TOOL]: ${toolName} with args: ${JSON.stringify(args)}`);
