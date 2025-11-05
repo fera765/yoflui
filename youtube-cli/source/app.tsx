@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, useInput, useStdout } from 'ink';
 import { ChatTimeline, type ChatMessage } from './components/ChatComponents.js';
+import { AutomationUI } from './ui/AutomationUI.js';
 import { ChatInput } from './input/index.js';
 import { KeypressProvider } from './input/index.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
@@ -47,6 +48,16 @@ export default function App() {
 	const [apiConnected, setApiConnected] = useState(false);
 	const [agiMode, setAgiMode] = useState(true); // AGI habilitado por padrão
 	const [agiKanban, setAgiKanban] = useState<AGIKanbanTask[]>([]);
+	const [automationUI, setAutomationUI] = useState<{
+		active: boolean;
+		name: string;
+		description: string;
+		status: 'running' | 'complete' | 'error';
+		startTime: number;
+		endTime?: number;
+		llmMessages: Array<{ timestamp: number; content: string; type: 'thinking' | 'response' }>;
+		tools: Array<{ name: string; status: string; result?: string; startTime: number; endTime?: number }>;
+	} | null>(null);
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
@@ -561,7 +572,23 @@ export default function App() {
 		<KeypressProvider>
 			<Box flexDirection="column">
 				<Box flexDirection="column" flexGrow={1}>
+					{/* UI de Automação Elegante */}
+				{automationUI && automationUI.active && (
+					<AutomationUI
+						automationName={automationUI.name}
+						description={automationUI.description}
+						status={automationUI.status}
+						duration={automationUI.endTime ? automationUI.endTime - automationUI.startTime : undefined}
+						currentStep={automationUI.status === 'running' ? 'Processing...' : undefined}
+						llmMessages={automationUI.llmMessages}
+						toolExecutions={automationUI.tools}
+					/>
+				)}
+				
+				{/* Chat Timeline (conversas normais) */}
+				{!automationUI?.active && (
 					<ChatTimeline messages={msgs} />
+				)}
 					
 					{/* Mostrar Kanban AGI se ativo */}
 					{agiMode && agiKanban.length > 0 && (
