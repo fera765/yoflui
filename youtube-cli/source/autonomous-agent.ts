@@ -200,10 +200,16 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
-			// Save assistant response to context (user message already in context)
-			addToConversation('assistant', assistantMsg.content, cwd);
+			// Optimize response for token economy
+			const optimizedResponse = responseOptimizer.optimizeResponse(
+				assistantMsg.content,
+				userMessage
+			);
 			
-			return assistantMsg.content;
+			// Save optimized response to context (user message already in context)
+			addToConversation('assistant', optimizedResponse, cwd);
+			
+			return optimizedResponse;
 		}
 
 		break;
