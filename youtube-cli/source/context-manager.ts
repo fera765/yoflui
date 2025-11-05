@@ -10,6 +10,10 @@ export interface FluiContext {
 	userInput?: string;
 	projectType?: string;
 	conversationHistory: ConversationEntry[];
+	// NOVO: Estado de Execução Perfeito
+	executionState: ExecutionState;
+	// NOVO: Cache de Resultados Intermediários
+	intermediateResults: Map<string, IntermediateResult>;
 }
 
 export interface FolderNode {
@@ -24,6 +28,43 @@ export interface ConversationEntry {
 	role: 'user' | 'assistant' | 'system';
 	content: string;
 }
+
+// NOVO: Estado de Execução para Memória Perfeita
+export interface ExecutionState {
+	currentStep: number;
+	totalSteps: number;
+	completedTasks: string[];
+	failedTasks: string[];
+	resourcesCreated: ResourceReference[];
+	lastToolOutputs: Map<string, string>;
+	contextCarryover: any; // Dados a serem passados entre etapas
+}
+
+export interface ResourceReference {
+	type: 'file' | 'directory' | 'url' | 'data';
+	identifier: string;
+	createdAt: number;
+	metadata?: any;
+}
+
+export interface IntermediateResult {
+	taskId: string;
+	taskTitle: string;
+	result: string;
+	timestamp: number;
+	toolsUsed: string[];
+	success: boolean;
+}
+
+/**
+ * CONTEXTO MANAGER APRIMORADO - Memória Perfeita e Coordenação Cirúrgica
+ * 
+ * Este módulo é responsável por:
+ * 1. Manter estado perfeito entre todas as etapas de execução
+ * 2. Armazenar e recuperar resultados intermediários
+ * 3. Rastrear recursos criados (arquivos, dados, etc.)
+ * 4. Injetar contexto automaticamente em cada nova etapa
+ */
 
 /**
  * Get or create .flui directory in current working directory
@@ -45,6 +86,21 @@ export function getContextPath(cwd: string = process.cwd()): string {
 }
 
 /**
+ * NOVO: Inicializar estado de execução vazio
+ */
+export function createEmptyExecutionState(): ExecutionState {
+	return {
+		currentStep: 0,
+		totalSteps: 0,
+		completedTasks: [],
+		failedTasks: [],
+		resourcesCreated: [],
+		lastToolOutputs: new Map(),
+		contextCarryover: {},
+	};
+}
+
+/**
  * Load existing context or create new one
  */
 export function loadOrCreateContext(userInput?: string, cwd: string = process.cwd()): FluiContext {
@@ -60,6 +116,16 @@ export function loadOrCreateContext(userInput?: string, cwd: string = process.cw
 			context.timestamp = Date.now();
 			if (userInput) {
 				context.userInput = userInput;
+			}
+			
+			// Garantir que executionState existe (backward compatibility)
+			if (!context.executionState) {
+				context.executionState = createEmptyExecutionState();
+			}
+			
+			// Garantir que intermediateResults existe
+			if (!context.intermediateResults) {
+				context.intermediateResults = new Map();
 			}
 			
 			return context;
@@ -80,6 +146,8 @@ export function loadOrCreateContext(userInput?: string, cwd: string = process.cw
 		userInput,
 		projectType,
 		conversationHistory: [],
+		executionState: createEmptyExecutionState(),
+		intermediateResults: new Map(),
 	};
 	
 	return newContext;
@@ -90,7 +158,18 @@ export function loadOrCreateContext(userInput?: string, cwd: string = process.cw
  */
 export function saveContext(context: FluiContext, cwd: string = process.cwd()): void {
 	const contextPath = getContextPath(cwd);
-	writeFileSync(contextPath, JSON.stringify(context, null, 2), 'utf-8');
+	
+	// Converter Maps para objetos simples para JSON
+	const serializable = {
+		...context,
+		intermediateResults: Object.fromEntries(context.intermediateResults),
+		executionState: {
+			...context.executionState,
+			lastToolOutputs: Object.fromEntries(context.executionState.lastToolOutputs),
+		},
+	};
+	
+	writeFileSync(contextPath, JSON.stringify(serializable, null, 2), 'utf-8');
 }
 
 /**
@@ -114,6 +193,142 @@ export function addToConversation(
 		context.conversationHistory = context.conversationHistory.slice(-50);
 	}
 	
+	saveContext(context, cwd);
+}
+
+/**
+ * NOVO: Registrar resultado intermediário (para injeção automática em próximas etapas)
+ */
+export function recordIntermediateResult(
+	taskId: string,
+	taskTitle: string,
+	result: string,
+	toolsUsed: string[],
+	success: boolean,
+	cwd: string = process.cwd()
+): void {
+	const context = loadOrCreateContext(undefined, cwd);
+	
+	const intermediateResult: IntermediateResult = {
+		taskId,
+		taskTitle,
+		result,
+		timestamp: Date.now(),
+		toolsUsed,
+		success,
+	};
+	
+	context.intermediateResults.set(taskId, intermediateResult);
+	
+	// Atualizar execution state
+	if (success) {
+		context.executionState.completedTasks.push(taskId);
+	} else {
+		context.executionState.failedTasks.push(taskId);
+	}
+	
+	context.executionState.currentStep++;
+	
+	saveContext(context, cwd);
+}
+
+/**
+ * NOVO: Registrar recurso criado (arquivo, diretório, etc.)
+ */
+export function recordResourceCreated(
+	type: 'file' | 'directory' | 'url' | 'data',
+	identifier: string,
+	metadata?: any,
+	cwd: string = process.cwd()
+): void {
+	const context = loadOrCreateContext(undefined, cwd);
+	
+	const resource: ResourceReference = {
+		type,
+		identifier,
+		createdAt: Date.now(),
+		metadata,
+	};
+	
+	context.executionState.resourcesCreated.push(resource);
+	saveContext(context, cwd);
+}
+
+/**
+ * NOVO: Obter contexto completo para injeção em próxima etapa
+ * 
+ * Retorna um resumo rico de TUDO que foi feito até agora:
+ * - Tarefas completadas
+ * - Recursos criados
+ * - Resultados intermediários relevantes
+ * - Dados de contexto carryover
+ */
+export function getContextForNextStep(cwd: string = process.cwd()): string {
+	const context = loadOrCreateContext(undefined, cwd);
+	
+	const lines: string[] = [];
+	
+	lines.push('## CONTEXTO DE EXECUÇÃO (Memória Perfeita)');
+	lines.push('');
+	
+	// Progresso atual
+	lines.push(`**Progresso:** Etapa ${context.executionState.currentStep}/${context.executionState.totalSteps}`);
+	lines.push('');
+	
+	// Tarefas completadas
+	if (context.executionState.completedTasks.length > 0) {
+		lines.push('**Tarefas Completadas:**');
+		for (const taskId of context.executionState.completedTasks) {
+			const result = context.intermediateResults.get(taskId);
+			if (result) {
+				lines.push(`- ${result.taskTitle} (${taskId})`);
+				lines.push(`  Resultado: ${result.result.substring(0, 200)}...`);
+			}
+		}
+		lines.push('');
+	}
+	
+	// Recursos criados
+	if (context.executionState.resourcesCreated.length > 0) {
+		lines.push('**Recursos Criados:**');
+		for (const resource of context.executionState.resourcesCreated) {
+			lines.push(`- ${resource.type}: ${resource.identifier}`);
+			if (resource.metadata) {
+				lines.push(`  Metadata: ${JSON.stringify(resource.metadata)}`);
+			}
+		}
+		lines.push('');
+	}
+	
+	// Contexto carryover (dados específicos para próxima etapa)
+	if (Object.keys(context.executionState.contextCarryover).length > 0) {
+		lines.push('**Dados de Contexto:**');
+		lines.push(JSON.stringify(context.executionState.contextCarryover, null, 2));
+		lines.push('');
+	}
+	
+	return lines.join('\n');
+}
+
+/**
+ * NOVO: Atualizar contexto carryover (dados que devem ser passados para próxima etapa)
+ */
+export function updateContextCarryover(data: any, cwd: string = process.cwd()): void {
+	const context = loadOrCreateContext(undefined, cwd);
+	context.executionState.contextCarryover = {
+		...context.executionState.contextCarryover,
+		...data,
+	};
+	saveContext(context, cwd);
+}
+
+/**
+ * NOVO: Resetar estado de execução (para nova tarefa)
+ */
+export function resetExecutionState(cwd: string = process.cwd()): void {
+	const context = loadOrCreateContext(undefined, cwd);
+	context.executionState = createEmptyExecutionState();
+	context.intermediateResults = new Map();
 	saveContext(context, cwd);
 }
 

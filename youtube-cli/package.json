@@ -10,7 +10,10 @@
     "dev": "npx tsx source/cli.tsx",
     "test": "npx tsx test-autonomous.ts",
     "test:e2e": "npx tsx test-e2e.ts",
-    "test:full": "npx tsx test-full-system.ts"
+    "test:full": "npx tsx test-full-system.ts",
+    "test:flui-simple": "npx tsx tests/test-flui-superior-simple.mjs",
+    "test:flui-complex": "npx tsx tests/test-flui-superior-complex.mjs",
+    "test:flui-all": "npm run test:flui-simple && npm run test:flui-complex"
   },
   "keywords": [
     "hello",
