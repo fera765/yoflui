@@ -113,7 +113,11 @@ export class LLMAutomationCoordinator {
                 if (assistantMsg.content && onProgress) {
                     const messageKey = `llm:${assistantMsg.content.substring(0, 50)}`;
                     if (this.executionContext.shouldEmitMessage(messageKey)) {
-                        onProgress(assistantMsg.content);
+                        onProgress(JSON.stringify({
+                            type: 'llm_message',
+                            content: assistantMsg.content,
+                            timestamp: Date.now()
+                        }));
                         logger.info(
                             'LLMCoordinator',
                             'LLM response',
@@ -134,7 +138,12 @@ export class LLMAutomationCoordinator {
                         // Emit tool execution notification (deduplicated)
                         const toolKey = `tool:${toolName}:${Date.now()}`;
                         if (this.executionContext.shouldEmitMessage(toolKey) && onProgress) {
-                            onProgress(`?? Executing: ${toolName}`);
+                            onProgress(JSON.stringify({
+                                type: 'tool_start',
+                                toolName,
+                                args,
+                                timestamp: Date.now()
+                            }));
                         }
 
                         executionLog.push(`[TOOL]: ${toolName} with args: ${JSON.stringify(args)}`);
@@ -173,7 +182,7 @@ export class LLMAutomationCoordinator {
                                 currentStepIndex++;
                             }
                         } catch (error) {
-                            result = error instanceof Error ? error.message : String(error);
+                            result = `Error: ${error instanceof Error ? error.message : String(error)}`;
                             hasError = true;
                             executionLog.push(`[ERROR]: ${result}`);
                             
@@ -198,13 +207,14 @@ export class LLMAutomationCoordinator {
                             }
                         }
 
-                        // Add tool result to conversation
+                        // Add tool result to conversation (continue flow even on error)
                         this.conversationHistory.push({
                             role: 'tool',
                             content: result,
                             tool_call_id: toolCall.id,
                         });
                     }
+                    // Continue loop even if tool failed - LLM can handle errors
                     continue;
                 }
 
@@ -322,7 +332,7 @@ export class LLMAutomationCoordinator {
                             this.executionContext.getExecutionId()
                         );
                     } catch (error) {
-                        result = error instanceof Error ? error.message : String(error);
+                        result = `Error: ${error instanceof Error ? error.message : String(error)}`;
                         
                         logger.error(
                             'LLMCoordinator',
@@ -332,7 +342,7 @@ export class LLMAutomationCoordinator {
                         );
                     }
 
-                    // Add tool result to conversation history
+                    // Add tool result to conversation history (continue even on error)
                     this.conversationHistory.push({
                         role: 'tool',
                         content: result,
@@ -340,7 +350,7 @@ export class LLMAutomationCoordinator {
                     });
                 }
                 
-                // Continue loop to get LLM's response to tool results
+                // Continue loop to get LLM's response to tool results (even if errors occurred)
                 continue;
             }
 

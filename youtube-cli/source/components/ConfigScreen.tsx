@@ -40,7 +40,7 @@ export const ConfigScreen: React.FC<Props> = ({
 		<Box flexDirection="column" padding={1}>
 			<Box borderStyle="double" borderColor="#8B5CF6" paddingX={2} paddingY={1} flexDirection="column">
 				<Box marginBottom={1}>
-					<Text bold color="#A78BFA">?? SCRAPING CONFIGURATION</Text>
+					<Text bold color="#A78BFA">⚙️  SCRAPING CONFIGURATION</Text>
 				</Box>
 
 				<Box flexDirection="column" gap={1}>

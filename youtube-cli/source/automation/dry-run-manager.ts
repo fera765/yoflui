@@ -306,7 +306,7 @@ export class DryRunManager {
         lines.push('');
 
         if (result.warnings.length > 0) {
-            lines.push('??  WARNINGS:');
+            lines.push('⚠️  WARNINGS:');
             for (const warning of result.warnings) {
                 lines.push(`  - ${warning}`);
             }
@@ -321,7 +321,7 @@ export class DryRunManager {
             lines.push('');
         }
 
-        lines.push('?? STEPS:');
+        lines.push('📋 STEPS:');
         for (let i = 0; i < result.steps.length; i++) {
             const step = result.steps[i];
             lines.push(`  ${i + 1}. [${step.stepType}] ${step.stepId}`);
@@ -337,7 +337,7 @@ export class DryRunManager {
         }
 
         lines.push('');
-        lines.push('?? VARIABLES:');
+        lines.push('📊 VARIABLES:');
         for (const [name, value] of Object.entries(result.variables)) {
             lines.push(`  ${name}: ${JSON.stringify(value)}`);
         }

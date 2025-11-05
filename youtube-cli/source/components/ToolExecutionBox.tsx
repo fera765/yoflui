@@ -10,7 +10,7 @@ interface Props {
 
 export const ToolExecutionBox: React.FC<Props> = ({ toolName, args, result, status }) => {
 	const borderColor = status === 'complete' ? '#10B981' : status === 'error' ? '#EF4444' : '#8B5CF6';
-	const icon = status === 'complete' ? '?' : status === 'error' ? '?' : '?';
+	const icon = status === 'complete' ? '✓' : status === 'error' ? '✗' : '⟳';
 
 	// Get first 10 lines of result for log display
 	const logLines = result ? result.split('\n').slice(0, 10) : [];
@@ -29,7 +29,7 @@ export const ToolExecutionBox: React.FC<Props> = ({ toolName, args, result, stat
 				{Object.entries(args).map(([key, value]) => (
 					<Box key={key} marginLeft={2}>
 						<Text color="#60A5FA">{key}: </Text>
-						<Text color="#E5E7EB">{String(value).substring(0, 60)}</Text>
+						<Text color="#E5E7EB">{String(value).substring(0, 100)}</Text>
 					</Box>
 				))}
 			</Box>
@@ -37,7 +37,7 @@ export const ToolExecutionBox: React.FC<Props> = ({ toolName, args, result, stat
 			{/* Result/Log */}
 			{result && (
 				<Box flexDirection="column">
-					<Text color="#9CA3AF" dimColor>Output (10 lines):</Text>
+					<Text color="#9CA3AF" dimColor>Result:</Text>
 					{logLines.map((line, idx) => (
 						<Box key={idx} marginLeft={2}>
 							<Text color="#E5E7EB">{line}</Text>
@@ -45,7 +45,7 @@ export const ToolExecutionBox: React.FC<Props> = ({ toolName, args, result, stat
 					))}
 					{result.split('\n').length > 10 && (
 						<Box marginLeft={2}>
-							<Text color="#6B7280" dimColor>... ({result.split('\n').length - 10} more lines)</Text>
+							<Text color="#6B7280" dimColor>... hidden {result.split('\n').length - 10} lines</Text>
 						</Box>
 					)}
 				</Box>

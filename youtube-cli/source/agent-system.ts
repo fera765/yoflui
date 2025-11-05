@@ -251,12 +251,13 @@ Strategy:
 							try {
 								result = await executeToolCall(toolName, toolArgs, options.workDir);
 							} catch (error) {
-								result = error instanceof Error ? error.message : String(error);
+								result = `Error: ${error instanceof Error ? error.message : String(error)}`;
 								hasError = true;
 							}
 
 							options.onToolComplete?.(agent, toolName, result, hasError);
 
+							// Add result to messages (continue even on error)
 							messages.push({
 								role: 'tool',
 								content: result,

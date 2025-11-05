@@ -205,7 +205,7 @@ function formatFolderStructure(nodes: FolderNode[], depth: number, maxDepth: num
 	const indent = '  '.repeat(depth);
 	
 	for (const node of nodes) {
-		const icon = node.type === 'folder' ? '??' : '??';
+		const icon = node.type === 'folder' ? '📁' : '📄';
 		lines.push(`${indent}${icon} ${node.name}`);
 		
 		if (node.children && node.children.length > 0 && depth < maxDepth - 1) {

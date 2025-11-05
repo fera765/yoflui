@@ -37,7 +37,7 @@ export const QwenOAuthScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 		// SEMPRE limpar sess?o antiga ao entrar na tela de OAuth
 		// Isso garante que fazemos um novo login sempre
 		clearQwenCredentials();
-		console.log('?? Starting fresh OAuth login...');
+		console.log('🔑 Starting fresh OAuth login...');
 		
 		// Iniciar novo fluxo de autentica??o
 		startAuthFlow();

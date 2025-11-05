@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, useInput, useStdout } from 'ink';
 import { ChatTimeline, type ChatMessage } from './components/ChatComponents.js';
+import { AutomationUI } from './ui/AutomationUI.js';
 import { ChatInput } from './input/index.js';
 import { KeypressProvider } from './input/index.js';
 import { CommandSuggestions } from './components/CommandSuggestions.js';
@@ -12,6 +13,9 @@ import { ToolsScreen } from './components/ToolsScreen.js';
 import { MCPScreen } from './components/MCPScreen.js';
 import { getConfig, setConfig } from './llm-config.js';
 import { runAutonomousAgent } from './autonomous-agent.js';
+import { CentralOrchestrator } from './agi/orchestrator.js';
+import { KanbanTask as AGIKanbanTask } from './agi/types.js';
+import { OrchestrationView } from './components/OrchestrationView.js';
 import { mcpManager } from './mcp/mcp-manager.js';
 import { automationManager } from './automation/automation-manager.js';
 import { webhookAPI } from './webhook-api.js';
@@ -32,6 +36,7 @@ let mcpStarted = false;
 let automationInitialized = false;
 let webhookApiStarted = false;
 let llmCoordinator: LLMAutomationCoordinator | null = null;
+let centralOrchestrator: CentralOrchestrator | null = null;
 
 export default function App() {
 	const [screen, setScreen] = useState<Screen>('chat');
@@ -41,6 +46,18 @@ export default function App() {
 	const [cmds, setCmds] = useState(false);
 	const [showAutomations, setShowAutomations] = useState(false);
 	const [apiConnected, setApiConnected] = useState(false);
+	const [agiMode, setAgiMode] = useState(true); // AGI habilitado por padrão
+	const [agiKanban, setAgiKanban] = useState<AGIKanbanTask[]>([]);
+	const [automationUI, setAutomationUI] = useState<{
+		active: boolean;
+		name: string;
+		description: string;
+		status: 'running' | 'complete' | 'error';
+		startTime: number;
+		endTime?: number;
+		llmMessages: Array<{ timestamp: number; content: string; type: 'thinking' | 'response' }>;
+		tools: Array<{ name: string; status: 'running' | 'complete' | 'error'; result?: string; startTime: number; endTime?: number }>;
+	} | null>(null);
 	
 	const { stdout } = useStdout();
 	const cfg = getConfig();
@@ -100,16 +117,46 @@ export default function App() {
 		else if (cmd === '/config') setScreen('config');
 		else if (cmd === '/tools') setScreen('tools');
 		else if (cmd === '/mcp') setScreen('mcp');
-		else if (cmd === '/clear-memory') {
-			// Clear all messages and context
-			setMsgs([]);
-			llmCoordinator = null;
-			msgIdCounter = 0;
+		else if (cmd === '/agi') {
+			setAgiMode(!agiMode);
 			addMessage({
 				id: generateId('info'),
 				role: 'assistant',
-				content: '??? Memory cleared! Starting fresh conversation.'
+				content: `🧠 Modo AGI ${!agiMode ? 'ATIVADO' : 'DESATIVADO'}\n\n${!agiMode ? 'Usando orquestração multi-agente com Kanban autônomo de 8 colunas.' : 'Usando modo LLM autônomo padrão.'}`
 			});
+		}
+		else if (cmd === '/clear-memory') {
+			// Clear all messages, context, and .flui files
+			setMsgs([]);
+			llmCoordinator = null;
+			msgIdCounter = 0;
+			
+			// Clear .flui directory and files
+			try {
+				const { rmSync, existsSync } = require('fs');
+				const { join } = require('path');
+				const cwd = process.cwd();
+				const fluiDir = join(cwd, '.flui');
+				const fluiMemory = join(cwd, '.flui-memory.json');
+				const fluiHistory = join(cwd, '.flui-history.json');
+				
+				// Remove .flui directory
+				if (existsSync(fluiDir)) {
+					rmSync(fluiDir, { recursive: true, force: true });
+				}
+				
+				// Remove .flui-memory.json
+				if (existsSync(fluiMemory)) {
+					rmSync(fluiMemory, { force: true });
+				}
+				
+				// Remove .flui-history.json
+				if (existsSync(fluiHistory)) {
+					rmSync(fluiHistory, { force: true });
+				}
+			} catch (err) {
+				// Silent fail - just continue
+			}
 		}
 		else if (cmd === '/exit') process.exit(0);
 	}, []);
@@ -131,6 +178,19 @@ export default function App() {
 	) => {
 		setBusy(true);
 		
+		const startTime = Date.now();
+		
+		// Inicializar UI de automação
+		setAutomationUI({
+			active: true,
+			name: automation.metadata.name,
+			description: automation.metadata.description,
+			status: 'running',
+			startTime,
+			llmMessages: [],
+			tools: []
+		});
+		
 		// Create execution context for deduplication
 		const execContext = new ExecutionContext(automation.id, {
 			automationName: automation.metadata.name,
@@ -138,45 +198,100 @@ export default function App() {
 			hasWebhookData: !!webhookData,
 		});
 		
-		// Single initial message
-		addMessage({
-			id: generateId('assistant'),
-			role: 'assistant',
-			content: `?? Executing automation: ${automation.metadata.name}...\n${automation.metadata.description}`
-		});
-		
 		// Create new LLM coordinator with context
 		llmCoordinator = new LLMAutomationCoordinator(execContext);
 		
-		const result = await llmCoordinator.executeAutomation({
-			automation,
-			workDir,
-			webhookData,
-			// Only onProgress callback - no duplicates
-			onProgress: (message) => {
-				if (message && message.trim()) {
-					// Check if should emit (deduplication)
-					const messageKey = message.substring(0, 100);
-					if (execContext.shouldEmitMessage(messageKey)) {
-						addMessage({
-							id: generateId('assistant'),
-							role: 'assistant',
-							content: message
+		try {
+			const result = await llmCoordinator.executeAutomation({
+				automation,
+				workDir,
+				webhookData,
+				// Parse JSON messages for UI
+				onProgress: (message) => {
+					if (!message || !message.trim()) return;
+					
+					try {
+						const parsed = JSON.parse(message);
+						
+						setAutomationUI(prev => {
+							if (!prev) return prev;
+							
+							if (parsed.type === 'llm_message') {
+								return {
+									...prev,
+									llmMessages: [...prev.llmMessages, {
+										timestamp: parsed.timestamp,
+										content: parsed.content,
+										type: 'response'
+									}]
+								};
+							}
+							
+							if (parsed.type === 'tool_start') {
+								return {
+									...prev,
+									tools: [...prev.tools, {
+										name: parsed.toolName,
+										status: 'running' as const,
+										startTime: parsed.timestamp
+									}]
+								};
+							}
+							
+							if (parsed.type === 'tool_complete') {
+								const toolIndex = prev.tools.findIndex(
+									t => t.name === parsed.toolName && t.status === 'running'
+								);
+								if (toolIndex >= 0) {
+									const newTools = [...prev.tools];
+									const newStatus: 'error' | 'complete' = parsed.hasError ? 'error' : 'complete';
+									newTools[toolIndex] = {
+										...newTools[toolIndex],
+										status: newStatus,
+										result: parsed.result,
+										endTime: parsed.timestamp
+									};
+									return { ...prev, tools: newTools };
+								}
+							}
+							
+							return prev;
 						});
+					} catch {
+						// Fallback para mensagens de texto simples
+						const messageKey = message.substring(0, 100);
+						if (execContext.shouldEmitMessage(messageKey)) {
+							addMessage({
+								id: generateId('assistant'),
+								role: 'assistant',
+								content: message
+							});
+						}
 					}
 				}
-			}
-		});
-		
-		// Single final message (result already emitted via onProgress)
-		const summary = execContext.getSummary();
-		addMessage({
-			id: generateId('assistant'),
-			role: 'assistant',
-			content: `? Automation completed in ${Math.round(summary.duration / 1000)}s`
-		});
+			});
+			
+			// Sucesso
+			setAutomationUI(prev => prev ? {
+				...prev,
+				status: 'complete',
+				endTime: Date.now()
+			} : null);
+		} catch (error) {
+			// Erro
+			setAutomationUI(prev => prev ? {
+				...prev,
+				status: 'error',
+				endTime: Date.now()
+			} : null);
+		}
 		
 		setBusy(false);
+		
+		// Limpar UI após 5 segundos
+		setTimeout(() => {
+			setAutomationUI(null);
+		}, 5000);
 	}, [addMessage]);
 	
 	const selectAutomation = useCallback(async (automationItem: any) => {
@@ -208,7 +323,7 @@ export default function App() {
 				addMessage({
 					id: generateId('assistant'),
 					role: 'assistant',
-					content: `?? Setting up webhook for: ${automation.metadata.name}`
+					content: `🔔 Setting up webhook for: ${automation.metadata.name}`
 				});
 				
 				const webhookInfo = await webhookTriggerHandler.setupWebhook(
@@ -320,7 +435,7 @@ export default function App() {
 					addMessage({
 						id: generateId('assistant'),
 						role: 'assistant',
-						content: `?? Setting up webhook for: ${automation.metadata.name}`
+						content: `🔔 Setting up webhook for: ${automation.metadata.name}`
 					});
 					
 					const webhookInfo = await webhookTriggerHandler.setupWebhook(
@@ -370,59 +485,91 @@ export default function App() {
 				}
 			}
 			
-			// Normal flow (LLM)
-			const reply = await runAutonomousAgent({
-				userMessage: txt,
-				workDir,
-				onProgress: () => {},
-				onKanbanUpdate: (tasks) => {
-					setMsgs(prev => {
-						const noKanban = prev.filter(m => m.role !== 'kanban');
-						const updated: ChatMessage[] = [...noKanban, {
-							id: generateId('kanban'),
-							role: 'kanban' as const,
-							content: '',
-							kanban: tasks
-						}];
-						if (updated.length > MAX_MESSAGES_IN_MEMORY) {
-							return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
-						}
-						return updated;
-					});
-				},
-				onToolExecute: (name, args) => {
-					addMessage({
-						id: generateId('tool'),
-						role: 'tool',
-						content: '',
-						toolCall: { name, args, status: 'running' }
-					});
-				},
-				onToolComplete: (name, args, result, error) => {
-					setMsgs(prev => {
-						const copy = [...prev];
-						for (let i = copy.length - 1; i >= 0; i--) {
-							if (copy[i].role === 'tool' && 
-								copy[i].toolCall?.name === name &&
-								copy[i].toolCall?.status === 'running') {
-								copy[i] = {
-									...copy[i],
-									toolCall: { name, args, status: error ? 'error' : 'complete', result }
-								};
-								break;
-							}
-						}
-						return copy;
-					});
+			// Verificar se deve usar modo AGI
+			if (agiMode && shouldUseAGI(txt)) {
+				// MODO AGI - Orquestração Multi-Agente
+				if (!centralOrchestrator) {
+					centralOrchestrator = new CentralOrchestrator();
 				}
-			});
-			
-			addMessage({
-				id: generateId('assistant'),
-				role: 'assistant',
-				content: reply
-			});
-			
+
+				const reply = await centralOrchestrator.orchestrate(
+					txt,
+					workDir,
+					(message, kanban) => {
+						// Atualizar mensagem de progresso
+						addMessage({
+							id: generateId('assistant'),
+							role: 'assistant',
+							content: message
+						});
+
+						// Atualizar Kanban AGI
+						if (kanban) {
+							setAgiKanban(kanban);
+						}
+					}
+				);
+
+				// Resultado final
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: reply
+				});
+			} else {
+				// Modo Normal (LLM Autônomo)
+				const reply = await runAutonomousAgent({
+					userMessage: txt,
+					workDir,
+					onProgress: () => {},
+					onKanbanUpdate: (tasks) => {
+						setMsgs(prev => {
+							const noKanban = prev.filter(m => m.role !== 'kanban');
+							const updated: ChatMessage[] = [...noKanban, {
+								id: generateId('kanban'),
+								role: 'kanban' as const,
+								content: '',
+								kanban: tasks
+							}];
+							if (updated.length > MAX_MESSAGES_IN_MEMORY) {
+								return updated.slice(updated.length - MAX_MESSAGES_IN_MEMORY);
+							}
+							return updated;
+						});
+					},
+					onToolExecute: (name, args) => {
+						addMessage({
+							id: generateId('tool'),
+							role: 'tool',
+							content: '',
+							toolCall: { name, args, status: 'running' }
+						});
+					},
+					onToolComplete: (name, args, result, error) => {
+						setMsgs(prev => {
+							const copy = [...prev];
+							for (let i = copy.length - 1; i >= 0; i--) {
+								if (copy[i].role === 'tool' && 
+									copy[i].toolCall?.name === name &&
+									copy[i].toolCall?.status === 'running') {
+									copy[i] = {
+										...copy[i],
+										toolCall: { name, args, status: error ? 'error' : 'complete', result }
+									};
+									break;
+								}
+							}
+							return copy;
+						});
+					}
+				});
+
+				addMessage({
+					id: generateId('assistant'),
+					role: 'assistant',
+					content: reply
+				});
+			}
 		} catch (err) {
 			addMessage({
 				id: generateId('error'),
@@ -476,11 +623,45 @@ export default function App() {
 		return <MCPScreen onClose={() => setScreen('chat')} />;
 	}
 	
+	// Função auxiliar para determinar se deve usar AGI
+	const shouldUseAGI = (userMessage: string): boolean => {
+		// Usar AGI para tarefas complexas
+		const complexityIndicators = [
+			'criar', 'implementar', 'desenvolver', 'analisar', 'comparar',
+			'pesquisar', 'gerar relatório', 'automatizar', 'integrar',
+			'multi-step', 'várias etapas', 'complexo'
+		];
+
+		const messageLower = userMessage.toLowerCase();
+		return complexityIndicators.some(indicator => messageLower.includes(indicator));
+	};
+
 	return (
 		<KeypressProvider>
 			<Box flexDirection="column">
 				<Box flexDirection="column" flexGrow={1}>
+					{/* UI de Automação Elegante */}
+				{automationUI && automationUI.active && (
+					<AutomationUI
+						automationName={automationUI.name}
+						description={automationUI.description}
+						status={automationUI.status}
+						duration={automationUI.endTime ? automationUI.endTime - automationUI.startTime : undefined}
+						currentStep={automationUI.status === 'running' ? 'Processing...' : undefined}
+						llmMessages={automationUI.llmMessages}
+						toolExecutions={automationUI.tools}
+					/>
+				)}
+				
+				{/* Chat Timeline (conversas normais) */}
+				{!automationUI?.active && (
 					<ChatTimeline messages={msgs} />
+				)}
+					
+					{/* Mostrar Kanban AGI se ativo */}
+					{agiMode && agiKanban.length > 0 && (
+						<OrchestrationView tasks={agiKanban} />
+					)}
 				</Box>
 				
 				{cmds && (

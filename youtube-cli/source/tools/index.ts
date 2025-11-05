@@ -14,6 +14,8 @@ export * from './web-scraper-context.js';
 export * from './keyword-suggestions.js';
 export * from './memory.js';
 export * from './agent.js';
+export * from './condition.js';
+export * from './trigger-webhook.js';
 
 // Import retry logic
 import { retryWithBackoff } from '../errors/retry-manager.js';
@@ -46,6 +48,8 @@ import { keywordSuggestionsToolDefinition, executeKeywordSuggestionsTool } from 
 import { youtubeToolDefinition, executeYouTubeTool } from '../youtube-tool.js';
 import { memoryToolDefinition, executeSaveMemoryTool, loadMemories } from './memory.js';
 import { delegateAgentToolDefinition, executeDelegateAgent } from './agent.js';
+import { conditionToolDefinition, executeConditionTool } from './condition.js';
+import { triggerWebhookToolDefinition, executeTriggerWebhookTool } from './trigger-webhook.js';
 import { getMCPToolDefinitions, executeMCPTool, isMCPTool } from '../mcp/mcp-tools-adapter.js';
 
 export function getAllToolDefinitions() {
@@ -68,6 +72,8 @@ export function getAllToolDefinitions() {
 		youtubeToolDefinition,
 		memoryToolDefinition,
 		delegateAgentToolDefinition,
+		conditionToolDefinition,
+		triggerWebhookToolDefinition,
 	];
 
 	const mcpTools = getMCPToolDefinitions();
@@ -103,8 +109,13 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeEditTool(args.file_path, args.old_string, args.new_string);
 		case 'read_file':
 			return executeReadFileTool(args.file_path);
-		case 'write_file':
-			return executeWriteFileTool(args.file_path, args.content);
+		case 'write_file': {
+			// Resolve relative paths against workDir
+			const { join } = await import('path');
+			const { isAbsolute } = await import('path');
+			const resolvedPath = isAbsolute(args.file_path) ? args.file_path : join(workDir, args.file_path);
+			return executeWriteFileTool(resolvedPath, args.content);
+		}
 		case 'execute_shell':
 			return executeShellTool(args.command, args.timeout, args.interactive);
 		case 'shell_input':
@@ -168,6 +179,10 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeSaveMemoryTool(args.content, args.category, workDir);
 		case 'delegate_to_agent':
 			return executeDelegateAgent(args.task, workDir, args.kanban_task_id);
+		case 'condition':
+			return executeConditionTool(args);
+		case 'trigger_webhook':
+			return executeTriggerWebhookTool(args);
 		default:
 			return `Unknown tool: ${toolName}`;
 	}

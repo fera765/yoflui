@@ -54,7 +54,7 @@ export class WebhookTriggerHandler {
 
         const url = webhookAPI.getWebhookUrl(automation.id, config.uniqueId);
 
-        let message = `?? **Webhook Created Successfully**\n\n`;
+        let message = `🔔 **Webhook Created Successfully**\n\n`;
         message += `**URL:** ${url}\n`;
         message += `**Method:** ${config.method}\n`;
         
@@ -80,7 +80,7 @@ export class WebhookTriggerHandler {
         }
         
         message += `\n\`\`\`\n`;
-        message += `\n? The webhook is now active and waiting for triggers. You can continue chatting normally.`;
+        message += `\n✅ The webhook is now active and waiting for triggers. You can continue chatting normally.`;
 
         return {
             url,

@@ -1,0 +1,61 @@
+{
+  "id": "multi-api-orchestrator",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "API Orchestrator",
+    "description": "Orquestra chamadas de múltiplas APIs",
+    "author": "FLUI Team",
+    "created": "2025-11-04",
+    "tags": ["api", "integration"],
+    "category": "integrations"
+  },
+  "triggers": [
+    {
+      "type": "contains",
+      "pattern": "orquestrar"
+    }
+  ],
+  "variables": {
+    "api1Response": {"type": "string", "defaultValue": ""},
+    "timestamp": {"type": "string", "defaultValue": ""}
+  },
+  "steps": [
+    {
+      "id": "1",
+      "type": "log",
+      "message": "🌐 Iniciando orquestração...",
+      "level": "info"
+    },
+    {
+      "id": "2",
+      "type": "tool",
+      "toolName": "trigger_webhook",
+      "toolArgs": {
+        "url": "https://httpbin.org/get",
+        "method": "GET",
+        "timeout": 10000
+      },
+      "saveResultAs": "api1Response"
+    },
+    {
+      "id": "3",
+      "type": "tool",
+      "toolName": "write_file",
+      "toolArgs": {
+        "file_path": "api-result.json",
+        "content": "${variables.api1Response}"
+      }
+    },
+    {
+      "id": "4",
+      "type": "log",
+      "message": "✅ Orquestração concluída!",
+      "level": "success"
+    }
+  ],
+  "errorHandling": {
+    "onStepError": "skip",
+    "maxRetries": 0,
+    "logErrors": true
+  }
+}

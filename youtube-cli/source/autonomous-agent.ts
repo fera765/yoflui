@@ -8,6 +8,7 @@ import { saveConversationHistory, loadConversationHistory, type MemoryEntry } fr
 import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversation } from './context-manager.js';
 import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
 import { getSystemPrompt } from './prompts/prompt-loader.js';
+import { responseOptimizer } from './utils/response-optimizer.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -170,34 +171,45 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 				try {
 					result = await executeToolCall(toolName, args, workDir);
 					
+					// Register tool execution for response optimization
+					responseOptimizer.registerToolExecution(toolName, result);
+					
 					// Special handling for kanban updates
 					if (toolName === 'update_kanban') {
 						const kanban = loadKanban(workDir);
 						onKanbanUpdate?.(kanban);
 					}
 				} catch (error) {
-					result = error instanceof Error ? error.message : String(error);
+					result = `Error: ${error instanceof Error ? error.message : String(error)}`;
 					hasError = true;
 				}
 
-				// Notify UI that tool execution completed
+				// Notify UI that tool execution completed (with error flag)
 				onToolComplete?.(toolName, args, result, hasError);
 
+				// Add result to conversation (continue flow even on error)
 				messages.push({
 					role: 'tool',
 					content: result,
 					tool_call_id: toolCall.id,
 				});
 			}
+			// Continue loop even if tool failed - LLM can handle errors
 			continue;
 		}
 
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
-			// Save assistant response to context (user message already in context)
-			addToConversation('assistant', assistantMsg.content, cwd);
+			// Optimize response for token economy
+			const optimizedResponse = responseOptimizer.optimizeResponse(
+				assistantMsg.content,
+				userMessage
+			);
 			
-			return assistantMsg.content;
+			// Save optimized response to context (user message already in context)
+			addToConversation('assistant', optimizedResponse, cwd);
+			
+			return optimizedResponse;
 		}
 
 		break;

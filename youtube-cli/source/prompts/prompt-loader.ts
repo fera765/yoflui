@@ -113,7 +113,7 @@ export function getUIMessage(
     }
     
     if (category === 'tool_descriptions') {
-        return messages.tool_descriptions[key] || `?? Executing: ${key}`;
+        return messages.tool_descriptions[key] || `🔧 Executing: ${key}`;
     }
     
     if (category === 'progress') {
@@ -131,7 +131,7 @@ export function formatToolMessage(toolName: string, status: 'start' | 'success' 
     
     if (status === 'start') {
         const description = messages.tool_descriptions[toolName];
-        return description || `?? Executing: ${toolName}`;
+        return description || `🔧 Executing: ${toolName}`;
     }
     
     if (status === 'success') {
@@ -142,7 +142,7 @@ export function formatToolMessage(toolName: string, status: 'start' | 'success' 
         return getUIMessage('automation', 'tool_error', { tool_name: toolName, error: error || 'Unknown error' });
     }
     
-    return `?? ${toolName}`;
+    return `🔧 ${toolName}`;
 }
 
 /**
@@ -172,7 +172,7 @@ export function formatWebhookSetup(
     apiKey: string,
     payloadSchema: Record<string, any>
 ): string {
-    const authInfo = requireAuth ? `?? Auth: Bearer ${apiKey}` : `?? Auth: Not required`;
+    const authInfo = requireAuth ? `🔑 Auth: Bearer ${apiKey}` : `🔓 Auth: Not required`;
     const payload = JSON.stringify(payloadSchema, null, 2);
     
     return getUIMessage('automation', 'webhook_setup', {

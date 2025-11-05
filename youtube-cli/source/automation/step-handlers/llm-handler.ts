@@ -25,7 +25,7 @@ export class LLMStepHandler extends BaseStepHandler {
                 this.options.onStepStart(step);
             }
 
-            console.log(`?? LLM processing...`);
+            console.log(`🧠 LLM processing...`);
 
             const result = await runAutonomousAgent({
                 userMessage: resolvedPrompt,

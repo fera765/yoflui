@@ -144,8 +144,8 @@ export async function executeWebScraperWithContextTool(
 			})),
 			search_results: searchResultsData,
 			efficiency_note: result.stoppedEarly 
-				? `? Stopped early after ${result.sitesScraped} sites - sufficient information found (confidence: ${result.confidence}%)`
-				: `?? Scraped ${result.sitesScraped} sites (${result.sufficient ? 'sufficient' : 'partial'} information)`
+				? `⚡ Stopped early after ${result.sitesScraped} sites - sufficient information found (confidence: ${result.confidence}%)`
+				: `📊 Scraped ${result.sitesScraped} sites (${result.sufficient ? 'sufficient' : 'partial'} information)`
 		}, null, 2);
 
 	} catch (error) {

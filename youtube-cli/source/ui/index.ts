@@ -21,8 +21,8 @@ export { ShowMoreLines } from './components/shared/ShowMoreLines.js';
 // Message components
 export { UserMessage } from './components/messages/UserMessage.js';
 export { AssistantMessage } from './components/messages/AssistantMessage.js';
-export { ToolMessage } from './components/messages/ToolMessage.js';
-export { ToolGroupMessage } from './components/messages/ToolGroupMessage.js';
+export { ToolMessageV2 as ToolMessage } from './components/messages/ToolMessageV2.js';
+export { ToolGroupMessageV2 as ToolGroupMessage } from './components/messages/ToolGroupMessageV2.js';
 export { KanbanMessage } from './components/messages/KanbanMessage.js';
 export { InfoMessage } from './components/messages/InfoMessage.js';
 export { ErrorMessage } from './components/messages/ErrorMessage.js';

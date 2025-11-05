@@ -43,12 +43,12 @@ export class LogStepHandler extends BaseStepHandler {
 
     private getLevelEmoji(level: string): string {
         const emojis: Record<string, string> = {
-            info: '?? ',
-            warn: '?? ',
-            error: '?',
-            success: '?',
-            debug: '??',
+            info: 'ℹ️',
+            warn: '⚠️',
+            error: '❌',
+            success: '✅',
+            debug: '🐛',
         };
-        return emojis[level] || '?? ';
+        return emojis[level] || 'ℹ️';
     }
 }
