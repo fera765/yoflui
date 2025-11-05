@@ -17,6 +17,8 @@ import {
 	resetExecutionState,
 	updateContextCarryover,
 } from '../context-manager.js';
+import { getAllToolDefinitions } from '../tools/index.js';
+import { ShortCircuitExecutor } from './short-circuit-executor.js';
 
 /**
  * ORQUESTRADOR CENTRAL V2 - FLUI AGI SUPERIOR
@@ -47,6 +49,7 @@ export class CentralOrchestratorV2 {
 	private dualModeCoordinator: DualModeCoordinator | null = null;
 	private errorDetector: ProactiveErrorDetector | null = null;
 	private outputOptimizer: OutputOptimizer;
+	private shortCircuit: ShortCircuitExecutor;
 	private taskIdCounter = 0;
 	private initialized = false;
 	private replanAttempts: Map<string, number> = new Map();
@@ -56,6 +59,7 @@ export class CentralOrchestratorV2 {
 		this.promptEngineer = new PromptEngineer();
 		this.automationAgent = new AutomationAgent();
 		this.outputOptimizer = new OutputOptimizer();
+		this.shortCircuit = new ShortCircuitExecutor();
 	}
 
 	/**
@@ -122,6 +126,14 @@ export class CentralOrchestratorV2 {
 
 			// NOVO: Resetar estado de execução para nova tarefa
 			resetExecutionState(workDir);
+
+			// FASE -1: SHORT-CIRCUIT para comandos simples e diretos
+			const shortCircuitResult = await this.shortCircuit.tryShortCircuit(userPrompt, workDir);
+			
+			if (shortCircuitResult.handled) {
+				onProgress?.(`⚡ Execução direta (short-circuit): ${shortCircuitResult.toolUsed}`);
+				return { result: shortCircuitResult.result || '', mode: 'agi' };
+			}
 
 			// FASE 0: DECISÃO DE MODO (Assistant vs AGI)
 			onProgress?.('🧠 Analisando complexidade da tarefa...');
@@ -197,7 +209,7 @@ export class CentralOrchestratorV2 {
 		await this.moveTask(mainTask.id, 'planning');
 		onProgress?.('🗺️ Planejando decomposição de tarefas...', this.getKanbanSnapshot());
 		
-		const subTasks = await this.decomposeTask(mainTask, intention);
+		const subTasks = await this.decomposeTask(mainTask, intention, userPrompt);
 
 		// NOVO: Atualizar execution state com total de steps
 		const context = loadOrCreateContext(undefined, workDir);
@@ -294,6 +306,22 @@ export class CentralOrchestratorV2 {
 			throw new Error(`Agente não encontrado: ${agentType}`);
 		}
 
+		// NOVO: VALIDAÇÃO PROATIVA - Verificar estratégia ANTES de executar
+		if (this.errorDetector && subTask.metadata.tools && subTask.metadata.tools.length > 0) {
+			const availableTools = getAllToolDefinitions().map((t: any) => t.function.name);
+			const validation = await this.errorDetector.validateExecutionStrategy(
+				subTask.metadata.tools[0], // Tool principal
+				{}, // Args serão preenchidos pelo agent
+				subTask.title,
+				availableTools
+			);
+			
+			if (!validation.isValid) {
+				onProgress?.(`⚠️ Estratégia inválida detectada: ${validation.issues.join(', ')}`);
+				throw new Error(`Validação falhou: ${validation.issues.join(', ')}`);
+			}
+		}
+		
 		// Gerar prompt dinâmico COM CONTEXTO INJETADO
 		const agentPrompt = this.promptEngineer.generateAgentPrompt(
 			agent.type,
@@ -434,7 +462,8 @@ export class CentralOrchestratorV2 {
 	 */
 	private async decomposeTask(
 		mainTask: KanbanTask,
-		intention: any
+		intention: any,
+		userPrompt: string
 	): Promise<KanbanTask[]> {
 		if (!this.openai) throw new Error('OpenAI not initialized');
 
@@ -486,6 +515,11 @@ export class CentralOrchestratorV2 {
 		
 		const decompositionPrompt = `Você é o Orquestrador Central do FLUI AGI Superior.
 
+🎯 PROMPT ORIGINAL DO USUÁRIO (CRÍTICO - Preserve TODOS os detalhes específicos):
+"""
+${userPrompt}
+"""
+
 TAREFA PRINCIPAL: ${mainTask.title}
 OBJETIVO: ${intention.mainGoal}
 RESTRIÇÕES: ${JSON.stringify(intention.constraints)}
@@ -522,6 +556,14 @@ ${availableTools.join(', ')}
    → tools: []
 
 ❌ NUNCA use agentType="synthesis" com tools=[] para tarefas que MODIFICAM ou LEEM o sistema!
+
+⚠️ **CRÍTICO:** Ao criar sub-tarefas, PRESERVE todos os detalhes específicos do prompt original:
+   - Nomes de arquivos EXATOS
+   - Conteúdos EXATOS
+   - Parâmetros específicos
+   - Valores numéricos
+   
+NÃO REFORMULE de forma genérica! Use os detalhes EXATOS do prompt original!
 
 Decomponha em sub-tarefas ATÔMICAS e SEQUENCIAIS.
 
@@ -802,17 +844,34 @@ Formato: ${mainTask.metadata.intention?.outputFormat || 'Texto estruturado'}`;
 		return Array.from(this.kanban.values());
 	}
 
+	/**
+	 * MEMÓRIA PERFEITA: Obter contexto COMPLETO para próxima tarefa
+	 * 
+	 * Usa getContextForNextStep do Context Manager para injetar:
+	 * - Todas as tarefas completadas
+	 * - Todos os recursos criados
+	 * - Resultados intermediários relevantes
+	 * - Context carryover entre etapas
+	 */
 	private getContextForTask(subTask: KanbanTask): any {
+		// Obter contexto completo do Context Manager
+		const fullContext = getContextForNextStep(this.workDir || process.cwd());
+		
+		// Adicionar também dependências diretas (para compatibilidade)
 		const dependencies = subTask.metadata.dependencies || [];
-		const contextData: any = {};
+		const directDeps: any = {};
 
 		for (const depId of dependencies) {
 			const depTask = this.kanban.get(depId);
 			if (depTask?.metadata.result) {
-				contextData[depId] = depTask.metadata.result;
+				directDeps[depId] = depTask.metadata.result;
 			}
 		}
 
-		return contextData;
+		// Combinar contexto completo + dependências diretas
+		return {
+			fullMemory: fullContext, // Memória completa de TUDO que foi feito
+			directDependencies: directDeps, // Deps diretas desta task
+		};
 	}
 }

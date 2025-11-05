@@ -148,10 +148,18 @@ SUB-TAREFA ATUAL:
 OBJETIVO ESPECÍFICO:
 Você deve ${task.title.toLowerCase()}.`;
 
-		// Adicionar contexto de dependências
-		if (Object.keys(context).length > 0) {
-			block += `\n\nRESULTADOS DE SUB-TAREFAS ANTERIORES:`;
-			for (const [taskId, result] of Object.entries(context)) {
+		// NOVO: Adicionar memória completa (contexto de etapas anteriores)
+		if (context.previousResults && context.previousResults.fullMemory) {
+			block += `\n\n${context.previousResults.fullMemory}`;
+		}
+
+		// Adicionar contexto de dependências diretas
+		const directDeps = context.previousResults?.directDependencies || context;
+		if (Object.keys(directDeps).length > 0) {
+			block += `\n\nRESULTADOS DE SUB-TAREFAS DIRETAS:`;
+			for (const [taskId, result] of Object.entries(directDeps)) {
+				// Ignorar os metadados
+				if (taskId === 'fullMemory' || taskId === 'directDependencies') continue;
 				block += `\n\n[${taskId}]:\n${String(result).substring(0, 500)}...`;
 			}
 		}
