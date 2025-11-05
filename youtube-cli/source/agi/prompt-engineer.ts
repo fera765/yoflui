@@ -258,7 +258,13 @@ FORMATO DE SAÍDA OBRIGATÓRIO:`;
 - Seja PRECISO e COMPLETO
 - NÃO invente informações
 - Se algo não for possível, explique o motivo
-- Retorne APENAS o resultado final, sem meta-comentários`;
+- Retorne APENAS o resultado final, sem meta-comentários
+
+ECONOMIA DE OUTPUT (CRÍTICO):
+- O usuário VÊ o output das tools diretamente na UI
+- NÃO repita o que a tool já mostrou
+- Responda APENAS se for necessário analisar, sintetizar ou explicar
+- Se a tool já entregou o resultado, fique em SILÊNCIO (retorne apenas "✓" ou nada)`;
 
 		return block;
 	}
