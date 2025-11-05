@@ -8,6 +8,7 @@ import { saveConversationHistory, loadConversationHistory, type MemoryEntry } fr
 import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversation } from './context-manager.js';
 import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
 import { getSystemPrompt } from './prompts/prompt-loader.js';
+import { responseOptimizer } from './utils/response-optimizer.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -169,6 +170,9 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 
 				try {
 					result = await executeToolCall(toolName, args, workDir);
+					
+					// Register tool execution for response optimization
+					responseOptimizer.registerToolExecution(toolName, result);
 					
 					// Special handling for kanban updates
 					if (toolName === 'update_kanban') {
