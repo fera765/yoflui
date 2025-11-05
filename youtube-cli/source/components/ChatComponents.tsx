@@ -37,10 +37,17 @@ export const AssistantMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg })
 export const ToolMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
 	if (!msg.toolCall) return null;
 	
-	const config = getUIConfig();
-	const ToolComponent = config.useV2ToolBox ? ToolBoxV2 : ToolBox;
-	
-	return <ToolComponent name={msg.toolCall.name} args={msg.toolCall.args} status={msg.toolCall.status} result={msg.toolCall.result} />;
+	// SEMPRE usar ToolBoxV2 (UI elegante)
+	return (
+		<ToolBoxV2 
+			name={msg.toolCall.name} 
+			args={msg.toolCall.args} 
+			status={msg.toolCall.status} 
+			result={msg.toolCall.result}
+			startTime={Date.now()}
+			endTime={msg.toolCall.status !== 'running' ? Date.now() : undefined}
+		/>
+	);
 }, (prev, next) => {
 	if (!prev.msg.toolCall || !next.msg.toolCall) return false;
 	return (

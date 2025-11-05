@@ -102,9 +102,17 @@ export const ToolBoxV2: React.FC<ToolBoxV2Props> = React.memo(({ name, args, sta
 	const borderColor = STATUS_COLORS[status] || 'cyan';
 	const toolName = name.replace(/_/g, ' ').toUpperCase();
 	
-	const fileName = args?.file_path || args?.path || args?.pattern || '';
+	// Extrair informação relevante dos args (não mostrar JSON bruto)
+	let mainArg = '';
+	if (args?.command) mainArg = args.command;
+	else if (args?.file_path) mainArg = args.file_path;
+	else if (args?.path) mainArg = args.path;
+	else if (args?.pattern) mainArg = args.pattern;
+	else if (args?.url) mainArg = args.url;
+	
 	const isEdit = name === 'edit_file';
-	const isLog = name.includes('log') || name.includes('shell') || name.includes('command');
+	const isShell = name === 'execute_shell' || name === 'execute_command';
+	const isLog = name.includes('log') || isShell;
 	
 	let contentLines: string[] = [];
 	let hiddenCount = 0;
@@ -124,6 +132,20 @@ export const ToolBoxV2: React.FC<ToolBoxV2Props> = React.memo(({ name, args, sta
 		});
 		
 		footerStats = `${totalAdded + totalRemoved} linhas alteradas, +${charsAdded} -${charsRemoved} caracteres`;
+	} else if (result && isShell) {
+		// Shell: mostrar output limpo (últimas 10 linhas)
+		const allLines = result.split('\n').filter(l => l.trim() !== '');
+		const recentLines = allLines.slice(-MAX_VISIBLE_LINES);
+		contentLines = recentLines.map(l => `white|${l}`);
+		hiddenCount = Math.max(0, allLines.length - MAX_VISIBLE_LINES);
+		
+		// Contar arquivos/pastas se for ls
+		if (mainArg?.includes('ls')) {
+			const itemCount = allLines.length;
+			footerStats = `${itemCount} ${itemCount === 1 ? 'item' : 'itens'} encontrado${itemCount === 1 ? '' : 's'}`;
+		} else {
+			footerStats = `${allLines.length} linhas de output`;
+		}
 	} else if (result && isLog) {
 		// Logs: últimas 10 linhas (mais recentes)
 		const allLines = result.split('\n').filter(l => l.trim() !== '');
@@ -136,7 +158,19 @@ export const ToolBoxV2: React.FC<ToolBoxV2Props> = React.memo(({ name, args, sta
 		const truncated = truncateContent(result, MAX_VISIBLE_LINES);
 		contentLines = truncated.content.map(l => `white|${l}`);
 		hiddenCount = truncated.hiddenCount;
-		footerStats = result.length > 1000 ? `${(result.length / 1024).toFixed(1)}KB` : `${result.length} bytes`;
+		
+		// Stats inteligentes
+		if (name === 'find_files' || name === 'list_files') {
+			const fileCount = result.split('\n').filter(l => l.trim()).length;
+			footerStats = `${fileCount} ${fileCount === 1 ? 'arquivo' : 'arquivos'} encontrado${fileCount === 1 ? '' : 's'}`;
+		} else if (name === 'read_file') {
+			const lineCount = result.split('\n').length;
+			footerStats = `${lineCount} linhas, ${(result.length / 1024).toFixed(1)}KB`;
+		} else if (name === 'write_file') {
+			footerStats = 'Arquivo criado com sucesso';
+		} else {
+			footerStats = result.length > 1000 ? `${(result.length / 1024).toFixed(1)}KB` : `${result.length} bytes`;
+		}
 	}
 	
 	const duration = formatDuration(startTime, endTime);
@@ -161,14 +195,14 @@ export const ToolBoxV2: React.FC<ToolBoxV2Props> = React.memo(({ name, args, sta
 				)}
 				<Text>{icon} </Text>
 				<Text color={borderColor} bold>{toolName}</Text>
-				{fileName && (
+				{mainArg && (
 					<>
-						<Text color="gray"> → </Text>
-						<Text color="cyan">{fileName.length > 40 ? '...' + fileName.slice(-37) : fileName}</Text>
+						<Text color="gray">: </Text>
+						<Text color="cyan">({mainArg.length > 40 ? mainArg.substring(0, 37) + '...' : mainArg})</Text>
 					</>
 				)}
 				{duration && status !== 'running' && (
-					<Text color="gray"> ({duration})</Text>
+					<Text color="gray"> {duration}</Text>
 				)}
 			</Box>
 			
