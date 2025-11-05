@@ -123,9 +123,18 @@ export function loadOrCreateContext(userInput?: string, cwd: string = process.cw
 				context.executionState = createEmptyExecutionState();
 			}
 			
-			// Garantir que intermediateResults existe
-			if (!context.intermediateResults) {
-				context.intermediateResults = new Map();
+			// Converter intermediateResults de objeto para Map
+			if (!context.intermediateResults || !(context.intermediateResults instanceof Map)) {
+				const resultsObj = context.intermediateResults as any || {};
+				context.intermediateResults = new Map(Object.entries(resultsObj));
+			}
+			
+			// Converter lastToolOutputs de objeto para Map
+			if (context.executionState && context.executionState.lastToolOutputs) {
+				if (!(context.executionState.lastToolOutputs instanceof Map)) {
+					const outputsObj = context.executionState.lastToolOutputs as any;
+					context.executionState.lastToolOutputs = new Map(Object.entries(outputsObj));
+				}
 			}
 			
 			return context;

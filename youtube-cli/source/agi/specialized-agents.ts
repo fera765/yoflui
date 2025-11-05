@@ -78,6 +78,9 @@ Você é especialista em:
 		const systemPrompt = this.systemPrompts.get(this.type) || '';
 
 		try {
+			// DEBUG: Log allowed tools
+			console.log(`[DEBUG ${this.type}] allowedTools:`, allowedTools);
+			
 			// Filtrar tools permitidas (excluir update_kanban que é gerenciado pelo orquestrador)
 			const allTools = getAllToolDefinitions();
 			const filteredTools = allowedTools.length > 0
@@ -86,6 +89,8 @@ Você é especialista em:
 					return allowedTools.includes(toolName) && toolName !== 'update_kanban';
 				})
 				: allTools.filter(tool => (tool as any).function.name !== 'update_kanban');
+			
+			console.log(`[DEBUG ${this.type}] filteredTools count:`, filteredTools.length);
 
 			const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 				{ role: 'system', content: systemPrompt },

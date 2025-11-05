@@ -112,20 +112,23 @@ export class DualModeCoordinator {
 			}
 		}
 
-		// Comandos de ação simples (criar arquivo, ler arquivo, etc.)
-		const simpleActionPatterns = [
-			/^(criar|create|escrever|write|ler|read)\s+arquivo/i,
+		// Comandos de ação que SEMPRE requerem ferramentas (alta confiança)
+		const toolRequiredPatterns = [
+			/^(criar|create|escrever|write)\s+(um\s+)?(arquivo|file)/i,
+			/^(ler|read|mostrar|show|exibir|display)\s+(o\s+)?(conteúdo|content|arquivo|file)/i,
+			/^(listar|list|liste)\s+(os\s+)?(arquivos|files|diretórios|directories)/i,
 			/^(executar|execute|run)\s+/i,
-			/^(listar|list|mostrar|show)\s+/i,
+			/^(buscar|search|procurar|find)\s+(por\s+)?(arquivos|files)/i,
+			/\b(quantos|how many)\s+(arquivos|files)/i,
 		];
 
-		for (const pattern of simpleActionPatterns) {
+		for (const pattern of toolRequiredPatterns) {
 			if (pattern.test(userPrompt)) {
-				// Ação simples, mas requer ferramenta
+				// Ação que CLARAMENTE requer ferramenta
 				return {
 					mode: 'agi',
-					confidence: 80,
-					reasoning: 'Ação simples que requer ferramenta',
+					confidence: 95, // Alta confiança!
+					reasoning: 'Comando que requer uso de ferramentas do sistema',
 					estimatedComplexity: 'simple',
 					requiresTools: true,
 					requiresDecomposition: false,

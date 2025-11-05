@@ -11,7 +11,7 @@
  */
 
 import { CentralOrchestratorV2 } from './agi/orchestrator-v2.js';
-import { SelfValidationSystem } from './agi/self-validation.ts';
+import { SelfValidationSystem } from './agi/self-validation.js';
 import { loadQwenCredentials, getValidAccessToken } from './qwen-oauth.js';
 import { getConfig } from './llm-config.js';
 import OpenAI from 'openai';
@@ -58,11 +58,14 @@ export async function executeFluiSuperior(
 		options.onProgress?.('🚀 FLUI AGI SUPERIOR iniciando...');
 
 		// Executar orquestração
-		const result = await orchestrator.orchestrate(
+		const orchestratorResult = await orchestrator.orchestrate(
 			options.userPrompt,
 			workDir,
 			options.onProgress
 		);
+
+		const result = orchestratorResult.result;
+		const detectedMode = orchestratorResult.mode;
 
 		// Auto-validação (opcional)
 		let validationReport: string | undefined;
@@ -112,7 +115,7 @@ export async function executeFluiSuperior(
 			result,
 			validationReport,
 			executionTime,
-			mode: 'agi', // Detectado automaticamente pelo orchestrator
+			mode: detectedMode, // Detectado automaticamente pelo orchestrator
 		};
 
 	} catch (error) {

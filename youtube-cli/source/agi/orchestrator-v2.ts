@@ -111,7 +111,7 @@ export class CentralOrchestratorV2 {
 		userPrompt: string,
 		workDir: string,
 		onProgress?: (message: string, kanban?: KanbanTask[]) => void
-	): Promise<string> {
+	): Promise<{ result: string; mode: 'assistant' | 'agi' }> {
 		try {
 			await this.initialize();
 			this.workDir = workDir;
@@ -143,15 +143,16 @@ export class CentralOrchestratorV2 {
 					true
 				);
 				
-				return optimized.conciseSummary;
+				return { result: optimized.conciseSummary, mode: 'assistant' };
 			}
 
 			// MODO AGI: Orquestração completa
-			return await this.executeAGIMode(userPrompt, workDir, onProgress);
+			const agiResult = await this.executeAGIMode(userPrompt, workDir, onProgress);
+			return { result: agiResult, mode: 'agi' };
 
 		} catch (error) {
 			const errorMsg = error instanceof Error ? error.message : String(error);
-			return `❌ Erro na orquestração: ${errorMsg}`;
+			return { result: `❌ Erro na orquestração: ${errorMsg}`, mode: 'agi' };
 		}
 	}
 
@@ -452,7 +453,15 @@ export class CentralOrchestratorV2 {
 			lowerGoal.includes('desvantagens') || lowerGoal.includes('diferença') || 
 			lowerGoal.includes(' vs ') || lowerGoal.includes('versus');
 		
-		const isSimpleTask = intention.complexity === 'simple' || intention.estimatedSubTasks <= 2 || isComparison;
+		// CRÍTICO: Detectar se tarefa requer ferramentas do sistema
+		const requiresTools = lowerGoal.includes('criar arquivo') || lowerGoal.includes('create file') ||
+			lowerGoal.includes('escrever arquivo') || lowerGoal.includes('write file') ||
+			lowerGoal.includes('ler arquivo') || lowerGoal.includes('read file') ||
+			lowerGoal.includes('listar') || lowerGoal.includes('list') ||
+			lowerGoal.includes('executar') || lowerGoal.includes('execute') ||
+			lowerGoal.includes('buscar arquivo') || lowerGoal.includes('find file');
+		
+		const isSimpleTask = (intention.complexity === 'simple' || intention.estimatedSubTasks <= 2 || isComparison) && !requiresTools;
 		
 		if (isSimpleTask) {
 			return [{
