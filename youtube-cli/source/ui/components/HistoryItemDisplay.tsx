@@ -10,11 +10,8 @@ import { escapeAnsiCtrlCodes } from '../utils/textUtils.js';
 import type { HistoryItem } from '../types.js';
 import { UserMessage } from './messages/UserMessage.js';
 import { AssistantMessage } from './messages/AssistantMessage.js';
-import { ToolMessage } from './messages/ToolMessage.js';
 import { ToolMessageV2 } from './messages/ToolMessageV2.js';
-import { ToolGroupMessage } from './messages/ToolGroupMessage.js';
 import { ToolGroupMessageV2 } from './messages/ToolGroupMessageV2.js';
-import { getUIConfig } from '../../config/ui-config.js';
 import { KanbanMessage } from './messages/KanbanMessage.js';
 import { InfoMessage } from './messages/InfoMessage.js';
 import { ErrorMessage } from './messages/ErrorMessage.js';
@@ -56,7 +53,7 @@ const HistoryItemDisplayComponent: React.FC<HistoryItemDisplayProps> = ({
 			
 			{/* Single tool */}
 			{itemForDisplay.type === 'tool' && (
-				<ToolMessage 
+				<ToolMessageV2 
 					tool={itemForDisplay.tool} 
 					terminalWidth={terminalWidth}
 				/>
@@ -64,7 +61,7 @@ const HistoryItemDisplayComponent: React.FC<HistoryItemDisplayProps> = ({
 			
 			{/* Tool group */}
 			{itemForDisplay.type === 'tool_group' && (
-				<ToolGroupMessage
+				<ToolGroupMessageV2
 					tools={itemForDisplay.tools}
 					terminalWidth={terminalWidth}
 				/>

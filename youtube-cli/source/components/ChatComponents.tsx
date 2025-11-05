@@ -1,8 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
-import { ToolBox } from './ToolBox.js';
 import { ToolBoxV2 } from './v2/ToolBoxV2.js';
-import { getUIConfig } from '../config/ui-config.js';
 
 export interface ChatMessage {
 	id: string;
