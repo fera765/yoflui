@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { ToolBox } from './ToolBox.js';
+import { ToolBoxV2 } from './v2/ToolBoxV2.js';
+import { getUIConfig } from '../config/ui-config.js';
 
 export interface ChatMessage {
 	id: string;
@@ -35,7 +37,10 @@ export const AssistantMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg })
 export const ToolMsg: React.FC<{ msg: ChatMessage }> = React.memo(({ msg }) => {
 	if (!msg.toolCall) return null;
 	
-	return <ToolBox name={msg.toolCall.name} args={msg.toolCall.args} status={msg.toolCall.status} result={msg.toolCall.result} />;
+	const config = getUIConfig();
+	const ToolComponent = config.useV2ToolBox ? ToolBoxV2 : ToolBox;
+	
+	return <ToolComponent name={msg.toolCall.name} args={msg.toolCall.args} status={msg.toolCall.status} result={msg.toolCall.result} />;
 }, (prev, next) => {
 	if (!prev.msg.toolCall || !next.msg.toolCall) return false;
 	return (
