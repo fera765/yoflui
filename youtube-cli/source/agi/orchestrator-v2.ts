@@ -180,20 +180,15 @@ export class CentralOrchestratorV2 {
 			throw new Error('Sistema não inicializado');
 		}
 
-		// FASE 1: Análise de Intenção
-		onProgress?.('🎯 Analisando intenção e extraindo requisitos...');
+		// FASE 1: Análise de Intenção (silencioso)
 		const intention = await this.intentionAnalyzer.analyze(userPrompt, this.openai);
 
-		// NOVO: Prever possíveis problemas
+		// Prever possíveis problemas (silencioso)
 		if (this.errorDetector) {
 			const potentialIssues = await this.errorDetector.predictPotentialIssues(
 				intention.mainGoal,
 				[]
 			);
-			
-			if (potentialIssues.length > 0) {
-				onProgress?.(`⚠️ Prevenindo ${potentialIssues.length} possíveis problemas...`);
-			}
 		}
 
 		// FASE 2: Criar tarefa principal no Kanban
@@ -203,11 +198,12 @@ export class CentralOrchestratorV2 {
 			undefined,
 			{ intention }
 		);
-		onProgress?.('📋 Tarefa recebida no Kanban', this.getKanbanSnapshot());
+		// Enviar primeiro update do Kanban
+		onProgress?.('', this.getKanbanSnapshot());
 
 		// FASE 3: Planejamento - Decompor em sub-tarefas
 		await this.moveTask(mainTask.id, 'planning');
-		onProgress?.('🗺️ Planejando decomposição de tarefas...', this.getKanbanSnapshot());
+		onProgress?.('', this.getKanbanSnapshot());
 		
 		const subTasks = await this.decomposeTask(mainTask, intention, userPrompt);
 
@@ -220,7 +216,8 @@ export class CentralOrchestratorV2 {
 			await this.moveTask(subTask.id, 'execution_queue');
 		}
 		await this.moveTask(mainTask.id, 'in_progress');
-		onProgress?.('⚡ Sub-tarefas na fila de execução', this.getKanbanSnapshot());
+		// Update Kanban: tasks na fila
+		onProgress?.('', this.getKanbanSnapshot());
 
 		// FASE 5: Executar sub-tarefas sequencialmente COM CONTEXTO PERFEITO
 		const results: Map<string, string> = new Map();
@@ -228,11 +225,8 @@ export class CentralOrchestratorV2 {
 		for (let i = 0; i < subTasks.length; i++) {
 			const subTask = subTasks[i];
 			
-			// NOVO: Injetar contexto de etapas anteriores
+			// Injetar contexto de etapas anteriores (silencioso)
 			const contextData = getContextForNextStep(workDir);
-			if (contextData) {
-				onProgress?.(`📚 Contexto de ${i} etapas anteriores injetado`);
-			}
 			
 			// Executar com detecção proativa de erros
 			const result = await this.executeSubTaskWithErrorDetection(
@@ -259,7 +253,10 @@ export class CentralOrchestratorV2 {
 		const finalResult = await this.synthesizeResults(mainTask, subTasks, results);
 		await this.moveTask(mainTask.id, 'delivery');
 
-		// NOVO: Gerar resumo otimizado
+		// Update final do Kanban (todas tasks concluídas)
+		onProgress?.('', this.getKanbanSnapshot());
+
+		// Gerar resumo otimizado
 		const resourcesCreated = context.executionState.resourcesCreated.map(
 			r => `${r.type}: ${r.identifier}`
 		);
@@ -272,8 +269,7 @@ export class CentralOrchestratorV2 {
 			finalResult
 		);
 
-		onProgress?.('✅ Tarefa concluída e entregue!', this.getKanbanSnapshot());
-
+		// RESULTADO FINAL vem DEPOIS do Kanban completo
 		return optimizedSummary;
 	}
 
