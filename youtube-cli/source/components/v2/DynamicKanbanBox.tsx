@@ -212,9 +212,11 @@ export const DynamicKanbanBox: React.FC<DynamicKanbanBoxProps> = React.memo(({
 										</Text>
 									</Box>
 									{!compact && task.description && (
-										<Text color="gray" dimColor marginLeft={2}>
-											{task.description}
-										</Text>
+										<Box marginLeft={2}>
+											<Text color="gray" dimColor>
+												{task.description}
+											</Text>
+										</Box>
 									)}
 								</Box>
 							);
