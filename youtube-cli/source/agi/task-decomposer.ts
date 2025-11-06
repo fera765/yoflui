@@ -174,23 +174,43 @@ function fallbackDecomposition(prompt: string): Subtask[] {
 	const subtasks: Subtask[] = [];
 	let taskId = 1;
 	
-	// Detectar listas numeradas
+	// Detectar listas numeradas (requisitos)
 	const numberedItems = prompt.match(/(\d+[.)]\s+[^\n]+)/g) || [];
 	
-	if (numberedItems.length > 0) {
+	if (numberedItems.length >= 3) {
 		// Criar subtask para cada item numerado
-		for (const item of numberedItems) {
+		for (let i = 0; i < numberedItems.length; i++) {
+			const item = numberedItems[i];
 			const description = item.replace(/^\d+[.)]\s+/, '').trim();
+			
+			// Determinar dependências inteligentes
+			const deps: string[] = [];
+			if (i > 0 && i === 1) {
+				deps.push(String(taskId - 1)); // Task 2 depende da 1
+			} else if (i > 1) {
+				// Tasks subsequentes podem depender de múltiplas anteriores
+				deps.push(String(taskId - 1));
+			}
 			
 			subtasks.push({
 				id: String(taskId++),
-				title: description.substring(0, 50),
+				title: description.length > 60 ? description.substring(0, 60) + '...' : description,
 				description,
-				dependencies: taskId > 2 ? [String(taskId - 2)] : [], // Depende da anterior
-				estimated_tokens: 2000,
-				priority: 5
+				dependencies: deps,
+				estimated_tokens: 2500,
+				priority: 10 - Math.floor(i / 2) // Primeiras têm prioridade maior
 			});
 		}
+		
+		// Adicionar task final de validação
+		subtasks.push({
+			id: String(taskId++),
+			title: 'Validar projeto completo',
+			description: 'Verificar se todos os requisitos foram atendidos e testar funcionamento',
+			dependencies: [String(taskId - 1)],
+			estimated_tokens: 1000,
+			priority: 1
+		});
 	} else {
 		// Decomposição genérica baseada em keywords
 		const patterns = [
@@ -223,19 +243,105 @@ function fallbackDecomposition(prompt: string): Subtask[] {
 /**
  * Converte subtasks para formato Kanban
  */
+/**
+ * Inferir tipo de agente baseado no título/descrição da tarefa
+ */
+function inferAgentType(title: string, description: string): string {
+	const combined = `${title} ${description}`.toLowerCase();
+	
+	// Código/Desenvolvimento
+	if (/criar.*componente|implementar|desenvolver|código|typescript|react|configurar.*arquivo/i.test(combined)) {
+		return 'code';
+	}
+	
+	// Pesquisa/Análise
+	if (/pesquisar|analisar|investigar|buscar|estudar/i.test(combined)) {
+		return 'research';
+	}
+	
+	// Automação/Script
+	if (/automatizar|script|comando|executar.*shell|rodar.*npm/i.test(combined)) {
+		return 'automation';
+	}
+	
+	// Teste/Validação
+	if (/testar|validar|verificar|conferir/i.test(combined)) {
+		return 'analysis';
+	}
+	
+	// Documentação/Síntese
+	if (/documentar|escrever|criar.*readme|finalizar|resumir/i.test(combined)) {
+		return 'synthesis';
+	}
+	
+	// Default para código (frontend é principalmente código)
+	return 'code';
+}
+
+/**
+ * Inferir tools necessárias baseado no título/descrição
+ */
+function inferTools(title: string, description: string): string[] {
+	const combined = `${title} ${description}`.toLowerCase();
+	const tools: string[] = [];
+	
+	// Shell commands
+	if (/npm|instalar|comando|executar|criar.*projeto|vite/i.test(combined)) {
+		tools.push('execute_shell');
+	}
+	
+	// File operations
+	if (/criar.*arquivo|escrever|configurar.*arquivo|componente/i.test(combined)) {
+		tools.push('write_file');
+	}
+	
+	// Read operations
+	if (/ler|verificar|analisar.*arquivo/i.test(combined)) {
+		tools.push('read_file');
+	}
+	
+	// Folder operations
+	if (/estruturar.*pastas|criar.*pasta|organizar/i.test(combined)) {
+		tools.push('read_folder');
+	}
+	
+	// Web search
+	if (/pesquisar|buscar.*online|consultar/i.test(combined)) {
+		tools.push('web_search');
+	}
+	
+	// Se não detectou nenhuma, assume write_file como padrão
+	if (tools.length === 0) {
+		tools.push('write_file');
+	}
+	
+	return tools;
+}
+
 export function convertToKanbanTasks(subtasks: Subtask[]): any[] {
-	return subtasks.map((subtask, index) => ({
-		id: subtask.id,
-		title: subtask.title,
-		description: subtask.description,
-		status: index === 0 ? 'in_progress' : 'todo',
-		column: index === 0 ? 'in_progress' : 'todo',
-		dependencies: subtask.dependencies,
-		metadata: {
-			estimated_tokens: subtask.estimated_tokens,
-			priority: subtask.priority
-		}
-	}));
+	return subtasks.map((subtask, index) => {
+		const agentType = inferAgentType(subtask.title, subtask.description);
+		const tools = inferTools(subtask.title, subtask.description);
+		
+		return {
+			id: subtask.id,
+			title: subtask.title,
+			description: subtask.description,
+			status: index === 0 ? 'in_progress' : 'todo',
+			column: 'execution_queue', // Sempre queue, o orchestrator movimenta
+			dependencies: subtask.dependencies,
+			metadata: {
+				agentType,
+				tools,
+				estimated_tokens: subtask.estimated_tokens,
+				priority: subtask.priority,
+				validation: `${subtask.title} completed successfully`,
+				decomposed: true, // Flag para indicar que args serão gerados pelo agent
+				stepIndex: index + 1,
+				totalSteps: subtasks.length
+			}
+		};
+	});
 }
 
 /**

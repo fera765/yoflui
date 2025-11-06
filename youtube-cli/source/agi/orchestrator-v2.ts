@@ -507,7 +507,8 @@ export class CentralOrchestratorV2 {
 		}
 
 		// NOVO: VALIDAÇÃO PROATIVA - Verificar estratégia ANTES de executar
-		if (this.errorDetector && subTask.metadata.tools && subTask.metadata.tools.length > 0) {
+		// Skip para tarefas decompostas automaticamente (args serão gerados pelo agent)
+		if (this.errorDetector && subTask.metadata.tools && subTask.metadata.tools.length > 0 && !subTask.metadata.decomposed) {
 			const availableTools = getAllToolDefinitions().map((t: any) => t.function.name);
 			const validation = await this.errorDetector.validateExecutionStrategy(
 				subTask.metadata.tools[0], // Tool principal
