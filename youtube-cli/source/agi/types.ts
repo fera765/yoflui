@@ -83,3 +83,55 @@ export interface FourBlockPrompt {
 	tools: string;          // Bloco 3: Ferramentas e Automação
 	output: string;         // Bloco 4: Formato de Saída e Validação
 }
+
+/**
+ * Feedback do FLUI
+ */
+export interface FluiFeedback {
+	type: 'info' | 'action' | 'success' | 'thinking';
+	message: string;
+	timestamp: number;
+}
+
+/**
+ * Pergunta ao Usuário
+ */
+export interface UserQuestion {
+	id: string;
+	question: string;
+	context?: string;
+	placeholder?: string;
+	required: boolean;
+}
+
+/**
+ * Resposta do Usuário
+ */
+export interface UserAnswer {
+	questionId: string;
+	answer: string;
+	timestamp: number;
+}
+
+/**
+ * Progress Update (para UI)
+ */
+export interface ProgressUpdate {
+	type: 'feedback' | 'kanban' | 'tool' | 'question';
+	data: FluiFeedback | KanbanTask[] | ToolExecution | UserQuestion;
+	timestamp: number;
+}
+
+/**
+ * Execução de Tool (para UI)
+ */
+export interface ToolExecution {
+	id: string;
+	name: string;
+	args: any;
+	status: 'waiting' | 'running' | 'complete' | 'error';
+	result?: string;
+	startTime?: number;
+	endTime?: number;
+	error?: string;
+}

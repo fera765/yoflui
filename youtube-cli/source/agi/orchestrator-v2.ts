@@ -1,14 +1,15 @@
 import OpenAI from 'openai';
 import { getConfig } from '../llm-config.js';
 import { loadQwenCredentials, getValidAccessToken } from '../qwen-oauth.js';
-import { KanbanColumn, KanbanTask, UtilityScore } from './types.js';
-import { SpecializedAgent, AgentType } from './specialized-agents.js';
+import { KanbanColumn, KanbanTask, UtilityScore, FluiFeedback, ToolExecution } from './types.js';
+import { SpecializedAgent, AgentType, ToolExecutionCallback } from './specialized-agents.js';
 import { IntentionAnalyzer } from './intention-analyzer.js';
 import { PromptEngineer } from './prompt-engineer.js';
 import { AutomationAgent } from './automation-agent.js';
 import { DualModeCoordinator, ExecutionMode } from './dual-mode-coordinator.js';
 import { ProactiveErrorDetector } from './proactive-error-detector.js';
 import { OutputOptimizer } from './output-optimizer.js';
+import { FeedbackGenerator } from './feedback-generator.js';
 import {
 	loadOrCreateContext,
 	recordIntermediateResult,
@@ -49,17 +50,31 @@ export class CentralOrchestratorV2 {
 	private dualModeCoordinator: DualModeCoordinator | null = null;
 	private errorDetector: ProactiveErrorDetector | null = null;
 	private outputOptimizer: OutputOptimizer;
+	private feedbackGenerator: FeedbackGenerator | null = null;
 	private shortCircuit: ShortCircuitExecutor;
 	private taskIdCounter = 0;
 	private initialized = false;
 	private replanAttempts: Map<string, number> = new Map();
 	private workDir: string = process.cwd();
+	private onFeedback?: (feedback: FluiFeedback) => void;
+	private onToolExecution?: (toolExec: ToolExecution) => void;
 
 	constructor() {
 		this.promptEngineer = new PromptEngineer();
 		this.automationAgent = new AutomationAgent();
 		this.outputOptimizer = new OutputOptimizer();
 		this.shortCircuit = new ShortCircuitExecutor();
+	}
+	
+	/**
+	 * Configurar callbacks para UI
+	 */
+	setCallbacks(callbacks: {
+		onFeedback?: (feedback: FluiFeedback) => void;
+		onToolExecution?: (toolExec: ToolExecution) => void;
+	}) {
+		this.onFeedback = callbacks.onFeedback;
+		this.onToolExecution = callbacks.onToolExecution;
 	}
 
 	/**
@@ -89,13 +104,25 @@ export class CentralOrchestratorV2 {
 			this.intentionAnalyzer = new IntentionAnalyzer();
 			this.dualModeCoordinator = new DualModeCoordinator(this.openai);
 			this.errorDetector = new ProactiveErrorDetector(this.openai);
+			this.feedbackGenerator = new FeedbackGenerator(this.openai);
 
-			// Inicializar agentes especializados
+			// Inicializar agentes especializados com callbacks
+			const toolCallback: ToolExecutionCallback = (toolExec) => {
+				if (this.onToolExecution) {
+					this.onToolExecution(toolExec);
+				}
+			};
+			
 			this.agents.set('research', new SpecializedAgent('research', this.openai));
 			this.agents.set('code', new SpecializedAgent('code', this.openai));
 			this.agents.set('automation', new SpecializedAgent('automation', this.openai));
 			this.agents.set('analysis', new SpecializedAgent('analysis', this.openai));
 			this.agents.set('synthesis', new SpecializedAgent('synthesis', this.openai));
+			
+			// Configurar callbacks em todos os agentes
+			for (const agent of this.agents.values()) {
+				agent.setToolExecutionCallback(toolCallback);
+			}
 
 			this.initialized = true;
 		} catch (error) {
@@ -191,6 +218,12 @@ export class CentralOrchestratorV2 {
 			);
 		}
 
+		// FEEDBACK: Informar criação do kanban
+		if (this.feedbackGenerator && this.onFeedback) {
+			const feedback = this.feedbackGenerator.generateKanbanCreationFeedback(userPrompt);
+			this.onFeedback(feedback);
+		}
+		
 		// FASE 2: Criar tarefa principal no Kanban
 		const mainTask = this.createTask(
 			intention.mainGoal,
@@ -274,7 +307,7 @@ export class CentralOrchestratorV2 {
 	}
 
 	/**
-	 * NOVO: Execução de Sub-Tarefa COM DETECÇÃO PROATIVA DE ERROS
+	 * NOVO: Execução de Sub-Tarefa COM DETECÇÃO PROATIVA DE ERROS E FEEDBACK
 	 */
 	private async executeSubTaskWithErrorDetection(
 		subTask: KanbanTask,
@@ -282,6 +315,16 @@ export class CentralOrchestratorV2 {
 		contextData: string,
 		onProgress?: (message: string, kanban?: KanbanTask[]) => void
 	): Promise<string> {
+		// FEEDBACK: Informar o que vai fazer
+		if (this.feedbackGenerator && this.onFeedback) {
+			const feedback = await this.feedbackGenerator.generateToolExecutionFeedback(
+				subTask.metadata.tools?.[0] || 'synthesis',
+				{},
+				subTask.title
+			);
+			this.onFeedback(feedback);
+		}
+		
 		// Mover para "Em Andamento"
 		await this.moveTask(subTask.id, 'in_progress');
 		
@@ -371,6 +414,15 @@ export class CentralOrchestratorV2 {
 			if (isValid) {
 				await this.moveTask(subTask.id, 'completed');
 				subTask.metadata.result = result;
+				
+				// FEEDBACK: Tarefa concluída
+				if (this.feedbackGenerator && this.onFeedback) {
+					const feedback = this.feedbackGenerator.generateTaskCompletionFeedback(
+						subTask.title,
+						true
+					);
+					this.onFeedback(feedback);
+				}
 				
 				const completedMsg = this.outputOptimizer.formatProgress(
 					subTask.metadata.stepIndex || 0,
