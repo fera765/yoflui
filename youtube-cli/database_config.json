@@ -1,0 +1,29 @@
+{
+  "development": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "myapp_dev",
+    "username": "postgres",
+    "password": "password123",
+    "dialect": "postgres",
+    "logging": true
+  },
+  "production": {
+    "host": "prod-db-server",
+    "port": 5432,
+    "database": "myapp_prod",
+    "username": "postgres",
+    "password": "securepassword",
+    "dialect": "postgres",
+    "logging": false
+  },
+  "test": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "myapp_test",
+    "username": "postgres",
+    "password": "password123",
+    "dialect": "postgres",
+    "logging": true
+  }
+}
