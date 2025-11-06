@@ -4,7 +4,7 @@
  */
 
 // Types
-export type * from './types.js';
+export * from './types.js';
 
 // Contexts
 export { OverflowProvider, useOverflowContext, useOverflowActions } from './contexts/OverflowContext.js';

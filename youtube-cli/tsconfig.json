@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
+    "module": "ESNext",
     "lib": ["ES2020"],
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -11,7 +11,8 @@
     "rootDir": "./",
     "sourceMap": true,
     "declaration": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "jsx": "react",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
@@ -23,6 +24,11 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "product-viewer",
+    "fitness-app",
+    "my-react-app",
+    "my-project",
+    "work"
   ]
 }

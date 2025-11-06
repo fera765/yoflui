@@ -41,9 +41,9 @@ export async function executeYouTubeTool(query: string): Promise<YouTubeToolResu
 			config.maxCommentsPerVideo
 		);
 		
-		// Flatten all comments with video context
-		const allComments = result.videos.flatMap((videoData) =>
-			videoData.comments.map((comment) => ({
+	// Flatten all comments with video context
+	const allComments = result.videos.flatMap((videoData: any) =>
+		videoData.comments.map((comment: any) => ({
 				videoTitle: videoData.video.title,
 				videoUrl: videoData.video.url,
 				comment: comment.text,
@@ -52,12 +52,12 @@ export async function executeYouTubeTool(query: string): Promise<YouTubeToolResu
 			}))
 		);
 
-		// Format videos with transcript info
-		const videosWithData = result.videos.map((videoData) => ({
+	// Format videos with transcript info
+	const videosWithData = result.videos.map((videoData: any) => ({
 			videoTitle: videoData.video.title,
 			videoUrl: videoData.video.url,
 			videoId: videoData.video.id,
-			comments: videoData.comments.map((comment) => ({
+			comments: videoData.comments.map((comment: any) => ({
 				comment: comment.text,
 				author: comment.author,
 				likes: comment.likes || 0,
