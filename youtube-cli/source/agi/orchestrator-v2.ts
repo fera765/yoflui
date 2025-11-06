@@ -20,6 +20,8 @@ import {
 } from '../context-manager.js';
 import { getAllToolDefinitions } from '../tools/index.js';
 import { ShortCircuitExecutor } from './short-circuit-executor.js';
+import { detectLargeTask, decomposeTask as decomposeTaskLarge, convertToKanbanTasks, formatDecompositionReport } from './task-decomposer.js';
+import { validateTaskCompletion, formatValidationReport } from './task-validator.js';
 
 /**
  * ORQUESTRADOR CENTRAL V2 - FLUI AGI SUPERIOR
@@ -210,6 +212,94 @@ export class CentralOrchestratorV2 {
 		// FASE 1: Análise de Intenção (silencioso)
 		const intention = await this.intentionAnalyzer.analyze(userPrompt, this.openai);
 
+		// NOVO: Detectar e decompor tarefas grandes ANTES do planejamento
+		const isLarge = detectLargeTask(userPrompt);
+		console.log(`[DEBUG] detectLargeTask result: ${isLarge}, prompt length: ${userPrompt.length}`);
+		
+		if (isLarge) {
+			console.log('[DEBUG] Entrando em decomposição automática...');
+			onProgress?.('🔍 Tarefa complexa detectada - iniciando decomposição automática...');
+			
+			try {
+				const decomposition = await decomposeTaskLarge(userPrompt, this.openai);
+				
+				if (decomposition.shouldDecompose) {
+					// Exibir plano de decomposição
+					const decompReport = formatDecompositionReport(decomposition);
+					onProgress?.(decompReport);
+					
+					// Converter subtasks para formato Kanban
+					const kanbanSubtasks = convertToKanbanTasks(decomposition.subtasks);
+					
+					// Criar task principal
+					const mainTask = this.createTask(
+						intention.mainGoal,
+						'received',
+						undefined,
+						{ intention, decomposed: true }
+					);
+					
+					// Criar todas as subtasks no Kanban
+					const createdSubtasks: KanbanTask[] = [];
+					for (const kanbTask of kanbanSubtasks) {
+						const subTask = this.createTask(
+							kanbTask.title,
+							'execution_queue',
+							mainTask.id,
+							{
+								...kanbTask.metadata,
+								stepIndex: createdSubtasks.length + 1,
+								totalSteps: kanbanSubtasks.length
+							}
+						);
+						createdSubtasks.push(subTask);
+					}
+					
+					// Executar subtasks sequencialmente
+					const results = new Map<string, string>();
+					const context = loadOrCreateContext(undefined, workDir);
+					context.executionState.totalSteps = createdSubtasks.length;
+					
+					for (const subTask of createdSubtasks) {
+						await this.moveTask(subTask.id, 'in_progress');
+						onProgress?.('', this.getKanbanSnapshot());
+						
+						const contextData = getContextForNextStep(workDir);
+						const result = await this.executeSubTaskWithErrorDetection(
+							subTask,
+							workDir,
+							contextData,
+							onProgress
+						);
+						
+						results.set(subTask.id, result);
+						
+						recordIntermediateResult(
+							subTask.id,
+							subTask.title,
+							result,
+							subTask.metadata.tools || [],
+							!result.includes('Error:'),
+							workDir
+						);
+						
+						await this.moveTask(subTask.id, 'completed');
+						onProgress?.('', this.getKanbanSnapshot());
+					}
+					
+					// Sintetizar resultados
+					const finalResult = await this.synthesizeResults(mainTask, createdSubtasks, results);
+					await this.moveTask(mainTask.id, 'delivery');
+					onProgress?.('', this.getKanbanSnapshot());
+					
+					return finalResult;
+				}
+			} catch (error) {
+				onProgress?.(`⚠️ Decomposição falhou: ${error instanceof Error ? error.message : String(error)}`);
+				// Continua com fluxo normal se decomposição falhar
+			}
+		}
+
 		// Prever possíveis problemas (silencioso)
 		if (this.errorDetector) {
 			const potentialIssues = await this.errorDetector.predictPotentialIssues(
@@ -288,6 +378,77 @@ export class CentralOrchestratorV2 {
 
 		// Update final do Kanban (todas tasks concluídas)
 		onProgress?.('', this.getKanbanSnapshot());
+
+		// NOVO: Validar se TODOS os requisitos foram cumpridos
+		const executedSteps = Array.from(results.entries()).map(([id, result]) => ({
+			id,
+			tool: subTasks.find(t => t.id === id)?.metadata?.tools?.[0] || 'unknown',
+			result
+		}));
+		
+		const validation = validateTaskCompletion(userPrompt, executedSteps, finalResult);
+		
+		// Exibir relatório de validação
+		const validationReport = formatValidationReport(validation);
+		onProgress?.(validationReport);
+		
+		// Se não está completo E tem requisitos críticos faltando, tentar completar
+		if (!validation.complete && validation.missingRequirements.length > 0) {
+			const criticalMissing = validation.missingRequirements.filter(r => r.priority === 'critical');
+			
+			if (criticalMissing.length > 0) {
+				onProgress?.(`⚠️ ${criticalMissing.length} requisito(s) crítico(s) pendente(s) - continuando execução...`);
+				
+				// Criar subtasks adicionais para requisitos faltantes
+				for (const req of criticalMissing.slice(0, 3)) { // Máximo 3 requisitos adicionais
+					const additionalTask = this.createTask(
+						req.description,
+						'execution_queue',
+						mainTask.id,
+						{
+							stepIndex: subTasks.length + 1,
+							totalSteps: subTasks.length + criticalMissing.length,
+							isCritical: true
+						}
+					);
+					
+					await this.moveTask(additionalTask.id, 'in_progress');
+					onProgress?.('', this.getKanbanSnapshot());
+					
+					const contextData = getContextForNextStep(workDir);
+					const additionalResult = await this.executeSubTaskWithErrorDetection(
+						additionalTask,
+						workDir,
+						contextData,
+						onProgress
+					);
+					
+					results.set(additionalTask.id, additionalResult);
+					subTasks.push(additionalTask);
+					
+					await this.moveTask(additionalTask.id, 'completed');
+					onProgress?.('', this.getKanbanSnapshot());
+				}
+				
+				// Re-sintetizar com novos resultados
+				const updatedFinalResult = await this.synthesizeResults(mainTask, subTasks, results);
+				await this.moveTask(mainTask.id, 'delivery');
+				onProgress?.('', this.getKanbanSnapshot());
+				
+				// Gerar resumo final atualizado
+				const resourcesCreated = context.executionState.resourcesCreated.map(
+					r => `${r.type}: ${r.identifier}`
+				);
+				
+				return this.outputOptimizer.generateExecutionSummary(
+					mainTask.title,
+					context.executionState.completedTasks.length,
+					context.executionState.totalSteps,
+					resourcesCreated,
+					updatedFinalResult
+				);
+			}
+		}
 
 		// Gerar resumo otimizado
 		const resourcesCreated = context.executionState.resourcesCreated.map(
