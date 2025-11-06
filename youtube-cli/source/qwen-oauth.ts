@@ -1,7 +1,38 @@
 /**
  * Qwen OAuth 2.0 Device Flow Implementation
- * Based on official Qwen Code implementation
- * Uses Device Authorization Grant (RFC 8628)
+ * 
+ * Responsabilidade Única: Gerenciar autenticação OAuth 2.0 com o serviço Qwen
+ * 
+ * Este módulo implementa o fluxo de autorização de dispositivo (RFC 8628) para
+ * autenticação com a API Qwen. O fluxo funciona da seguinte forma:
+ * 
+ * Fluxo de Autenticação:
+ * 1. Cliente solicita código de dispositivo ao servidor OAuth
+ * 2. Servidor retorna device_code e user_code
+ * 3. Usuário acessa URL de verificação e insere user_code
+ * 4. Cliente faz polling no endpoint de token até receber autorização
+ * 5. Token de acesso é salvo localmente para uso futuro
+ * 
+ * Gerenciamento de Tokens:
+ * - Tokens são salvos em qwen-credentials.json no diretório do projeto
+ * - Tokens expirados são automaticamente renovados usando refresh_token
+ * - Validação de expiração antes de cada uso
+ * 
+ * Lógica de Negócio:
+ * - Suporta PKCE (Proof Key for Code Exchange) para segurança adicional
+ * - Implementa backoff exponencial em caso de rate limiting
+ * - Fallback automático para refresh token quando necessário
+ * 
+ * Uso:
+ * ```typescript
+ * import { authenticateWithQwen, getValidAccessToken } from './qwen-oauth.js';
+ * 
+ * // Autenticação inicial (abre navegador)
+ * const creds = await authenticateWithQwen();
+ * 
+ * // Obter token válido (renova automaticamente se expirado)
+ * const token = await getValidAccessToken();
+ * ```
  */
 
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';

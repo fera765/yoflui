@@ -10,7 +10,16 @@ import chalk from 'chalk';
 import { useTextBuffer } from '../state/text-buffer.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { keyMatchers, Command, type Key } from '../config/keyMatchers.js';
-import { cpSlice, cpLen } from '../utils/textUtils.js';
+
+// Funções utilitárias simples para manipulação de strings Unicode
+const cpSlice = (str: string, start: number, end?: number): string => {
+	const points = [...str];
+	return points.slice(start, end).join('');
+};
+
+const cpLen = (str: string): number => {
+	return [...str].length;
+};
 
 export interface TextInputProps {
 	value: string;

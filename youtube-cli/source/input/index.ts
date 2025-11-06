@@ -19,6 +19,3 @@ export type { ChatInputProps } from './components/ChatInput.js';
 // Config
 export { keyMatchers, Command, createKeyMatchers, defaultKeyBindings } from './config/keyMatchers.js';
 export type { Key, KeyBinding, KeyBindingConfig, KeyMatcher, KeyMatchers } from './config/keyMatchers.js';
-
-// Utils
-export * from './utils/textUtils.js';

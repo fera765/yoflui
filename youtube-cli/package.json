@@ -1,19 +1,14 @@
 {
-  "name": "hello-world-project",
+  "name": "flui-agi",
   "version": "1.0.0",
-  "description": "A simple Node.js project with a hello function",
+  "description": "FLUI AGI Superior - Sistema de Automação Inteligente",
   "type": "module",
   "main": "hello.js",
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/cli.js",
     "dev": "npx tsx source/cli.tsx",
-    "test": "npx tsx test-autonomous.ts",
-    "test:e2e": "npx tsx test-e2e.ts",
-    "test:full": "npx tsx test-full-system.ts",
-    "test:flui-simple": "npx tsx tests/test-flui-superior-simple.mjs",
-    "test:flui-complex": "npx tsx tests/test-flui-superior-complex.mjs",
-    "test:flui-all": "npm run test:flui-simple && npm run test:flui-complex"
+    "test:e2e": "node test-e2e-validation.mjs"
   },
   "keywords": [
     "hello",
@@ -23,8 +18,6 @@
   "author": "AI Agent",
   "license": "MIT",
   "devDependencies": {
-    "@swc-node/register": "^1.11.1",
-    "@swc/core": "^1.14.0",
     "@types/node": "^24.9.2",
     "@types/react": "^19.2.2",
     "tsx": "^4.20.6",
@@ -43,7 +36,6 @@
     "ink-text-input": "^6.0.0",
     "openai": "^6.7.0",
     "p-queue": "^9.0.0",
-    "puppeteer": "^24.27.0",
     "react": "^19.2.0",
     "scrape-youtube": "^2.4.0",
     "socks-proxy-agent": "^8.0.5",
