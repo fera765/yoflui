@@ -4,8 +4,47 @@
  * Manages text state with undo/redo and multiline support
  */
 
+/**
+ * Text Buffer State Management
+ * Simplified version of qwen-code text-buffer
+ * Manages text state with undo/redo and multiline support
+ */
+
 import { useState, useCallback, useMemo, useReducer, useRef, useEffect } from 'react';
-import { cpLen, cpSlice, toCodePoints, stripUnsafeCharacters, findNextWordStart, findPrevWordStart } from '../utils/textUtils.js';
+
+// Funções utilitárias para manipulação de strings Unicode
+const toCodePoints = (str: string): string[] => [...str];
+const cpLen = (str: string): number => [...str].length;
+const cpSlice = (str: string, start: number, end?: number): string => {
+	const points = toCodePoints(str);
+	return points.slice(start, end).join('');
+};
+const stripUnsafeCharacters = (str: string): string => {
+	return str.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+};
+const isWordChar = (ch: string | undefined): boolean => {
+	if (ch === undefined) return false;
+	return !/[\s,.;!?]/.test(ch);
+};
+const isWhitespace = (char: string): boolean => /\s/.test(char);
+const findNextWordStart = (line: string, col: number): number | null => {
+	const chars = toCodePoints(line);
+	let i = col;
+	if (i >= chars.length) return null;
+	while (i < chars.length && isWordChar(chars[i])) i++;
+	while (i < chars.length && isWhitespace(chars[i])) i++;
+	return i < chars.length ? i : null;
+};
+const findPrevWordStart = (line: string, col: number): number | null => {
+	const chars = toCodePoints(line);
+	let i = col;
+	if (i <= 0) return null;
+	i--;
+	while (i >= 0 && isWhitespace(chars[i])) i--;
+	if (i < 0) return null;
+	while (i >= 0 && isWordChar(chars[i])) i--;
+	return i + 1;
+};
 
 export type Direction = 'left' | 'right' | 'up' | 'down' | 'wordLeft' | 'wordRight' | 'home' | 'end';
 
