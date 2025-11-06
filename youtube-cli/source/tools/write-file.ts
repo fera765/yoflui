@@ -1,4 +1,4 @@
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, statSync } from 'fs';
 import { dirname } from 'path';
 import { validateFilePath } from '../security/security.js';
 
@@ -26,9 +26,25 @@ export async function executeWriteFileTool(filePath: string, content: string): P
 			return `Error: ${validation.error}`;
 		}
 		
+		// Create directories recursively
 		mkdirSync(dirname(filePath), { recursive: true });
+		
+		// Write file
 		writeFileSync(filePath, content, 'utf-8');
-		return `? File written: ${filePath}`;
+		
+		// CRITICAL: Verify file was actually created and has correct size
+		if (!existsSync(filePath)) {
+			return `Error: File was not created: ${filePath}`;
+		}
+		
+		const stats = statSync(filePath);
+		const expectedSize = Buffer.byteLength(content, 'utf-8');
+		
+		if (stats.size !== expectedSize) {
+			return `Warning: File created but size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`;
+		}
+		
+		return `✓ File written and verified: ${filePath} (${stats.size} bytes)`;
 	} catch (error) {
 		return `Error: ${error instanceof Error ? error.message : 'Failed to write file'}`;
 	}

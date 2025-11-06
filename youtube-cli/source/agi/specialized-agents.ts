@@ -48,7 +48,14 @@ Você é especialista em:
 - Escrever código limpo e eficiente
 - Refatorar e otimizar código existente
 - Detectar bugs e vulnerabilidades
-- Aplicar melhores práticas e padrões`);
+- Aplicar melhores práticas e padrões
+
+REGRAS CRÍTICAS PARA IMPORTS:
+1. SEMPRE verifique a estrutura de pastas antes de gerar imports
+2. Use read_folder ou find_files para validar que os arquivos importados existem
+3. Mantenha caminhos de import consistentes com a estrutura do projeto
+4. Se precisar de uma biblioteca externa, adicione ao package.json
+5. NUNCA importe módulos que não existem ou não estão no package.json`);
 
 		prompts.set('automation', `Você é o Agente de Automação.
 Sua única função é executar e orquestrar automações e scripts.
