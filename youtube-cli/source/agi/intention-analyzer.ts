@@ -67,12 +67,27 @@ Regras:
 				};
 				
 				// CORREÇÃO: Detectar tarefas de comparação/análise como SIMPLES
+				// MAS: Tarefas que requerem ferramentas são SEMPRE medium+
 				const lowerPrompt = userPrompt.toLowerCase();
-				if (lowerPrompt.includes('compare') || lowerPrompt.includes('vantagens') || 
+				
+				const requiresTools = lowerPrompt.includes('criar arquivo') || lowerPrompt.includes('create file') ||
+					lowerPrompt.includes('escrever arquivo') || lowerPrompt.includes('write file') ||
+					lowerPrompt.includes('ler arquivo') || lowerPrompt.includes('read file') ||
+					lowerPrompt.includes('listar') || lowerPrompt.includes('list') ||
+					lowerPrompt.includes('executar') || lowerPrompt.includes('execute') ||
+					lowerPrompt.includes('buscar arquivo') || lowerPrompt.includes('find file');
+				
+				if (!requiresTools && (lowerPrompt.includes('compare') || lowerPrompt.includes('vantagens') || 
 				    lowerPrompt.includes('desvantagens') || lowerPrompt.includes('diferença') ||
-					lowerPrompt.includes('vs') || lowerPrompt.includes('versus')) {
+					lowerPrompt.includes('vs') || lowerPrompt.includes('versus'))) {
 					analyzed.complexity = 'simple';
 					analyzed.estimatedSubTasks = 1;
+				}
+				
+				// FORÇAR complexity para tarefas com ferramentas
+				if (requiresTools && analyzed.complexity === 'simple') {
+					analyzed.complexity = 'medium';
+					analyzed.estimatedSubTasks = Math.max(2, analyzed.estimatedSubTasks);
 				}
 				
 				return analyzed;
