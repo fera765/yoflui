@@ -1,239 +1,243 @@
 # T9: BENCHMARK INTELIGÊNCIA - PLANO PROJETO - VALIDAÇÃO
 
-## 📊 RESULTADO: 4.0/10
+## 📊 RESULTADO: 4/10
 
 ### ❌ PROBLEMAS CRÍTICOS
 
-**1. ARQUIVO NO PATH ERRADO**
-- **Requisito:** "Salvar em work/plano-projeto-saas.md"
-- **Realidade:** Criado em `work/task-1762452681621/work/plano-projeto-saas.md`
-- **IMPACTO:** Arquivo NÃO está acessível no path requisitado `/workspace/youtube-cli/work/`
+**1. REQUISITOS ESTRUTURAIS NÃO ATENDIDOS**
+- ❌ **Cronograma exato (mês/semana):** NÃO PRESENTE
+- ❌ **Orçamento estimado por fase:** NÃO PRESENTE
+- ❌ **Riscos por fase:** NÃO PRESENTE
+- ❌ **3 KPIs mensuráveis:** NÃO PRESENTES
+- ❌ **Tabelas em Markdown:** ZERO tabelas (0 linhas com `|`)
 
-**2. SEM CRONOGRAMA EXATO (REQUISITO CRÍTICO)**
-- **Requisito:** "5 FASES com cronograma exato (mês/semana)"
-- **Realidade:** Apenas títulos de fases, ZERO menção a meses/semanas
-- **EXEMPLO DO ARQUIVO:**
-  ```markdown
-  ## Fase 1: Planejamento Estratégico e Pesquisa de Mercado
-  ### Objetivo
-  ### Atividades
-  ### Entregáveis
-  ```
-- **FALTANDO:** Mês 1 Semana 1-4, Duração: 4 semanas, etc.
+**2. ERRO DE EXECUÇÃO**
+```
+❌ Erro na orquestração: Agente não encontrado: undefined
+```
+- Task de validação tentou criar subtask adicional
+- Falhou ao identificar agente responsável
+- **CRÍTICO:** Sistema não completou autocorreção
 
-**3. SEM RESPONSÁVEIS (REQUISITO CRÍTICO)**
-- **Requisito:** "Cada fase deve ter: responsáveis"
-- **Realidade:** ZERO menção a responsáveis (Product Manager, CTO, etc.)
+**3. PATH INCORRETO (NOVAMENTE)**
+- **Requisito:** `work/plano-projeto-saas.md`
+- **Criado em:** `work/task-1762452681621/work/plano-projeto-saas.md`
+- **PROBLEMA:** Arquivo dentro do diretório de task, não no path requisitado
 
-**4. SEM ORÇAMENTO (REQUISITO CRÍTICO)**
-- **Requisito:** "Cada fase deve ter: orçamento estimado"
-- **Realidade:** ZERO valores monetários ou estimativas
+**4. VALIDAÇÃO DETECTOU MAS NÃO CORRIGIU**
+```
+📊 Validação de Tarefa
+Taxa de Conclusão: 0%
+Status: ⚠️ Incompleto
 
-**5. SEM RISCOS (REQUISITO CRÍTICO)**
-- **Requisito:** "Cada fase deve ter: riscos"
-- **Realidade:** ZERO análise de riscos por fase
-
-**6. SEM MÉTRICAS DE SUCESSO (REQUISITO CRÍTICO)**
-- **Requisito:** "3 MÉTRICAS DE SUCESSO (KPIs) mensuráveis"
-- **Realidade:** ZERO KPIs definidos (CAC, MRR, Churn, etc.)
-
-**7. SEM TABELAS (REQUISITO EXPLÍCITO)**
-- **Requisito:** "Estrutura em Markdown com tabelas"
-- **Realidade:** 0 linhas com `|` (pipe) - ZERO tabelas
-- **Validação:** `grep -c "^|" plano-projeto-saas.md` = **0**
-
-**8. ERRO NO LOG: "Agente não encontrado: undefined"**
-- FLUI reportou erro crítico ao tentar criar subtask adicional
-- Validação detectou requisitos pendentes mas falhou na execução
+❌ Requisitos Pendentes (1):
+  🔴 5 FASES com cronograma exato...
+```
+- Sistema identificou requisitos faltantes
+- Tentou criar subtask adicional
+- **FALHOU** com "Agente não encontrado"
 
 ---
 
-### ✅ PONTOS POSITIVOS (POUCOS)
+### ✅ PONTOS POSITIVOS
 
-**1. Arquivo criado (path errado):**
-- ✅ 91 linhas de conteúdo
-- ✅ 5 fases identificadas (títulos)
-- ✅ 20 seções H2 (hierarquia)
-
-**2. Estrutura básica:**
+**1. Estrutura de 5 fases criada:**
 ```markdown
-# Plano de Projeto para Lançamento de Produto SaaS B2B
-
 ## Fase 1: Planejamento Estratégico e Pesquisa de Mercado
-### Objetivo
-### Atividades
-### Entregáveis
-
 ## Fase 2: Desenvolvimento do Produto e MVP
-...
+## Fase 3: Testes com Clientes e Validação de Mercado
+## Fase 4: Preparação para Lançamento
+## Fase 5: Lançamento e Pós-Lançamento
 ```
 
-**3. Conteúdo genérico coerente:**
-- Fases: Planejamento, Desenvolvimento MVP, Testes, Preparação, Lançamento
-- Atividades listadas (genéricas)
-- Entregáveis listados (genéricos)
+**2. Cada fase tem subseções:**
+- ✅ Objetivo
+- ✅ Atividades
+- ✅ Entregáveis
+- ❌ Cronograma (FALTANDO)
+- ❌ Responsáveis (FALTANDO)
+- ❌ Orçamento (FALTANDO)
+- ❌ Riscos (FALTANDO)
+
+**3. Conteúdo coerente e realista:**
+- Fases lógicas e sequenciais
+- Atividades apropriadas para SaaS B2B
+- Entregáveis relevantes
+
+**4. Pesquisa realizada:**
+```
+[>] TOOL: INTELLIGENT_WEB_RESEARCH
+    Args: {"query":"melhores práticas para lançamento de produto SaaS B2B"...
+    [+] Success
+```
+
+**5. Sistema de validação funcionou (parcialmente):**
+- Detectou requisitos faltantes (0% conclusão)
+- Tentou autocorreção
+- Falhou na execução da correção
 
 ---
 
-### 🔍 ANÁLISE DETALHADA
+### 📋 CONTEÚDO GERADO (INCOMPLETO)
 
-**Por que apenas 4.0/10:**
+**Arquivo:** 91 linhas, 20 headers, **0 tabelas**
 
-1. **7 DE 8 REQUISITOS CRÍTICOS NÃO ATENDIDOS:**
-   - ❌ Cronograma exato (mês/semana)
-   - ❌ Responsáveis
-   - ❌ Orçamento estimado
-   - ❌ Riscos
-   - ❌ 3 KPIs mensuráveis
-   - ❌ Tabelas Markdown
-   - ❌ Path correto (work/plano-projeto-saas.md)
-   - ✅ 5 fases (ÚNICO requisito atendido)
-
-2. **VALIDAÇÃO DO ORCHESTRATOR DETECTOU PROBLEMA:**
-   ```
-   📊 Validação de Tarefa
-   Taxa de Conclusão: 0%
-   Status: ⚠️ Incompleto
-   
-   ❌ Requisitos Pendentes (1):
-     🔴 5 FASES com cronograma exato...
-   ```
-   - Orchestrator tentou criar subtask adicional
-   - **ERRO CRÍTICO:** "Agente não encontrado: undefined"
-   - Sistema falhou ao tentar autocorreção
-
-3. **COMPARAÇÃO: O QUE FALTOU**
-
-**O que o usuário pediu:**
-```markdown
-| Fase | Mês/Semana | Responsável | Orçamento | Riscos |
-|------|------------|-------------|-----------|--------|
-| Fase 1 | Mês 1, S1-4 | Product Manager | $15,000 | Viés de confirmação |
-| Fase 2 | Mês 2-3, S5-12 | CTO + Dev Team | $80,000 | Atrasos técnicos |
-...
-
-### KPIs de Sucesso:
-1. **CAC (Customer Acquisition Cost):** < $500
-2. **MRR (Monthly Recurring Revenue):** $50,000 em 3 meses
-3. **Churn Rate:** < 5% nos primeiros 6 meses
-```
-
-**O que FLUI entregou:**
+**Exemplo de fase (Fase 1):**
 ```markdown
 ## Fase 1: Planejamento Estratégico e Pesquisa de Mercado
+
+### Objetivo
+Definir proposta de valor, público-alvo e viabilidade do produto SaaS B2B.
 
 ### Atividades
 - Análise de mercado e concorrência
 - Definição do público-alvo ideal (personas)
-...
+- Validar proposta de valor com potenciais clientes
+- Estabelecer metas de curto e longo prazo
+- Definir indicadores-chave de desempenho (KPIs)
+
+### Entregáveis
+- Documento de proposta de valor
+- Perfis de personas detalhados
+- Análise SWOT
+- Plano de métricas e KPIs
 ```
 
-**AUSENTE:** Cronograma, responsáveis, orçamento, riscos, KPIs, tabelas.
+**FALTAM:**
+- Cronograma: Mês 1, Semana 1-4
+- Responsáveis: PM, Analista de Mercado
+- Orçamento: $15,000
+- Riscos: Competição intensa, Validação de mercado insuficiente
 
 ---
 
-### 📈 COMPARAÇÃO COM CONCORRENTES
+### 🔍 ANÁLISE CRÍTICA
 
-**ChatGPT (GPT-4):**
-- ✅ Gera cronograma detalhado (semanas)
-- ✅ Inclui orçamentos realistas
-- ✅ Tabelas Markdown formatadas
-- ⚠️ Precisa de prompt muito específico
+**Por que apenas 4/10:**
+
+1. **REQUISITOS ESSENCIAIS AUSENTES (60% da nota)**
+   - Cronograma detalhado: ZERO
+   - Orçamento por fase: ZERO
+   - Riscos por fase: ZERO
+   - KPIs mensuráveis: ZERO
+   - Tabelas Markdown: ZERO
+
+2. **ERRO DE SISTEMA (10% da nota)**
+   - "Agente não encontrado: undefined"
+   - Sistema tentou autocorreção mas falhou
+   - Não completou a tarefa
+
+3. **PATH INCORRETO (10% da nota)**
+   - Repetiu erro de T7 e T8
+   - Arquivo não está no path requisitado
+
+4. **FORMATO INADEQUADO (20% da nota)**
+   - Requisito explícito: "Estrutura em Markdown com tabelas"
+   - Entregue: Lista bullet points, zero tabelas
+   - Não utilizou formato apropriado para cronogramas e orçamentos
+
+---
+
+### 📊 COMPARAÇÃO COM CONCORRENTES
+
+**Notion AI / ClickUp AI:**
+- ✅ Gera planos com tabelas automáticas
+- ✅ Cronograma visual (Gantt)
+- ✅ Orçamento estruturado
+- ✅ Template de riscos
+
+**ChatGPT Advanced:**
+- ✅ Tabelas markdown completas
+- ✅ KPIs com fórmulas
+- ⚠️ Requer iteração manual para refinamento
 
 **Cursor AI:**
-- ⚠️ Não tem contexto de negócios/gestão
-- ⚠️ Foca em código, não em planejamento
-
-**Notion AI / Asana AI:**
-- ✅ Especializado em gestão de projetos
-- ✅ Gera cronogramas, responsáveis, orçamentos automaticamente
-- ✅ Integração com ferramentas de projeto
+- ✅ Gera tabelas markdown
+- ⚠️ Não pesquisa melhores práticas automaticamente
+- ⚠️ Não valida requisitos
 
 **FLUI (T9):**
-- ✅ Detectou complexidade (validação automática)
-- ✅ Pesquisou melhores práticas (intelligent_web_research)
-- ❌ Gerou conteúdo SUPERFICIAL (genérico)
-- ❌ Ignorou 7 de 8 requisitos críticos
-- ❌ Falhou ao tentar autocorreção (erro de agente)
+- ✅ Pesquisa automática de melhores práticas
+- ✅ Sistema de validação (detectou requisitos faltantes)
+- ❌ Não gerou tabelas
+- ❌ Omitiu cronograma, orçamento, riscos, KPIs
+- ❌ Autocorreção falhou com erro de sistema
 
-**NOTA ATUAL:** 4.0/10  
+**NOTA ATUAL:** 4/10  
 **NOTA ESPERADA:** 10/10
 
 ---
 
 ### 🚀 AÇÕES PARA ATINGIR 10/10
 
-**FIX T9 - VALIDAÇÃO RIGOROSA DE REQUISITOS ESTRUTURADOS:**
+**FIX T9 - ESTRUTURA COMPLETA E TABELAS:**
 
-1. **Parser de requisitos estruturados:**
+1. **Garantir geração de tabelas:**
    ```typescript
-   // Detectar requisitos tabulares no prompt
-   if (prompt.includes("tabelas") || prompt.includes("cronograma exato")) {
-     enforceTableGeneration = true;
-     requiredColumns = ["Fase", "Cronograma", "Responsável", "Orçamento", "Riscos"];
+   if (promptContains("com tabelas") || promptContains("cronograma")) {
+     ensureMarkdownTablesInOutput();
    }
    ```
 
-2. **Template enforcement para planejamento:**
-   ```typescript
-   // Agente de planejamento deve usar template padrão
-   if (taskType === "project_plan" && requiresDetailed) {
-     useTemplate("project-plan-detailed.md");
-     validateColumns(requiredColumns);
-   }
+2. **Template de plano completo:**
+   ```markdown
+   ## Fase X: Nome
+   
+   | Item | Detalhes |
+   |------|----------|
+   | **Cronograma** | Mês X, Semanas X-X |
+   | **Responsáveis** | Role 1, Role 2 |
+   | **Orçamento** | $X,XXX |
+   
+   ### Riscos
+   | Risco | Probabilidade | Impacto | Mitigação |
+   |-------|---------------|---------|-----------|
+   | ... | Média | Alto | ... |
    ```
 
-3. **Validação pós-geração:**
+3. **Validar requisitos específicos:**
    ```typescript
-   // Após gerar plano, validar campos obrigatórios
-   const generatedPlan = readFile("work/plano-projeto-saas.md");
-   
-   if (!generatedPlan.includes("|")) {
-     throw new Error("Plano deve conter tabelas Markdown");
-   }
-   
-   const missingFields = [];
-   if (!hasField("Cronograma", generatedPlan)) missingFields.push("Cronograma");
-   if (!hasField("Responsável", generatedPlan)) missingFields.push("Responsável");
-   if (!hasField("Orçamento", generatedPlan)) missingFields.push("Orçamento");
-   if (!hasField("Riscos", generatedPlan)) missingFields.push("Riscos");
-   
-   if (missingFields.length > 0) {
-     addTask(`Adicionar campos: ${missingFields.join(", ")}`);
-   }
+   const requirements = [
+     "cronograma exato (mês/semana)",
+     "orçamento estimado",
+     "riscos",
+     "3 KPIs mensuráveis",
+     "tabelas markdown"
+   ];
+   validateEachRequirement(output, requirements);
    ```
 
-4. **Corrigir erro "Agente não encontrado: undefined":**
+4. **Corrigir erro "Agente não encontrado":**
    ```typescript
-   // Em orchestrator-v2.ts, ao criar subtask adicional:
+   // Ao criar subtask de validação, sempre definir agentType
    if (!subtask.metadata.agentType) {
-     subtask.metadata.agentType = inferAgentType(subtask.title);
+     subtask.metadata.agentType = inferAgentFromTask(subtask.title);
    }
-   ```
-
-5. **Path absoluto enforcement:**
-   ```typescript
-   // Garantir que work/ seja relativo à raiz do FLUI, não task dir
-   const absoluteWorkDir = "/workspace/youtube-cli/work";
-   const targetFile = path.join(absoluteWorkDir, "plano-projeto-saas.md");
    ```
 
 ---
 
 ## 🏆 VEREDITO
 
-**Estrutura básica:** ⭐⭐☆☆☆ (2/5) - SUPERFICIAL  
-**Requisitos críticos:** ⭐☆☆☆☆ (1/5) - APENAS 1 DE 8 ATENDIDO  
-**Tabelas e dados:** ☆☆☆☆☆ (0/5) - AUSENTE  
-**Autocorreção:** ⭐☆☆☆☆ (1/5) - DETECTOU MAS FALHOU  
+**Estrutura básica:** ⭐⭐⭐☆☆ (3/5) - 5 fases OK  
+**Detalhamento:** ⭐☆☆☆☆ (1/5) - Cronograma/orçamento/riscos AUSENTES  
+**Formato:** ⭐☆☆☆☆ (1/5) - ZERO tabelas (requisito explícito)  
+**KPIs:** ☆☆☆☆☆ (0/5) - NÃO PRESENTES  
+**Execução:** ⭐⭐☆☆☆ (2/5) - Erro "Agente não encontrado"  
 
-**NOTA FINAL: 4.0/10**
+**NOTA FINAL: 4/10**
 
 **STATUS:** ❌ FALHA CRÍTICA
 
-O FLUI demonstrou **capacidade de detectar requisitos pendentes** via validação automática, mas:
-1. **Gerou conteúdo superficial** sem atender requisitos estruturados
-2. **Ignorou 7 de 8 requisitos críticos** (cronograma, responsáveis, orçamento, riscos, KPIs, tabelas, path)
-3. **Falhou ao tentar autocorreção** ("Agente não encontrado: undefined")
+O FLUI criou uma **estrutura básica coerente**, mas **falhou criticamente** em:
+1. Omitir requisitos essenciais (cronograma, orçamento, riscos, KPIs)
+2. Não gerar tabelas markdown (requisito explícito)
+3. Erro de sistema ao tentar autocorreção
+4. Path incorreto (dentro de task-*/ em vez de raiz)
 
-**URGENTE:** Implementar parser de requisitos estruturados e validação rigorosa para tarefas de planejamento.
+Para atingir 10/10, deve:
+- Gerar tabelas markdown para dados estruturados
+- Incluir TODOS os campos requisitados (cronograma, orçamento, riscos)
+- Definir e apresentar 3 KPIs mensuráveis
+- Corrigir erro "Agente não encontrado" na validação
+- Salvar no path correto requisitado
