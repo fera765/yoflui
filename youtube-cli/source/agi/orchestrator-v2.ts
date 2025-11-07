@@ -468,6 +468,91 @@ export class CentralOrchestratorV2 {
 	}
 
 	/**
+	 * CRÍTICO: Valida requisitos quantitativos pós-execução
+	 * Ex: "1000+ palavras", "50 páginas", etc.
+	 */
+	private async validateQuantitativeRequirements(
+		subTask: KanbanTask,
+		result: string,
+		workDir: string
+	): Promise<{
+		passed: boolean;
+		reason?: string;
+		shouldRetry: boolean;
+		targetRequirement?: string;
+		expansionTaskTitle?: string;
+	}> {
+		// Limitar tentativas (max 2 expansões)
+		const retryAttempt = subTask.metadata.retryAttempt || 0;
+		if (retryAttempt >= 2) {
+			return { passed: true, shouldRetry: false }; // Desistir após 2 tentativas
+		}
+		
+		// Extrair requisitos da descrição/title
+		const fullText = `${subTask.title} ${subTask.metadata.validation || ''}`.toLowerCase();
+		
+		// Padrões de requisitos quantitativos
+		const wordRequirements = fullText.match(/(\d+)\+?\s*(palavras?|words?)/i);
+		const pageRequirements = fullText.match(/(\d+)\+?\s*(páginas?|pages?)/i);
+		const lineRequirements = fullText.match(/(\d+)\+?\s*(linhas?|lines?)/i);
+		
+		// Se não tem requisito quantitativo, passar
+		if (!wordRequirements && !pageRequirements && !lineRequirements) {
+			return { passed: true, shouldRetry: false };
+		}
+		
+		// Tentar encontrar arquivo criado (olhar no result para path)
+		const filePathMatch = result.match(/(?:written|created|saved).*?(?:file|arquivo).*?:?\s*([^\s]+\.(?:md|txt|html|json))/i);
+		let actualCount = 0;
+		let requirementType = '';
+		let requiredCount = 0;
+		
+		if (wordRequirements) {
+			requirementType = 'palavras';
+			requiredCount = parseInt(wordRequirements[1]);
+			
+			// Contar palavras no resultado ou arquivo
+			if (filePathMatch) {
+				try {
+					const { readFileSync, existsSync } = await import('fs');
+					const { join, isAbsolute } = await import('path');
+					const filePath = filePathMatch[1];
+					const fullPath = isAbsolute(filePath) ? filePath : join(workDir, filePath);
+					
+					if (existsSync(fullPath)) {
+						const content = readFileSync(fullPath, 'utf-8');
+						actualCount = content.split(/\s+/).filter(w => w.length > 0).length;
+					}
+				} catch (error) {
+					// Se não conseguir ler arquivo, contar palavras no result
+					actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
+				}
+			} else {
+				// Contar palavras no result
+				actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
+			}
+		}
+		
+		// Validar
+		const percentage = (actualCount / requiredCount) * 100;
+		
+		// Se atingiu pelo menos 80% do requisito, considerar OK
+		if (percentage >= 80) {
+			return { passed: true, shouldRetry: false };
+		}
+		
+		// Se menos de 80%, criar subtask de expansão
+		const deficit = requiredCount - actualCount;
+		return {
+			passed: false,
+			reason: `Conteúdo insuficiente: ${actualCount}/${requiredCount} ${requirementType} (${percentage.toFixed(0)}%)`,
+			shouldRetry: true,
+			targetRequirement: `Adicionar pelo menos ${deficit} ${requirementType} ao conteúdo existente`,
+			expansionTaskTitle: `Expandir conteúdo: adicionar ${deficit} ${requirementType}`
+		};
+	}
+
+	/**
 	 * NOVO: Execução de Sub-Tarefa COM DETECÇÃO PROATIVA DE ERROS E FEEDBACK
 	 */
 	private async executeSubTaskWithErrorDetection(
@@ -537,6 +622,37 @@ export class CentralOrchestratorV2 {
 		try {
 			// Executar agente
 			const result = await agent.execute(agentPrompt, subTask.metadata.tools, workDir);
+
+			// CRÍTICO: VALIDAÇÃO QUANTITATIVA PÓS-EXECUÇÃO
+			const quantitativeValidation = await this.validateQuantitativeRequirements(
+				subTask,
+				result,
+				workDir
+			);
+			
+			if (!quantitativeValidation.passed && quantitativeValidation.shouldRetry) {
+				onProgress?.(`⚠️ Requisito quantitativo não atendido: ${quantitativeValidation.reason}`);
+				onProgress?.(`🔄 Criando subtask de expansão...`);
+				
+				// Criar subtask de expansão AUTOMATICAMENTE
+				const expansionTask = this.createTask(
+					quantitativeValidation.expansionTaskTitle || `Expandir: ${subTask.title}`,
+					'planning',
+					subTask.parentId,
+					{
+						agentType,
+						tools: subTask.metadata.tools,
+						dependencies: [subTask.id],
+						validation: quantitativeValidation.targetRequirement,
+						retryAttempt: (subTask.metadata.retryAttempt || 0) + 1,
+						isExpansion: true,
+					}
+				);
+				
+				// Adicionar à fila
+				this.kanban.set(expansionTask.id, expansionTask);
+				onProgress?.(`📋 Subtask de expansão criada: ${expansionTask.title}`, this.getKanbanSnapshot());
+			}
 
 			// NOVO: DETECÇÃO PROATIVA DE ERROS
 			if (this.errorDetector) {

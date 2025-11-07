@@ -25,6 +25,68 @@ export interface DecompositionResult {
 }
 
 /**
+ * Extrai requisitos quantitativos do prompt (palavras, páginas, linhas, etc.)
+ * CRÍTICO: Esses requisitos devem ser incluídos nas subtasks relevantes
+ */
+function extractQuantitativeRequirements(prompt: string): string[] {
+	const requirements: string[] = [];
+	
+	// Padrões de requisitos quantitativos
+	const patterns = [
+		// Palavras: "1000 palavras", "1000+ palavras", "mínimo 1000 palavras"
+		/(\d+\+?)\s*(palavras?|words?)/gi,
+		// Páginas: "50 páginas", "50+ páginas"
+		/(\d+\+?)\s*(páginas?|pages?)/gi,
+		// Linhas: "100 linhas", "100+ linhas"
+		/(\d+\+?)\s*(linhas?|lines?)/gi,
+		// Capítulos: "5 capítulos", "5+ capítulos"
+		/(\d+\+?)\s*(capítulos?|chapters?)/gi,
+		// Seções: "3 seções", "3+ seções"
+		/(\d+\+?)\s*(seções?|sections?)/gi,
+		// Caracteres: "5000 caracteres", "5000+ caracteres"
+		/(\d+\+?)\s*(caracteres?|characters?)/gi,
+		// Minutos: "10 minutos", "10+ minutos"
+		/(\d+\+?)\s*(minutos?|minutes?)/gi,
+	];
+	
+	for (const pattern of patterns) {
+		const matches = prompt.match(pattern);
+		if (matches) {
+			matches.forEach(match => {
+				// Normalizar para formato consistente
+				const normalized = match.replace(/\s+/g, ' ').trim();
+				if (!requirements.includes(normalized)) {
+					requirements.push(`REQUISITO QUANTITATIVO: ${normalized}`);
+				}
+			});
+		}
+	}
+	
+	// Detectar requisitos com "mínimo", "máximo", "exatamente"
+	const qualifiers = [
+		/mínimo\s+de\s+(\d+)\s+(palavras?|páginas?|linhas?)/gi,
+		/máximo\s+de\s+(\d+)\s+(palavras?|páginas?|linhas?)/gi,
+		/exatamente\s+(\d+)\s+(palavras?|páginas?|linhas?)/gi,
+		/pelo\s+menos\s+(\d+)\s+(palavras?|páginas?|linhas?)/gi,
+		/no\s+mínimo\s+(\d+)\s+(palavras?|páginas?|linhas?)/gi,
+	];
+	
+	for (const qualifier of qualifiers) {
+		const matches = prompt.match(qualifier);
+		if (matches) {
+			matches.forEach(match => {
+				const normalized = match.replace(/\s+/g, ' ').trim();
+				if (!requirements.some(r => r.includes(normalized))) {
+					requirements.push(`REQUISITO QUANTITATIVO: ${normalized}`);
+				}
+			});
+		}
+	}
+	
+	return requirements;
+}
+
+/**
  * Detecta se uma tarefa é grande/complexa o suficiente para decomposição
  */
 export function detectLargeTask(prompt: string): boolean {
@@ -74,23 +136,40 @@ export async function decomposeTask(
 	}
 	
 	try {
+		// CRÍTICO: Extrair requisitos quantitativos do prompt original
+		const quantitativeRequirements = extractQuantitativeRequirements(prompt);
+		
 		// Usar LLM para decompor
 		const decompositionPrompt = `Você é um especialista em planejamento de tarefas. Analise a seguinte tarefa e decomponha-a em sub-tarefas menores e gerenciáveis.
 
 TAREFA DO USUÁRIO:
 ${prompt}
 
+REQUISITOS QUANTITATIVOS DETECTADOS (CRÍTICO - DEVE SER INCLUÍDO NAS SUBTASKS RELEVANTES):
+${quantitativeRequirements.length > 0 ? quantitativeRequirements.join('\n') : 'Nenhum requisito quantitativo específico'}
+
 INSTRUÇÕES:
 1. Identifique todos os requisitos e componentes
 2. Decomponha em sub-tarefas PEQUENAS (máximo 5 minutos cada)
 3. Ordene por dependências (o que deve ser feito primeiro)
-4. Para cada subtask, forneça:
+4. **CRÍTICO:** Se houver requisitos quantitativos (palavras, páginas, linhas), INCLUA-OS EXPLICITAMENTE na descrição da subtask relevante
+5. Para cada subtask, forneça:
    - ID único
    - Título claro
-   - Descrição específica
+   - Descrição específica (INCLUINDO requisitos quantitativos se aplicável)
    - Dependências (IDs de outras subtasks)
    - Estimativa de tokens necessários
    - Prioridade (1-10)
+
+EXEMPLO DE SUBTASK COM REQUISITO QUANTITATIVO:
+{
+  "id": "3",
+  "title": "Escrever capítulo 1",
+  "description": "Escrever capítulo 1 completo com MÍNIMO 1200 palavras sobre introdução. VALIDAR contagem antes de concluir.",
+  "dependencies": ["2"],
+  "estimated_tokens": 2000,
+  "priority": 8
+}
 
 RETORNE APENAS UM JSON VÁLIDO neste formato:
 {
