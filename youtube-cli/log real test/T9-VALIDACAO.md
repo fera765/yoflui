@@ -1,242 +1,239 @@
 # T9: BENCHMARK INTELIGÊNCIA - PLANO PROJETO - VALIDAÇÃO
 
-## 📊 RESULTADO: 3/10
+## 📊 RESULTADO: 4.0/10
 
 ### ❌ PROBLEMAS CRÍTICOS
 
-**1. PATH INCORRETO (NOVAMENTE)**
+**1. ARQUIVO NO PATH ERRADO**
 - **Requisito:** "Salvar em work/plano-projeto-saas.md"
-- **Esperado:** `/workspace/youtube-cli/work/plano-projeto-saas.md`
-- **Criado:** `/workspace/youtube-cli/work/task-1762452681621/work/plano-projeto-saas.md`
-- **PROBLEMA:** FLUI cria arquivos no Work Directory do task, não no path absoluto requisitado
+- **Realidade:** Criado em `work/task-1762452681621/work/plano-projeto-saas.md`
+- **IMPACTO:** Arquivo NÃO está acessível no path requisitado `/workspace/youtube-cli/work/`
 
-**2. ZERO TABELAS**
-- **Requisito:** "Estrutura em Markdown com tabelas"
-- **Resultado:** 0 linhas com `|` (NENHUMA tabela)
-- **CRÍTICO:** Tabelas eram ESSENCIAIS para cronograma, orçamento, responsáveis
-
-**3. CRONOGRAMA AUSENTE**
+**2. SEM CRONOGRAMA EXATO (REQUISITO CRÍTICO)**
 - **Requisito:** "5 FASES com cronograma exato (mês/semana)"
-- **Resultado:** 5 fases SIM, mas ZERO menção a meses/semanas
-- **EXEMPLO DO QUE FALTA:**
+- **Realidade:** Apenas títulos de fases, ZERO menção a meses/semanas
+- **EXEMPLO DO ARQUIVO:**
   ```markdown
-  | Fase | Período | Duração |
-  |------|---------|---------|
-  | Fase 1 | Mês 1 (Semanas 1-4) | 4 semanas |
-  | Fase 2 | Mês 2-3 (Semanas 5-12) | 8 semanas |
+  ## Fase 1: Planejamento Estratégico e Pesquisa de Mercado
+  ### Objetivo
+  ### Atividades
+  ### Entregáveis
   ```
+- **FALTANDO:** Mês 1 Semana 1-4, Duração: 4 semanas, etc.
 
-**4. RESPONSÁVEIS AUSENTES**
-- **Requisito:** "Cada fase deve ter: ... responsáveis ..."
-- **Resultado:** ZERO menção a responsáveis
-- **EXEMPLO DO QUE FALTA:**
-  ```markdown
-  | Atividade | Responsável |
-  |-----------|-------------|
-  | Análise de mercado | Gerente de Produto |
-  | Desenvolvimento MVP | CTO / Dev Team |
-  ```
+**3. SEM RESPONSÁVEIS (REQUISITO CRÍTICO)**
+- **Requisito:** "Cada fase deve ter: responsáveis"
+- **Realidade:** ZERO menção a responsáveis (Product Manager, CTO, etc.)
 
-**5. ORÇAMENTO AUSENTE**
-- **Requisito:** "Cada fase deve ter: ... orçamento estimado ..."
-- **Resultado:** ZERO menção a valores ou orçamento
-- **EXEMPLO DO QUE FALTA:**
-  ```markdown
-  | Fase | Orçamento Estimado |
-  |------|-------------------|
-  | Fase 1 | USD $25,000 |
-  | Fase 2 | USD $80,000 |
-  ```
+**4. SEM ORÇAMENTO (REQUISITO CRÍTICO)**
+- **Requisito:** "Cada fase deve ter: orçamento estimado"
+- **Realidade:** ZERO valores monetários ou estimativas
 
-**6. RISCOS AUSENTES**
-- **Requisito:** "Cada fase deve ter: ... riscos"
-- **Resultado:** ZERO menção a riscos
-- **EXEMPLO DO QUE FALTA:**
-  ```markdown
-  ### Riscos
-  - **Alto:** Baixa adoção pelos primeiros clientes
-  - **Médio:** Atrasos no desenvolvimento do MVP
-  - **Baixo:** Mudanças regulatórias no setor
-  ```
+**5. SEM RISCOS (REQUISITO CRÍTICO)**
+- **Requisito:** "Cada fase deve ter: riscos"
+- **Realidade:** ZERO análise de riscos por fase
 
-**7. KPIs NÃO MENSURÁVEIS**
-- **Requisito:** "3 MÉTRICAS DE SUCESSO (KPIs) mensuráveis para o lançamento"
-- **Resultado:** Menciona "Definir indicadores-chave" MAS não define os 3 KPIs
-- **EXEMPLO DO QUE FALTA:**
-  ```markdown
-  ## Métricas de Sucesso (KPIs)
-  
-  1. **MRR (Monthly Recurring Revenue):** USD $50,000 até final do Mês 6
-  2. **Número de Clientes Ativos:** 20 empresas B2B até final do Mês 6
-  3. **Net Promoter Score (NPS):** ≥ 40 após 3 meses de uso
-  ```
+**6. SEM MÉTRICAS DE SUCESSO (REQUISITO CRÍTICO)**
+- **Requisito:** "3 MÉTRICAS DE SUCESSO (KPIs) mensuráveis"
+- **Realidade:** ZERO KPIs definidos (CAC, MRR, Churn, etc.)
+
+**7. SEM TABELAS (REQUISITO EXPLÍCITO)**
+- **Requisito:** "Estrutura em Markdown com tabelas"
+- **Realidade:** 0 linhas com `|` (pipe) - ZERO tabelas
+- **Validação:** `grep -c "^|" plano-projeto-saas.md` = **0**
+
+**8. ERRO NO LOG: "Agente não encontrado: undefined"**
+- FLUI reportou erro crítico ao tentar criar subtask adicional
+- Validação detectou requisitos pendentes mas falhou na execução
 
 ---
 
 ### ✅ PONTOS POSITIVOS (POUCOS)
 
-**1. Estrutura básica de 5 fases:**
-```markdown
-1. Planejamento Estratégico e Pesquisa de Mercado
-2. Desenvolvimento do Produto e MVP
-3. Testes com Clientes e Validação de Mercado
-4. Preparação para Lançamento
-5. Lançamento e Pós-Lançamento
-```
+**1. Arquivo criado (path errado):**
+- ✅ 91 linhas de conteúdo
+- ✅ 5 fases identificadas (títulos)
+- ✅ 20 seções H2 (hierarquia)
 
-**2. Objetivos genéricos por fase:**
-- ✅ Cada fase tem um objetivo declarado
-- ⚠️ Mas são muito genéricos e sem métricas
-
-**3. Atividades e entregáveis:**
-- ✅ Lista atividades básicas
-- ✅ Lista entregáveis básicos
-- ⚠️ Mas sem detalhes quantitativos ou cronograma
-
-**4. Pesquisa prévia:**
-- ✅ FLUI executou `INTELLIGENT_WEB_RESEARCH` sobre melhores práticas SaaS B2B
-- ⚠️ Mas não aplicou o conhecimento adquirido no plano
-
----
-
-### 🔍 CONTEÚDO GERADO (RESUMO)
-
+**2. Estrutura básica:**
 ```markdown
 # Plano de Projeto para Lançamento de Produto SaaS B2B
 
 ## Fase 1: Planejamento Estratégico e Pesquisa de Mercado
-### Objetivo: Definir proposta de valor...
-### Atividades: Análise de mercado, Definição de público, ...
-### Entregáveis: Documento de proposta, Perfis de personas, ...
+### Objetivo
+### Atividades
+### Entregáveis
 
-[Repetido para Fases 2, 3, 4, 5 com mesma estrutura genérica]
+## Fase 2: Desenvolvimento do Produto e MVP
+...
 ```
 
-**Estatísticas:**
-- 91 linhas
-- 20 seções H2/H3
-- 0 tabelas
-- 0 menções a cronograma (mês/semana)
-- 0 menções a responsáveis
-- 0 menções a orçamento
-- 0 menções a riscos quantificados
-- 0 KPIs mensuráveis definidos
+**3. Conteúdo genérico coerente:**
+- Fases: Planejamento, Desenvolvimento MVP, Testes, Preparação, Lançamento
+- Atividades listadas (genéricas)
+- Entregáveis listados (genéricos)
+
+---
+
+### 🔍 ANÁLISE DETALHADA
+
+**Por que apenas 4.0/10:**
+
+1. **7 DE 8 REQUISITOS CRÍTICOS NÃO ATENDIDOS:**
+   - ❌ Cronograma exato (mês/semana)
+   - ❌ Responsáveis
+   - ❌ Orçamento estimado
+   - ❌ Riscos
+   - ❌ 3 KPIs mensuráveis
+   - ❌ Tabelas Markdown
+   - ❌ Path correto (work/plano-projeto-saas.md)
+   - ✅ 5 fases (ÚNICO requisito atendido)
+
+2. **VALIDAÇÃO DO ORCHESTRATOR DETECTOU PROBLEMA:**
+   ```
+   📊 Validação de Tarefa
+   Taxa de Conclusão: 0%
+   Status: ⚠️ Incompleto
+   
+   ❌ Requisitos Pendentes (1):
+     🔴 5 FASES com cronograma exato...
+   ```
+   - Orchestrator tentou criar subtask adicional
+   - **ERRO CRÍTICO:** "Agente não encontrado: undefined"
+   - Sistema falhou ao tentar autocorreção
+
+3. **COMPARAÇÃO: O QUE FALTOU**
+
+**O que o usuário pediu:**
+```markdown
+| Fase | Mês/Semana | Responsável | Orçamento | Riscos |
+|------|------------|-------------|-----------|--------|
+| Fase 1 | Mês 1, S1-4 | Product Manager | $15,000 | Viés de confirmação |
+| Fase 2 | Mês 2-3, S5-12 | CTO + Dev Team | $80,000 | Atrasos técnicos |
+...
+
+### KPIs de Sucesso:
+1. **CAC (Customer Acquisition Cost):** < $500
+2. **MRR (Monthly Recurring Revenue):** $50,000 em 3 meses
+3. **Churn Rate:** < 5% nos primeiros 6 meses
+```
+
+**O que FLUI entregou:**
+```markdown
+## Fase 1: Planejamento Estratégico e Pesquisa de Mercado
+
+### Atividades
+- Análise de mercado e concorrência
+- Definição do público-alvo ideal (personas)
+...
+```
+
+**AUSENTE:** Cronograma, responsáveis, orçamento, riscos, KPIs, tabelas.
 
 ---
 
 ### 📈 COMPARAÇÃO COM CONCORRENTES
 
-**Lovable.dev:**
-- ⚠️ Não é especializado em planejamento de projetos
-- ✅ Gera código estruturado
-
-**ChatGPT o1:**
-- ✅ Gera planos detalhados com tabelas
-- ✅ Inclui cronogramas exatos
-- ✅ Define KPIs mensuráveis
-- ✅ Lista riscos e mitigações
+**ChatGPT (GPT-4):**
+- ✅ Gera cronograma detalhado (semanas)
+- ✅ Inclui orçamentos realistas
+- ✅ Tabelas Markdown formatadas
+- ⚠️ Precisa de prompt muito específico
 
 **Cursor AI:**
-- ⚠️ Não é especializado em planejamento
-- ✅ Permite edição iterativa
+- ⚠️ Não tem contexto de negócios/gestão
+- ⚠️ Foca em código, não em planejamento
 
-**Claude (Anthropic):**
-- ✅ Excelente em planos estruturados
-- ✅ Tabelas complexas
-- ✅ KPIs mensuráveis
+**Notion AI / Asana AI:**
+- ✅ Especializado em gestão de projetos
+- ✅ Gera cronogramas, responsáveis, orçamentos automaticamente
+- ✅ Integração com ferramentas de projeto
 
 **FLUI (T9):**
-- ✅ Decomposição em 5 subtasks
-- ✅ Pesquisa prévia sobre melhores práticas
-- ❌ Gerou apenas estrutura genérica
-- ❌ Não incluiu NENHUM elemento quantitativo
-- ❌ ZERO tabelas
-- ❌ Path incorreto
+- ✅ Detectou complexidade (validação automática)
+- ✅ Pesquisou melhores práticas (intelligent_web_research)
+- ❌ Gerou conteúdo SUPERFICIAL (genérico)
+- ❌ Ignorou 7 de 8 requisitos críticos
+- ❌ Falhou ao tentar autocorreção (erro de agente)
 
-**NOTA ATUAL:** 3/10  
-**NOTA ESPERADA:** 10/10  
-**GAP:** -7 pontos
+**NOTA ATUAL:** 4.0/10  
+**NOTA ESPERADA:** 10/10
 
 ---
 
 ### 🚀 AÇÕES PARA ATINGIR 10/10
 
-**FIX T9 - PLANOS DETALHADOS:**
+**FIX T9 - VALIDAÇÃO RIGOROSA DE REQUISITOS ESTRUTURADOS:**
 
-1. **Adicionar prompt engenharia específico para planos:**
+1. **Parser de requisitos estruturados:**
    ```typescript
-   // Detectar requisitos de plano de projeto
-   if (userPromptIncludes("plano de projeto", "cronograma", "KPIs", "orçamento")) {
-     applyProjectManagementTemplate({
-       includeTimeline: true,
-       includeBudget: true,
-       includeRisks: true,
-       includeKPIs: true,
-       outputFormat: "markdown_tables"
-     });
+   // Detectar requisitos tabulares no prompt
+   if (prompt.includes("tabelas") || prompt.includes("cronograma exato")) {
+     enforceTableGeneration = true;
+     requiredColumns = ["Fase", "Cronograma", "Responsável", "Orçamento", "Riscos"];
    }
    ```
 
-2. **Template de cronograma em tabela:**
-   ```markdown
-   | Fase | Período | Duração | Início | Fim |
-   |------|---------|---------|--------|-----|
-   | Fase 1 | Mês 1 | 4 semanas | Semana 1 | Semana 4 |
-   ```
-
-3. **Template de orçamento:**
-   ```markdown
-   | Fase | Orçamento | Alocação |
-   |------|-----------|----------|
-   | Fase 1 | USD $25,000 | Pesquisa: $10k, Ferramentas: $5k, ... |
-   ```
-
-4. **Template de riscos:**
-   ```markdown
-   | Fase | Risco | Probabilidade | Impacto | Mitigação |
-   |------|-------|--------------|---------|-----------|
-   | Fase 1 | Baixa adoção | Alta | Alto | Validar com 10 clientes antes |
-   ```
-
-5. **Template de KPIs:**
-   ```markdown
-   ## Métricas de Sucesso (KPIs)
-   
-   | KPI | Meta | Prazo | Método de Medição |
-   |-----|------|-------|-------------------|
-   | 1. MRR | USD $50,000 | Mês 6 | Dashboard financeiro |
-   | 2. Clientes Ativos | 20 empresas | Mês 6 | CRM tracking |
-   | 3. NPS | ≥ 40 | Mês 9 | Pesquisa trimestral |
-   ```
-
-6. **Corrigir path absoluto:**
+2. **Template enforcement para planejamento:**
    ```typescript
-   // Sempre resolver path relativo ao workspace root
-   const absolutePath = path.resolve(workspaceRoot, requestedPath);
-   writeFile(absolutePath, content);
+   // Agente de planejamento deve usar template padrão
+   if (taskType === "project_plan" && requiresDetailed) {
+     useTemplate("project-plan-detailed.md");
+     validateColumns(requiredColumns);
+   }
+   ```
+
+3. **Validação pós-geração:**
+   ```typescript
+   // Após gerar plano, validar campos obrigatórios
+   const generatedPlan = readFile("work/plano-projeto-saas.md");
+   
+   if (!generatedPlan.includes("|")) {
+     throw new Error("Plano deve conter tabelas Markdown");
+   }
+   
+   const missingFields = [];
+   if (!hasField("Cronograma", generatedPlan)) missingFields.push("Cronograma");
+   if (!hasField("Responsável", generatedPlan)) missingFields.push("Responsável");
+   if (!hasField("Orçamento", generatedPlan)) missingFields.push("Orçamento");
+   if (!hasField("Riscos", generatedPlan)) missingFields.push("Riscos");
+   
+   if (missingFields.length > 0) {
+     addTask(`Adicionar campos: ${missingFields.join(", ")}`);
+   }
+   ```
+
+4. **Corrigir erro "Agente não encontrado: undefined":**
+   ```typescript
+   // Em orchestrator-v2.ts, ao criar subtask adicional:
+   if (!subtask.metadata.agentType) {
+     subtask.metadata.agentType = inferAgentType(subtask.title);
+   }
+   ```
+
+5. **Path absoluto enforcement:**
+   ```typescript
+   // Garantir que work/ seja relativo à raiz do FLUI, não task dir
+   const absoluteWorkDir = "/workspace/youtube-cli/work";
+   const targetFile = path.join(absoluteWorkDir, "plano-projeto-saas.md");
    ```
 
 ---
 
 ## 🏆 VEREDITO
 
-**Estrutura básica:** ⭐⭐⭐☆☆ (3/5) - OK mas genérica  
-**Detalhamento:** ⭐☆☆☆☆ (1/5) - CRÍTICO - Faltaram TODOS os elementos críticos  
-**Tabelas:** ☆☆☆☆☆ (0/5) - CRÍTICO - ZERO tabelas  
-**Cronograma:** ☆☆☆☆☆ (0/5) - CRÍTICO - Não mencionado  
-**KPIs:** ☆☆☆☆☆ (0/5) - CRÍTICO - Não definidos  
+**Estrutura básica:** ⭐⭐☆☆☆ (2/5) - SUPERFICIAL  
+**Requisitos críticos:** ⭐☆☆☆☆ (1/5) - APENAS 1 DE 8 ATENDIDO  
+**Tabelas e dados:** ☆☆☆☆☆ (0/5) - AUSENTE  
+**Autocorreção:** ⭐☆☆☆☆ (1/5) - DETECTOU MAS FALHOU  
 
-**NOTA FINAL: 3/10**
+**NOTA FINAL: 4.0/10**
 
-**STATUS:** ❌ FALHOU CRITICAMENTE
+**STATUS:** ❌ FALHA CRÍTICA
 
-O FLUI gerou apenas uma **estrutura genérica** de 5 fases com atividades básicas, MAS **FALHOU EM TODOS OS REQUISITOS CRÍTICOS**:
-- ❌ Cronograma exato (mês/semana)
-- ❌ Responsáveis por fase
-- ❌ Orçamento estimado
-- ❌ Riscos identificados
-- ❌ 3 KPIs mensuráveis
-- ❌ Tabelas em Markdown
-- ❌ Path correto
+O FLUI demonstrou **capacidade de detectar requisitos pendentes** via validação automática, mas:
+1. **Gerou conteúdo superficial** sem atender requisitos estruturados
+2. **Ignorou 7 de 8 requisitos críticos** (cronograma, responsáveis, orçamento, riscos, KPIs, tabelas, path)
+3. **Falhou ao tentar autocorreção** ("Agente não encontrado: undefined")
 
-Para atingir 10/10, FLUI precisa de **templates específicos** para planos de projeto que incluam automaticamente cronograma, orçamento, riscos e KPIs em formato tabular.
+**URGENTE:** Implementar parser de requisitos estruturados e validação rigorosa para tarefas de planejamento.
