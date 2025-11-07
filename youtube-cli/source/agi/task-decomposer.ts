@@ -128,7 +128,7 @@ export function detectLargeTask(prompt: string): boolean {
 	// CRÍTICO: Se tem requisito quantitativo, SEMPRE decompor para validação funcionar
 	const hasQuantitativeRequirement = /(\d+\+?)\s*(palavras?|words?|páginas?|pages?|linhas?|lines?)/i.test(prompt);
 	if (hasQuantitativeRequirement) {
-		console.log('[detectLargeTask] Requisito quantitativo detectado - forçando decomposição');
+		// Requisito quantitativo detectado - forçar decomposição para validação
 		return true;
 	}
 	
@@ -271,7 +271,6 @@ NÃO inclua explicações, apenas o JSON.`;
 	
 	// CRÍTICO: INJETAR requisitos quantitativos nas subtasks de escrita
 	if (quantitativeRequirements.length > 0) {
-		console.log(`[DECOMPOSER] Injetando ${quantitativeRequirements.length} requisitos quantitativos nas subtasks`);
 		for (const subtask of decomposition.subtasks) {
 			// Detectar se é subtask de escrita/criação
 			const isWritingTask = /escrever|criar|redigir|write|gerar.*texto|artigo|capítulo/i.test(subtask.title + ' ' + (subtask.description || ''));
@@ -281,7 +280,6 @@ NÃO inclua explicações, apenas o JSON.`;
 				subtask.validation = subtask.validation 
 					? `${subtask.validation} ${reqText}` 
 					: reqText;
-				console.log(`[DECOMPOSER] Requisito injetado em "${subtask.title}": ${reqText}`);
 			}
 		}
 	}

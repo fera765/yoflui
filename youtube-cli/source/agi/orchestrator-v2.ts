@@ -214,10 +214,9 @@ export class CentralOrchestratorV2 {
 
 		// NOVO: Detectar e decompor tarefas grandes ANTES do planejamento
 		const isLarge = detectLargeTask(userPrompt);
-		console.log(`[DEBUG] detectLargeTask result: ${isLarge}, prompt length: ${userPrompt.length}`);
+		// Debug: detectLargeTask result logged internally
 		
 		if (isLarge) {
-			console.log('[DEBUG] Entrando em decomposição automática...');
 			onProgress?.('🔍 Tarefa complexa detectada - iniciando decomposição automática...');
 			
 			try {
@@ -483,28 +482,22 @@ export class CentralOrchestratorV2 {
 		expansionTaskTitle?: string;
 		filePath?: string;
 	}> {
-		console.log(`[VALIDAÇÃO QUANTITATIVA] Iniciando para "${subTask.title}"`);
 		// Limitar tentativas (max 2 expansões)
 		const retryAttempt = subTask.metadata.retryAttempt || 0;
 		if (retryAttempt >= 2) {
-			console.log(`[VALIDAÇÃO QUANTITATIVA] Limite de retries atingido (${retryAttempt})`);
 			return { passed: true, shouldRetry: false }; // Desistir após 2 tentativas
 		}
 		
 		// Extrair requisitos da descrição/title
 		const fullText = `${subTask.title} ${subTask.metadata.validation || ''}`.toLowerCase();
-		console.log(`[VALIDAÇÃO QUANTITATIVA] fullText para análise: "${fullText}"`);
 		
 		// Padrões de requisitos quantitativos
 		const wordRequirements = fullText.match(/(\d+)\+?\s*(palavras?|words?)/i);
 		const pageRequirements = fullText.match(/(\d+)\+?\s*(páginas?|pages?)/i);
 		const lineRequirements = fullText.match(/(\d+)\+?\s*(linhas?|lines?)/i);
 		
-		console.log(`[VALIDAÇÃO QUANTITATIVA] Requisitos encontrados - palavras: ${wordRequirements?.[0]}, páginas: ${pageRequirements?.[0]}, linhas: ${lineRequirements?.[0]}`);
-		
 		// Se não tem requisito quantitativo, passar
 		if (!wordRequirements && !pageRequirements && !lineRequirements) {
-			console.log(`[VALIDAÇÃO QUANTITATIVA] Nenhum requisito quantitativo encontrado - passando`);
 			return { passed: true, shouldRetry: false };
 		}
 		
@@ -522,12 +515,9 @@ export class CentralOrchestratorV2 {
 			// Procurar em work/ e workDir
 			const searchDirs = [join(workDir, 'work'), workDir];
 			
-			console.log(`[VALIDAÇÃO] Procurando arquivos recentes em: ${searchDirs.join(', ')}`);
-			
 			for (const dir of searchDirs) {
 				try {
 					const files = readdirSync(dir);
-					console.log(`[VALIDAÇÃO] Arquivos em ${dir}: ${files.join(', ')}`);
 					
 					for (const file of files) {
 						if (/\.(md|txt|html|json)$/.test(file)) {
@@ -535,26 +525,19 @@ export class CentralOrchestratorV2 {
 							const stats = statSync(fullPath);
 							const age = now - stats.mtimeMs;
 							
-							console.log(`[VALIDAÇÃO] ${file}: ${Math.round(age)}ms atrás (threshold: ${recentThreshold}ms)`);
-							
 							if (age < recentThreshold) {
 								detectedFile = fullPath;
-								console.log(`[VALIDAÇÃO] ✅ Arquivo recente detectado: ${detectedFile}`);
 								break;
 							}
 						}
 					}
 					if (detectedFile) break;
 				} catch (err) {
-					console.log(`[VALIDAÇÃO] Erro ao ler ${dir}: ${err}`);
+					// Silently skip directories that can't be read
 				}
 			}
-			
-			if (!detectedFile) {
-				console.warn(`[VALIDAÇÃO] Nenhum arquivo recente encontrado`);
-			}
 		} catch (error) {
-			console.error(`[VALIDAÇÃO] Erro ao procurar arquivos: ${error}`);
+			// Error searching for files, will use regex fallback
 		}
 		
 		// Fallback: tentar regex no resultado
@@ -569,7 +552,6 @@ export class CentralOrchestratorV2 {
 				const match = result.match(pattern);
 				if (match) {
 					detectedFile = match[1];
-					console.log(`[VALIDAÇÃO] Path detectado por regex: ${detectedFile}`);
 					break;
 				}
 			}
@@ -597,18 +579,15 @@ export class CentralOrchestratorV2 {
 						const content = readFileSync(fullPath, 'utf-8');
 						actualCount = content.split(/\s+/).filter(w => w.length > 0).length;
 					} else {
-						console.warn(`[VALIDAÇÃO] Arquivo não encontrado: ${fullPath}`);
-						// Fallback: contar no result
+						// File not found, fallback to result string
 						actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
 					}
 				} catch (error) {
-					console.error(`[VALIDAÇÃO] Erro ao ler arquivo: ${error}`);
-					// Fallback: contar no result
+					// Error reading file, fallback to result string
 					actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
 				}
 			} else {
-				console.warn('[VALIDAÇÃO] Path de arquivo não detectado no resultado');
-				// Fallback: contar no result
+				// Path not detected, use result string
 				actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
 			}
 		}
@@ -707,12 +686,10 @@ export class CentralOrchestratorV2 {
 		// CRÍTICO: VALIDAÇÃO QUANTITATIVA PÓS-EXECUÇÃO
 		// Só validar se subtask tem tool write_file (criação de arquivo)
 		const hasWriteFile = subTask.metadata.tools?.includes('write_file');
-		console.log(`[VALIDAÇÃO] Task: "${subTask.title}", tools: [${subTask.metadata.tools?.join(', ')}], hasWriteFile: ${hasWriteFile}`);
 		
 		if (hasWriteFile) {
-			console.log(`[VALIDAÇÃO] Aguardando 2 segundos para arquivo ser escrito...`);
-			// Aguardar um momento para garantir que arquivo foi escrito
-			await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos para garantir
+			// Aguardar para garantir que arquivo foi escrito no disco
+			await new Promise(resolve => setTimeout(resolve, 2000));
 				
 				const quantitativeValidation = await this.validateQuantitativeRequirements(
 					subTask,

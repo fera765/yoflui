@@ -129,18 +129,12 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	// Add current user message
 	messages.push({ role: 'user', content: userMessage });
 
-	// NOVO: Detectar tarefas complexas e ajustar max iterations
+	// Detectar tarefas complexas e ajustar max iterations
 	const isComplexTask = detectLargeTask(userMessage);
 	const requirements = extractRequirements(userMessage);
 	
-	console.log(`[DEBUG] isComplexTask: ${isComplexTask}, requirements: ${requirements.length}`);
-	
 	// Aumentar limite de iterações para tarefas complexas
 	const maxIterations = isComplexTask || requirements.length > 5 ? 30 : 15;
-	
-	if (isComplexTask) {
-		console.log('[INFO] Tarefa complexa detectada - aumentando limite para 30 iterações');
-	}
 
 	let iterations = 0;
 
