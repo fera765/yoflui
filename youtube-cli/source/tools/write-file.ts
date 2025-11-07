@@ -20,11 +20,23 @@ export const writeFileToolDefinition = {
 
 export async function executeWriteFileTool(filePath: string, content: string): Promise<string> {
 	try {
+		// CRÍTICO: Se path não começa com work/ e não é absoluto, forçar prefixo work/
+		const { isAbsolute, join } = await import('path');
+		let finalPath = filePath;
+		
+		if (!isAbsolute(filePath) && !filePath.startsWith('work/') && !filePath.startsWith('work\\')) {
+			finalPath = join('work', filePath);
+			console.warn(`[WRITE_FILE] PATH corrigido: ${filePath} → ${finalPath}`);
+		}
+		
 		// Validate file path
-		const validation = validateFilePath(filePath);
+		const validation = validateFilePath(finalPath);
 		if (!validation.valid) {
 			return `Error: ${validation.error}`;
 		}
+		
+		// Atualizar para usar finalPath em vez de filePath
+		filePath = finalPath;
 		
 		// Create directories recursively
 		mkdirSync(dirname(filePath), { recursive: true });

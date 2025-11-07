@@ -25,6 +25,40 @@ export interface DecompositionResult {
 }
 
 /**
+ * Extrai PATH de arquivo especificado pelo usuário
+ */
+function extractFilePath(prompt: string): string | null {
+	// Padrões para detectar path de arquivo (mais robustos)
+	const patterns = [
+		// "Salvar em work/arquivo.md"
+		/salvar\s+(?:em|no)\s+([^\s,;)]+\.(?:md|txt|html|json|ts|tsx|js|jsx|py|java|cpp))/i,
+		// "Save to work/file.md"
+		/save\s+(?:to|in)\s+([^\s,;)]+\.(?:md|txt|html|json|ts|tsx|js|jsx|py|java|cpp))/i,
+		// "Salvar Capítulo 1 em work/arquivo.md"
+		/(?:capítulo|chapter|seção|section)\s+\d+\s+em\s+([^\s,;)]+\.(?:md|txt|html|json|ts|tsx|js|jsx|py|java|cpp))/i,
+		// "Criar em work/arquivo.md"
+		/criar\s+(?:em|no)\s+([^\s,;)]+\.(?:md|txt|html|json|ts|tsx|js|jsx|py|java|cpp))/i,
+		// "Create in work/file.md"
+		/create\s+(?:in|at)\s+([^\s,;)]+\.(?:md|txt|html|json|ts|tsx|js|jsx|py|java|cpp))/i,
+		// "arquivo work/nome.md"
+		/arquivo\s+([^\s,;)]+\.(?:md|txt|html|json|ts|tsx|js|jsx|py|java|cpp))/i,
+		// "file work/name.md"
+		/file\s+([^\s,;)]+\.(?:md|txt|html|json|ts|tsx|js|jsx|py|java|cpp))/i,
+	];
+	
+	for (const pattern of patterns) {
+		const match = prompt.match(pattern);
+		if (match && match[1]) {
+			console.log(`[extractFilePath] Detectado path: ${match[1]}`);
+			return match[1];
+		}
+	}
+	
+	console.warn('[extractFilePath] Nenhum path detectado no prompt');
+	return null;
+}
+
+/**
  * Extrai requisitos quantitativos do prompt (palavras, páginas, linhas, etc.)
  * CRÍTICO: Esses requisitos devem ser incluídos nas subtasks relevantes
  */
@@ -136,8 +170,9 @@ export async function decomposeTask(
 	}
 	
 	try {
-		// CRÍTICO: Extrair requisitos quantitativos do prompt original
+		// CRÍTICO: Extrair requisitos quantitativos e PATH do prompt original
 		const quantitativeRequirements = extractQuantitativeRequirements(prompt);
+		const filePath = extractFilePath(prompt);
 		
 		// Usar LLM para decompor
 		const decompositionPrompt = `Você é um especialista em planejamento de tarefas. Analise a seguinte tarefa e decomponha-a em sub-tarefas menores e gerenciáveis.
@@ -148,24 +183,29 @@ ${prompt}
 REQUISITOS QUANTITATIVOS DETECTADOS (CRÍTICO - DEVE SER INCLUÍDO NAS SUBTASKS RELEVANTES):
 ${quantitativeRequirements.length > 0 ? quantitativeRequirements.join('\n') : 'Nenhum requisito quantitativo específico'}
 
+PATH DE ARQUIVO ESPECIFICADO (CRÍTICO - DEVE SER USADO EXATAMENTE COMO ESTÁ):
+${filePath || 'Nenhum path específico, use padrão work/[nome-arquivo].md'}
+
 INSTRUÇÕES:
 1. Identifique todos os requisitos e componentes
 2. Decomponha em sub-tarefas PEQUENAS (máximo 5 minutos cada)
 3. Ordene por dependências (o que deve ser feito primeiro)
 4. **CRÍTICO:** Se houver requisitos quantitativos (palavras, páginas, linhas), INCLUA-OS EXPLICITAMENTE na descrição da subtask relevante
-5. Para cada subtask, forneça:
+5. **CRÍTICO:** Se houver PATH de arquivo especificado, INCLUA-O EXATAMENTE na descrição da subtask de escrita/salvamento
+6. **CRÍTICO:** NÃO fragmente conteúdo de um único capítulo/documento em múltiplos arquivos. Todo o conteúdo deve ser salvo em UM ÚNICO arquivo conforme especificado pelo usuário.
+7. Para cada subtask, forneça:
    - ID único
    - Título claro
-   - Descrição específica (INCLUINDO requisitos quantitativos se aplicável)
+   - Descrição específica (INCLUINDO requisitos quantitativos E path de arquivo se aplicável)
    - Dependências (IDs de outras subtasks)
    - Estimativa de tokens necessários
    - Prioridade (1-10)
 
-EXEMPLO DE SUBTASK COM REQUISITO QUANTITATIVO:
+EXEMPLO DE SUBTASK COM REQUISITO QUANTITATIVO E PATH:
 {
   "id": "3",
-  "title": "Escrever capítulo 1",
-  "description": "Escrever capítulo 1 completo com MÍNIMO 1200 palavras sobre introdução. VALIDAR contagem antes de concluir.",
+  "title": "Escrever e salvar artigo",
+  "description": "Escrever artigo completo com MÍNIMO 1200 palavras sobre o tema. SALVAR em work/artigo-tema.md (path exato especificado pelo usuário). VALIDAR contagem antes de concluir.",
   "dependencies": ["2"],
   "estimated_tokens": 2000,
   "priority": 8
