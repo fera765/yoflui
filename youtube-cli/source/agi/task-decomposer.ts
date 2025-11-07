@@ -124,6 +124,13 @@ function extractQuantitativeRequirements(prompt: string): string[] {
  * Detecta se uma tarefa é grande/complexa o suficiente para decomposição
  */
 export function detectLargeTask(prompt: string): boolean {
+	// CRÍTICO: Se tem requisito quantitativo, SEMPRE decompor para validação funcionar
+	const hasQuantitativeRequirement = /(\d+\+?)\s*(palavras?|words?|páginas?|pages?|linhas?|lines?)/i.test(prompt);
+	if (hasQuantitativeRequirement) {
+		console.log('[detectLargeTask] Requisito quantitativo detectado - forçando decomposição');
+		return true;
+	}
+	
 	const indicators = [
 		// Tamanho do prompt
 		prompt.length > 500,
