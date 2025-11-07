@@ -481,6 +481,7 @@ export class CentralOrchestratorV2 {
 		shouldRetry: boolean;
 		targetRequirement?: string;
 		expansionTaskTitle?: string;
+		filePath?: string;
 	}> {
 		// Limitar tentativas (max 2 expansões)
 		const retryAttempt = subTask.metadata.retryAttempt || 0;
@@ -501,34 +502,107 @@ export class CentralOrchestratorV2 {
 			return { passed: true, shouldRetry: false };
 		}
 		
-		// Tentar encontrar arquivo criado (olhar no result para path)
-		const filePathMatch = result.match(/(?:written|created|saved).*?(?:file|arquivo).*?:?\s*([^\s]+\.(?:md|txt|html|json))/i);
+		// CRÍTICO: Procurar arquivo REAL criado pela tool write_file
+		// Estratégia: Procurar arquivos .md, .txt, .html criados nos últimos 15 segundos
+		let detectedFile: string | null = null;
+		
+		try {
+			const { readdirSync, statSync } = await import('fs');
+			const { join } = await import('path');
+			
+			const now = Date.now();
+			const recentThreshold = 15000; // 15 segundos
+			
+			// Procurar em work/ e workDir
+			const searchDirs = [join(workDir, 'work'), workDir];
+			
+			console.log(`[VALIDAÇÃO] Procurando arquivos recentes em: ${searchDirs.join(', ')}`);
+			
+			for (const dir of searchDirs) {
+				try {
+					const files = readdirSync(dir);
+					console.log(`[VALIDAÇÃO] Arquivos em ${dir}: ${files.join(', ')}`);
+					
+					for (const file of files) {
+						if (/\.(md|txt|html|json)$/.test(file)) {
+							const fullPath = join(dir, file);
+							const stats = statSync(fullPath);
+							const age = now - stats.mtimeMs;
+							
+							console.log(`[VALIDAÇÃO] ${file}: ${Math.round(age)}ms atrás (threshold: ${recentThreshold}ms)`);
+							
+							if (age < recentThreshold) {
+								detectedFile = fullPath;
+								console.log(`[VALIDAÇÃO] ✅ Arquivo recente detectado: ${detectedFile}`);
+								break;
+							}
+						}
+					}
+					if (detectedFile) break;
+				} catch (err) {
+					console.log(`[VALIDAÇÃO] Erro ao ler ${dir}: ${err}`);
+				}
+			}
+			
+			if (!detectedFile) {
+				console.warn(`[VALIDAÇÃO] Nenhum arquivo recente encontrado`);
+			}
+		} catch (error) {
+			console.error(`[VALIDAÇÃO] Erro ao procurar arquivos: ${error}`);
+		}
+		
+		// Fallback: tentar regex no resultado
+		if (!detectedFile) {
+			const pathPatterns = [
+				/file.*?:\s*([^\s()\[\]]+\.(?:md|txt|html|json|ts|tsx|js|jsx))/i,
+				/written.*?:\s*([^\s()\[\]]+\.(?:md|txt|html|json|ts|tsx|js|jsx))/i,
+				/"file_path"\s*:\s*"([^"]+\.(?:md|txt|html|json|ts|tsx|js|jsx))"/i,
+			];
+			
+			for (const pattern of pathPatterns) {
+				const match = result.match(pattern);
+				if (match) {
+					detectedFile = match[1];
+					console.log(`[VALIDAÇÃO] Path detectado por regex: ${detectedFile}`);
+					break;
+				}
+			}
+		}
+		
 		let actualCount = 0;
 		let requirementType = '';
 		let requiredCount = 0;
+		let finalPath = '';
 		
 		if (wordRequirements) {
 			requirementType = 'palavras';
 			requiredCount = parseInt(wordRequirements[1]);
 			
-			// Contar palavras no resultado ou arquivo
-			if (filePathMatch) {
+			// Tentar ler arquivo REAL
+			if (detectedFile) {
 				try {
 					const { readFileSync, existsSync } = await import('fs');
 					const { join, isAbsolute } = await import('path');
-					const filePath = filePathMatch[1];
+					const filePath = detectedFile;
 					const fullPath = isAbsolute(filePath) ? filePath : join(workDir, filePath);
+					finalPath = fullPath;
 					
 					if (existsSync(fullPath)) {
 						const content = readFileSync(fullPath, 'utf-8');
 						actualCount = content.split(/\s+/).filter(w => w.length > 0).length;
+					} else {
+						console.warn(`[VALIDAÇÃO] Arquivo não encontrado: ${fullPath}`);
+						// Fallback: contar no result
+						actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
 					}
 				} catch (error) {
-					// Se não conseguir ler arquivo, contar palavras no result
+					console.error(`[VALIDAÇÃO] Erro ao ler arquivo: ${error}`);
+					// Fallback: contar no result
 					actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
 				}
 			} else {
-				// Contar palavras no result
+				console.warn('[VALIDAÇÃO] Path de arquivo não detectado no resultado');
+				// Fallback: contar no result
 				actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
 			}
 		}
@@ -538,7 +612,7 @@ export class CentralOrchestratorV2 {
 		
 		// Se atingiu pelo menos 80% do requisito, considerar OK
 		if (percentage >= 80) {
-			return { passed: true, shouldRetry: false };
+			return { passed: true, shouldRetry: false, filePath: finalPath };
 		}
 		
 		// Se menos de 80%, criar subtask de expansão
@@ -547,8 +621,9 @@ export class CentralOrchestratorV2 {
 			passed: false,
 			reason: `Conteúdo insuficiente: ${actualCount}/${requiredCount} ${requirementType} (${percentage.toFixed(0)}%)`,
 			shouldRetry: true,
-			targetRequirement: `Adicionar pelo menos ${deficit} ${requirementType} ao conteúdo existente`,
-			expansionTaskTitle: `Expandir conteúdo: adicionar ${deficit} ${requirementType}`
+			targetRequirement: `Adicionar pelo menos ${deficit} ${requirementType} ao conteúdo existente no arquivo ${detectedFile || 'criado'}`,
+			expansionTaskTitle: `Expandir conteúdo: adicionar ${deficit} ${requirementType}`,
+			filePath: finalPath || detectedFile || ''
 		};
 	}
 
@@ -624,34 +699,43 @@ export class CentralOrchestratorV2 {
 			const result = await agent.execute(agentPrompt, subTask.metadata.tools, workDir);
 
 			// CRÍTICO: VALIDAÇÃO QUANTITATIVA PÓS-EXECUÇÃO
-			const quantitativeValidation = await this.validateQuantitativeRequirements(
-				subTask,
-				result,
-				workDir
-			);
+			// Só validar se subtask tem tool write_file (criação de arquivo)
+			const hasWriteFile = subTask.metadata.tools?.includes('write_file');
 			
-			if (!quantitativeValidation.passed && quantitativeValidation.shouldRetry) {
-				onProgress?.(`⚠️ Requisito quantitativo não atendido: ${quantitativeValidation.reason}`);
-				onProgress?.(`🔄 Criando subtask de expansão...`);
+			if (hasWriteFile) {
+				// Aguardar um momento para garantir que arquivo foi escrito
+				await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos para garantir
 				
-				// Criar subtask de expansão AUTOMATICAMENTE
-				const expansionTask = this.createTask(
-					quantitativeValidation.expansionTaskTitle || `Expandir: ${subTask.title}`,
-					'planning',
-					subTask.parentId,
-					{
-						agentType,
-						tools: subTask.metadata.tools,
-						dependencies: [subTask.id],
-						validation: quantitativeValidation.targetRequirement,
-						retryAttempt: (subTask.metadata.retryAttempt || 0) + 1,
-						isExpansion: true,
-					}
+				const quantitativeValidation = await this.validateQuantitativeRequirements(
+					subTask,
+					result,
+					workDir
 				);
 				
-				// Adicionar à fila
-				this.kanban.set(expansionTask.id, expansionTask);
-				onProgress?.(`📋 Subtask de expansão criada: ${expansionTask.title}`, this.getKanbanSnapshot());
+				if (!quantitativeValidation.passed && quantitativeValidation.shouldRetry) {
+					onProgress?.(`⚠️ Requisito quantitativo não atendido: ${quantitativeValidation.reason}`);
+					onProgress?.(`🔄 Criando subtask de expansão...`);
+					
+					// Criar subtask de expansão AUTOMATICAMENTE
+					const expansionTask = this.createTask(
+						quantitativeValidation.expansionTaskTitle || `Expandir: ${subTask.title}`,
+						'planning',
+						subTask.parentId,
+						{
+							agentType,
+							tools: ['write_file', 'read_file', 'edit_file'], // Precisa ler e editar
+							dependencies: [subTask.id],
+							validation: quantitativeValidation.targetRequirement,
+							retryAttempt: (subTask.metadata.retryAttempt || 0) + 1,
+							isExpansion: true,
+							originalFile: quantitativeValidation.filePath, // Passar path do arquivo
+						}
+					);
+					
+					// Adicionar à fila
+					this.kanban.set(expansionTask.id, expansionTask);
+					onProgress?.(`📋 Subtask de expansão criada: ${expansionTask.title}`, this.getKanbanSnapshot());
+				}
 			}
 
 			// NOVO: DETECÇÃO PROATIVA DE ERROS

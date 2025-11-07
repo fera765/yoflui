@@ -364,6 +364,9 @@ function inferTools(title: string, description: string): string[] {
 	const combined = `${title} ${description}`.toLowerCase();
 	const tools: string[] = [];
 	
+	// CRÍTICO: Detectar requisito quantitativo
+	const hasQuantitativeRequirement = /(\d+)\+?\s*(palavras?|words?|páginas?|pages?|linhas?|lines?)/i.test(combined);
+	
 	// Shell commands
 	if (/npm|instalar|comando|executar|criar.*projeto|vite/i.test(combined)) {
 		tools.push('execute_shell');
@@ -372,6 +375,17 @@ function inferTools(title: string, description: string): string[] {
 	// File operations
 	if (/criar.*arquivo|escrever|configurar.*arquivo|componente/i.test(combined)) {
 		tools.push('write_file');
+	}
+	
+	// CRÍTICO: Se task é de ESCRITA com requisito quantitativo, FORÇAR write_file
+	if (hasQuantitativeRequirement && /escrever|redigir|write|criar.*conteúdo|gerar.*texto|artigo|capítulo/i.test(combined)) {
+		if (!tools.includes('write_file')) {
+			tools.push('write_file');
+		}
+		// Também adicionar read_file para validação
+		if (!tools.includes('read_file')) {
+			tools.push('read_file');
+		}
 	}
 	
 	// Read operations
