@@ -162,6 +162,20 @@ Você deve ${task.title.toLowerCase()}.`;
 			block += `\n4. SOBRESCREVER usando write_file com conteúdo expandido`;
 			block += `\n5. NÃO criar arquivo novo, EDITAR o existente`;
 		}
+		
+		// CRÍTICO: Detectar se é tarefa de ESCRITA de capítulo/artigo
+		const isWritingTask = /escrever|criar|redigir|write/i.test(task.title);
+		const hasQuantitativeReq = task.metadata.validation && /\d+.*palavras|words|páginas|pages/i.test(task.metadata.validation);
+		
+		if (isWritingTask && hasQuantitativeReq) {
+			block += `\n\n📝 ATENÇÃO: TAREFA DE ESCRITA DE CONTEÚDO COMPLETO`;
+			block += `\n\n⚠️ REGRA CRÍTICA - ARQUIVO ÚNICO:`;
+			block += `\n- Você DEVE escrever TODO o conteúdo solicitado em UM ÚNICO arquivo`;
+			block += `\n- NÃO crie arquivos separados para introdução, fundamentos, etc.`;
+			block += `\n- Escreva todas as seções sequencialmente no mesmo arquivo`;
+			block += `\n- Use write_file UMA ÚNICA VEZ com o conteúdo completo`;
+			block += `\n- O arquivo final deve conter TODAS as seções solicitadas`;
+		}
 
 		// NOVO: Adicionar memória completa (contexto de etapas anteriores)
 		if (context.previousResults && context.previousResults.fullMemory) {

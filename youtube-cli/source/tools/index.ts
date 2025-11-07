@@ -109,13 +109,21 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeEditTool(args.file_path, args.old_string, args.new_string);
 		case 'read_file':
 			return executeReadFileTool(args.file_path);
-		case 'write_file': {
-			// Resolve relative paths against workDir
-			const { join } = await import('path');
-			const { isAbsolute } = await import('path');
-			const resolvedPath = isAbsolute(args.file_path) ? args.file_path : join(workDir, args.file_path);
-			return executeWriteFileTool(resolvedPath, args.content);
+	case 'write_file': {
+		// CRÍTICO: FORÇAR PATH work/ ANTES de resolver
+		const { join, isAbsolute } = await import('path');
+		let filePath = args.file_path;
+		
+		// Se não é absoluto E não começa com work/, FORÇAR work/
+		if (!isAbsolute(filePath) && !filePath.startsWith('work/') && !filePath.startsWith('work\\')) {
+			filePath = join('work', filePath);
+			console.warn(`[INDEX] PATH corrigido: ${args.file_path} → ${filePath}`);
 		}
+		
+		// Agora resolver contra workDir
+		const resolvedPath = isAbsolute(filePath) ? filePath : join(workDir, filePath);
+		return executeWriteFileTool(resolvedPath, args.content);
+	}
 		case 'execute_shell':
 			return executeShellTool(args.command, args.timeout, args.interactive);
 		case 'shell_input':

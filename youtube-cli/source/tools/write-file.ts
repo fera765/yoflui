@@ -23,9 +23,11 @@ export async function executeWriteFileTool(filePath: string, content: string): P
 		// CRÍTICO: Se path não começa com work/ e não é absoluto, forçar prefixo work/
 		const { isAbsolute, join } = await import('path');
 		let finalPath = filePath;
+		let pathWasCorrected = false;
 		
 		if (!isAbsolute(filePath) && !filePath.startsWith('work/') && !filePath.startsWith('work\\')) {
 			finalPath = join('work', filePath);
+			pathWasCorrected = true;
 			console.warn(`[WRITE_FILE] PATH corrigido: ${filePath} → ${finalPath}`);
 		}
 		
@@ -56,7 +58,8 @@ export async function executeWriteFileTool(filePath: string, content: string): P
 			return `Warning: File created but size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`;
 		}
 		
-		return `✓ File written and verified: ${filePath} (${stats.size} bytes)`;
+		const pathNote = pathWasCorrected ? ` [PATH auto-corrected to work/]` : '';
+		return `✓ File written and verified: ${filePath} (${stats.size} bytes)${pathNote}`;
 	} catch (error) {
 		return `Error: ${error instanceof Error ? error.message : 'Failed to write file'}`;
 	}

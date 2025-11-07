@@ -15,6 +15,7 @@ export interface Subtask {
 	dependencies: string[]; // IDs de subtasks que devem ser concluídas antes
 	estimated_tokens: number;
 	priority: number; // 1-10
+	validation?: string; // Requisitos quantitativos ou critérios de sucesso
 }
 
 export interface DecompositionResult {
@@ -199,7 +200,12 @@ INSTRUÇÕES:
 3. Ordene por dependências (o que deve ser feito primeiro)
 4. **CRÍTICO:** Se houver requisitos quantitativos (palavras, páginas, linhas), INCLUA-OS EXPLICITAMENTE na descrição da subtask relevante
 5. **CRÍTICO:** Se houver PATH de arquivo especificado, INCLUA-O EXATAMENTE na descrição da subtask de escrita/salvamento
-6. **CRÍTICO:** NÃO fragmente conteúdo de um único capítulo/documento em múltiplos arquivos. Todo o conteúdo deve ser salvo em UM ÚNICO arquivo conforme especificado pelo usuário.
+6. **CRÍTICO - REGRA DE ARQUIVO ÚNICO:** 
+   - TODO o conteúdo de um capítulo/artigo/documento DEVE ser escrito em UM ÚNICO arquivo
+   - NUNCA crie subtasks separadas para "introdução.md", "fundamentos.md", etc.
+   - A subtask de escrita deve gerar TODO o conteúdo de uma vez no arquivo especificado
+   - Se o usuário pediu "work/ebook-cap1.md", TODO o capítulo 1 vai nesse arquivo ÚNICO
+   - NÃO fragmente em múltiplos arquivos
 7. Para cada subtask, forneça:
    - ID único
    - Título claro
@@ -208,11 +214,11 @@ INSTRUÇÕES:
    - Estimativa de tokens necessários
    - Prioridade (1-10)
 
-EXEMPLO DE SUBTASK COM REQUISITO QUANTITATIVO E PATH:
+EXEMPLO DE SUBTASK COM REQUISITO QUANTITATIVO E PATH (ARQUIVO ÚNICO):
 {
   "id": "3",
-  "title": "Escrever e salvar artigo",
-  "description": "Escrever artigo completo com MÍNIMO 1200 palavras sobre o tema. SALVAR em work/artigo-tema.md (path exato especificado pelo usuário). VALIDAR contagem antes de concluir.",
+  "title": "Escrever e salvar capítulo completo",
+  "description": "Escrever TODO o Capítulo 1 completo (introdução, fundamentos, técnicas, exemplos, exercícios) com MÍNIMO 1200 palavras. IMPORTANTE: Escrever TUDO em UM ÚNICO arquivo work/ebook-cap1.md (NÃO criar arquivos separados para cada seção). VALIDAR contagem antes de concluir.",
   "dependencies": ["2"],
   "estimated_tokens": 2000,
   "priority": 8
@@ -258,17 +264,34 @@ NÃO inclua explicações, apenas o JSON.`;
 		
 		const decomposition = JSON.parse(jsonMatch[0]);
 		
-		// Validar estrutura
-		if (!decomposition.subtasks || !Array.isArray(decomposition.subtasks)) {
-			throw new Error('JSON sem campo subtasks');
+	// Validar estrutura
+	if (!decomposition.subtasks || !Array.isArray(decomposition.subtasks)) {
+		throw new Error('JSON sem campo subtasks');
+	}
+	
+	// CRÍTICO: INJETAR requisitos quantitativos nas subtasks de escrita
+	if (quantitativeRequirements.length > 0) {
+		console.log(`[DECOMPOSER] Injetando ${quantitativeRequirements.length} requisitos quantitativos nas subtasks`);
+		for (const subtask of decomposition.subtasks) {
+			// Detectar se é subtask de escrita/criação
+			const isWritingTask = /escrever|criar|redigir|write|gerar.*texto|artigo|capítulo/i.test(subtask.title + ' ' + (subtask.description || ''));
+			if (isWritingTask) {
+				// Adicionar requisitos ao campo validation
+				const reqText = quantitativeRequirements.join(' ');
+				subtask.validation = subtask.validation 
+					? `${subtask.validation} ${reqText}` 
+					: reqText;
+				console.log(`[DECOMPOSER] Requisito injetado em "${subtask.title}": ${reqText}`);
+			}
 		}
-		
-		return {
-			shouldDecompose: true,
-			reason: `Tarefa complexa decompost em ${decomposition.subtasks.length} sub-tarefas`,
-			subtasks: decomposition.subtasks,
-			estimated_total_time: decomposition.estimated_total_time || 300
-		};
+	}
+	
+	return {
+		shouldDecompose: true,
+		reason: `Tarefa complexa decompost em ${decomposition.subtasks.length} sub-tarefas`,
+		subtasks: decomposition.subtasks,
+		estimated_total_time: decomposition.subtasks_total_time || 300
+	};
 		
 	} catch (error) {
 		// Fallback: decomposição manual baseada em padrões
@@ -470,16 +493,17 @@ export function convertToKanbanTasks(subtasks: Subtask[]): any[] {
 			status: index === 0 ? 'in_progress' : 'todo',
 			column: 'execution_queue', // Sempre queue, o orchestrator movimenta
 			dependencies: subtask.dependencies,
-			metadata: {
-				agentType,
-				tools,
-				estimated_tokens: subtask.estimated_tokens,
-				priority: subtask.priority,
-				validation: `${subtask.title} completed successfully`,
-				decomposed: true, // Flag para indicar que args serão gerados pelo agent
-				stepIndex: index + 1,
-				totalSteps: subtasks.length
-			}
+		metadata: {
+			agentType,
+			tools,
+			estimated_tokens: subtask.estimated_tokens,
+			priority: subtask.priority,
+			// CRÍTICO: Preservar validation injetado (com requisitos quantitativos)
+			validation: subtask.validation || `${subtask.title} completed successfully`,
+			decomposed: true, // Flag para indicar que args serão gerados pelo agent
+			stepIndex: index + 1,
+			totalSteps: subtasks.length
+		}
 		};
 	});
 }

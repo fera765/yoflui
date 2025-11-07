@@ -483,22 +483,28 @@ export class CentralOrchestratorV2 {
 		expansionTaskTitle?: string;
 		filePath?: string;
 	}> {
+		console.log(`[VALIDAÇÃO QUANTITATIVA] Iniciando para "${subTask.title}"`);
 		// Limitar tentativas (max 2 expansões)
 		const retryAttempt = subTask.metadata.retryAttempt || 0;
 		if (retryAttempt >= 2) {
+			console.log(`[VALIDAÇÃO QUANTITATIVA] Limite de retries atingido (${retryAttempt})`);
 			return { passed: true, shouldRetry: false }; // Desistir após 2 tentativas
 		}
 		
 		// Extrair requisitos da descrição/title
 		const fullText = `${subTask.title} ${subTask.metadata.validation || ''}`.toLowerCase();
+		console.log(`[VALIDAÇÃO QUANTITATIVA] fullText para análise: "${fullText}"`);
 		
 		// Padrões de requisitos quantitativos
 		const wordRequirements = fullText.match(/(\d+)\+?\s*(palavras?|words?)/i);
 		const pageRequirements = fullText.match(/(\d+)\+?\s*(páginas?|pages?)/i);
 		const lineRequirements = fullText.match(/(\d+)\+?\s*(linhas?|lines?)/i);
 		
+		console.log(`[VALIDAÇÃO QUANTITATIVA] Requisitos encontrados - palavras: ${wordRequirements?.[0]}, páginas: ${pageRequirements?.[0]}, linhas: ${lineRequirements?.[0]}`);
+		
 		// Se não tem requisito quantitativo, passar
 		if (!wordRequirements && !pageRequirements && !lineRequirements) {
+			console.log(`[VALIDAÇÃO QUANTITATIVA] Nenhum requisito quantitativo encontrado - passando`);
 			return { passed: true, shouldRetry: false };
 		}
 		
@@ -698,13 +704,15 @@ export class CentralOrchestratorV2 {
 			// Executar agente
 			const result = await agent.execute(agentPrompt, subTask.metadata.tools, workDir);
 
-			// CRÍTICO: VALIDAÇÃO QUANTITATIVA PÓS-EXECUÇÃO
-			// Só validar se subtask tem tool write_file (criação de arquivo)
-			const hasWriteFile = subTask.metadata.tools?.includes('write_file');
-			
-			if (hasWriteFile) {
-				// Aguardar um momento para garantir que arquivo foi escrito
-				await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos para garantir
+		// CRÍTICO: VALIDAÇÃO QUANTITATIVA PÓS-EXECUÇÃO
+		// Só validar se subtask tem tool write_file (criação de arquivo)
+		const hasWriteFile = subTask.metadata.tools?.includes('write_file');
+		console.log(`[VALIDAÇÃO] Task: "${subTask.title}", tools: [${subTask.metadata.tools?.join(', ')}], hasWriteFile: ${hasWriteFile}`);
+		
+		if (hasWriteFile) {
+			console.log(`[VALIDAÇÃO] Aguardando 2 segundos para arquivo ser escrito...`);
+			// Aguardar um momento para garantir que arquivo foi escrito
+			await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos para garantir
 				
 				const quantitativeValidation = await this.validateQuantitativeRequirements(
 					subTask,
