@@ -409,7 +409,9 @@ export default function App() {
 		setBusy(true);
 		
 		try {
-			const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
+			// FIX: workDir deve ser o root do projeto, não um subdiretório
+			// Paths relativos do usuário (ex: work/arquivo.txt) serão resolvidos a partir daqui
+			const workDir = process.cwd();
 			
 			// If LLM coordinator exists (from previous automation), continue conversation
 			if (llmCoordinator) {

@@ -84,7 +84,9 @@ export async function runNonInteractive(prompt: string): Promise<void> {
 	console.log('[*] Initializing Orchestrator V2...\n');
 
 	try {
-		const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
+		// FIX: workDir deve ser o root do projeto, não um subdiretório
+		// Paths relativos do usuário (ex: work/arquivo.txt) serão resolvidos a partir daqui
+		const workDir = process.cwd();
 		let currentKanban: KanbanTask[] = [];
 		
 		// Criar instância do Orchestrator V2
