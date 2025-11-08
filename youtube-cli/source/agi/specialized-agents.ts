@@ -1,9 +1,11 @@
 import OpenAI from 'openai';
-import { AgentResult } from './types.js';
+import { AgentResult, ToolExecution } from './types.js';
 import { getAllToolDefinitions, executeToolCall } from '../tools/index.js';
 import { getConfig } from '../llm-config.js';
 
 export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis';
+
+export type ToolExecutionCallback = (toolExecution: ToolExecution) => void;
 
 /**
  * AGENTE ESPECIALIZADO
@@ -13,11 +15,20 @@ export class SpecializedAgent {
 	public type: AgentType;
 	private openai: OpenAI;
 	private systemPrompts: Map<AgentType, string>;
+	private toolExecutionCallback?: ToolExecutionCallback;
+	private toolCounter = 0;
 
 	constructor(type: AgentType, openai: OpenAI) {
 		this.type = type;
 		this.openai = openai;
 		this.systemPrompts = this.initializeSystemPrompts();
+	}
+	
+	/**
+	 * Configurar callback para atualizações de tool execution
+	 */
+	setToolExecutionCallback(callback: ToolExecutionCallback) {
+		this.toolExecutionCallback = callback;
 	}
 
 	private initializeSystemPrompts(): Map<AgentType, string> {
@@ -37,7 +48,14 @@ Você é especialista em:
 - Escrever código limpo e eficiente
 - Refatorar e otimizar código existente
 - Detectar bugs e vulnerabilidades
-- Aplicar melhores práticas e padrões`);
+- Aplicar melhores práticas e padrões
+
+REGRAS CRÍTICAS PARA IMPORTS:
+1. SEMPRE verifique a estrutura de pastas antes de gerar imports
+2. Use read_folder ou find_files para validar que os arquivos importados existem
+3. Mantenha caminhos de import consistentes com a estrutura do projeto
+4. Se precisar de uma biblioteca externa, adicione ao package.json
+5. NUNCA importe módulos que não existem ou não estão no package.json`);
 
 		prompts.set('automation', `Você é o Agente de Automação.
 Sua única função é executar e orquestrar automações e scripts.
@@ -118,30 +136,61 @@ Você é especialista em:
 					tool_calls: assistantMsg.tool_calls,
 				});
 
-				// Executar tools se necessário
-				if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
-					for (const toolCall of assistantMsg.tool_calls) {
-						const func = (toolCall as any).function;
-						const toolName = func.name;
-						const args = JSON.parse(func.arguments);
+			// Executar tools se necessário
+			if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
+				for (const toolCall of assistantMsg.tool_calls) {
+					const func = (toolCall as any).function;
+					const toolName = func.name;
+					const args = JSON.parse(func.arguments);
 
-						let result: string;
-						try {
-							// Usar workDir fornecido ou fallback para cwd
-							const execDir = workDir || process.cwd();
-							result = await executeToolCall(toolName, args, execDir);
-						} catch (error) {
-							result = `Error: ${error instanceof Error ? error.message : String(error)}`;
-						}
-
-						messages.push({
-							role: 'tool',
-							content: result,
-							tool_call_id: toolCall.id,
+					const toolExecId = `tool-${this.type}-${++this.toolCounter}`;
+					const startTime = Date.now();
+					
+					// Notificar início da execução
+					if (this.toolExecutionCallback) {
+						this.toolExecutionCallback({
+							id: toolExecId,
+							name: toolName,
+							args,
+							status: 'running',
+							startTime
 						});
 					}
-					continue;
+
+					let result: string;
+					let status: 'complete' | 'error' = 'complete';
+					try {
+						// Usar workDir fornecido ou fallback para cwd
+						const execDir = workDir || process.cwd();
+						result = await executeToolCall(toolName, args, execDir);
+					} catch (error) {
+						result = `Error: ${error instanceof Error ? error.message : String(error)}`;
+						status = 'error';
+					}
+					
+					const endTime = Date.now();
+					
+					// Notificar conclusão da execução
+					if (this.toolExecutionCallback) {
+						this.toolExecutionCallback({
+							id: toolExecId,
+							name: toolName,
+							args,
+							status,
+							result,
+							startTime,
+							endTime
+						});
+					}
+
+					messages.push({
+						role: 'tool',
+						content: result,
+						tool_call_id: toolCall.id,
+					});
 				}
+				continue;
+			}
 
 				// Retornar resultado final
 				if (assistantMsg.content) {

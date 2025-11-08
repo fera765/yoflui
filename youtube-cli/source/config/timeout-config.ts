@@ -12,8 +12,8 @@ export const TIMEOUT_CONFIG = {
     WEBHOOK_TRIGGER: 5000,       // 5 seconds for webhook callbacks
     
     // LLM operations
-    LLM_COMPLETION: 120000,      // 2 minutes for LLM completions
-    LLM_STREAMING: 180000,       // 3 minutes for streaming responses
+    LLM_COMPLETION: 300000,      // 5 minutes for LLM completions (decomposition pode demorar)
+    LLM_STREAMING: 300000,       // 5 minutes for streaming responses
     
     // Shell operations
     SHELL_COMMAND: 300000,       // 5 minutes for shell commands

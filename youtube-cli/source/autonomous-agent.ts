@@ -9,6 +9,8 @@ import { loadOrCreateContext, saveContext, generateContextPrompt, addToConversat
 import { withTimeout, TIMEOUT_CONFIG } from './config/timeout-config.js';
 import { getSystemPrompt } from './prompts/prompt-loader.js';
 import { responseOptimizer } from './utils/response-optimizer.js';
+import { detectLargeTask } from './agi/task-decomposer.js';
+import { validateTaskCompletion, formatValidationReport, extractRequirements } from './agi/task-validator.js';
 
 interface AgentOptions {
 	userMessage: string;
@@ -127,8 +129,14 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 	// Add current user message
 	messages.push({ role: 'user', content: userMessage });
 
+	// Detectar tarefas complexas e ajustar max iterations
+	const isComplexTask = detectLargeTask(userMessage);
+	const requirements = extractRequirements(userMessage);
+	
+	// Aumentar limite de iterações para tarefas complexas
+	const maxIterations = isComplexTask || requirements.length > 5 ? 30 : 15;
+
 	let iterations = 0;
-	const maxIterations = 15;
 
 	while (iterations < maxIterations) {
 		iterations++;
@@ -201,10 +209,41 @@ export async function runAutonomousAgent(options: AgentOptions): Promise<string>
 		// No more tool calls, agent is done
 		if (assistantMsg.content) {
 			// Optimize response for token economy
-			const optimizedResponse = responseOptimizer.optimizeResponse(
+			let optimizedResponse = responseOptimizer.optimizeResponse(
 				assistantMsg.content,
 				userMessage
 			);
+			
+			// NOVO: Validar se todos os requisitos foram cumpridos ANTES de retornar
+			if (requirements.length > 0) {
+				const executedSteps = context.conversationHistory
+					.filter(msg => msg.role === 'assistant')
+					.map((msg, idx) => ({
+						id: `step-${idx}`,
+						tool: 'unknown',
+						result: msg.content
+					}));
+				
+				const validation = validateTaskCompletion(userMessage, executedSteps, optimizedResponse);
+				
+				console.log(`\n[VALIDAÇÃO] Taxa de conclusão: ${validation.completionRate.toFixed(0)}%`);
+				
+				if (!validation.complete && validation.completionRate < 80) {
+					console.log('⚠️  Tarefa incompleta! Requisitos pendentes:');
+					console.log(formatValidationReport(validation));
+					
+					// Se tem requisitos críticos faltando, adicionar ao response
+					const criticalMissing = validation.missingRequirements.filter(r => r.priority === 'critical');
+					if (criticalMissing.length > 0) {
+						optimizedResponse += '\n\n⚠️ ATENÇÃO: Requisitos críticos pendentes:\n';
+						criticalMissing.forEach(req => {
+							optimizedResponse += `- ${req.description}\n`;
+						});
+					}
+				} else {
+					console.log('✅ Tarefa validada com sucesso!');
+				}
+			}
 			
 			// Save optimized response to context (user message already in context)
 			addToConversation('assistant', optimizedResponse, cwd);

@@ -148,6 +148,35 @@ SUB-TAREFA ATUAL:
 OBJETIVO ESPECÍFICO:
 Você deve ${task.title.toLowerCase()}.`;
 
+		// CRÍTICO: Detectar se é tarefa de EXPANSÃO
+		const isExpansion = task.metadata.isExpansion === true;
+		const originalFile = task.metadata.originalFile;
+
+		if (isExpansion && originalFile) {
+			block += `\n\n🔄 ATENÇÃO: TAREFA DE EXPANSÃO DE CONTEÚDO`;
+			block += `\n\nArquivo a expandir: ${originalFile}`;
+			block += `\n\nInstruções CRÍTICAS PARA EXPANSÃO:`;
+			block += `\n1. PRIMEIRO: Usar read_file para ler o arquivo existente`;
+			block += `\n2. ANALISAR o conteúdo atual e estilo de escrita`;
+			block += `\n3. EXPANDIR o conteúdo mantendo qualidade e coerência`;
+			block += `\n4. SOBRESCREVER usando write_file com conteúdo expandido`;
+			block += `\n5. NÃO criar arquivo novo, EDITAR o existente`;
+		}
+		
+		// CRÍTICO: Detectar se é tarefa de ESCRITA de capítulo/artigo
+		const isWritingTask = /escrever|criar|redigir|write/i.test(task.title);
+		const hasQuantitativeReq = task.metadata.validation && /\d+.*palavras|words|páginas|pages/i.test(task.metadata.validation);
+		
+		if (isWritingTask && hasQuantitativeReq) {
+			block += `\n\n📝 ATENÇÃO: TAREFA DE ESCRITA DE CONTEÚDO COMPLETO`;
+			block += `\n\n⚠️ REGRA CRÍTICA - ARQUIVO ÚNICO:`;
+			block += `\n- Você DEVE escrever TODO o conteúdo solicitado em UM ÚNICO arquivo`;
+			block += `\n- NÃO crie arquivos separados para introdução, fundamentos, etc.`;
+			block += `\n- Escreva todas as seções sequencialmente no mesmo arquivo`;
+			block += `\n- Use write_file UMA ÚNICA VEZ com o conteúdo completo`;
+			block += `\n- O arquivo final deve conter TODAS as seções solicitadas`;
+		}
+
 		// NOVO: Adicionar memória completa (contexto de etapas anteriores)
 		if (context.previousResults && context.previousResults.fullMemory) {
 			block += `\n\n${context.previousResults.fullMemory}`;

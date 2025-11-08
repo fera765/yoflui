@@ -4,6 +4,7 @@ import { loadQwenCredentials, getValidAccessToken } from '../qwen-oauth.js';
 import { executeWebSearchTool } from './web-search.js';
 import { executeWebScraperTool } from './web-scraper.js';
 import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
+import { executeKeywordSuggestionsTool } from './keyword-suggestions.js';
 
 export interface IntelligentResearchOptions {
 	query: string;
@@ -222,10 +223,54 @@ export async function executeIntelligentWebResearchTool(
 
 		const openai = new OpenAI({ baseURL: endpoint, apiKey });
 
-		// Step 1: Perform web search
-		// Silent web search
-		const searchResultsJson = await executeWebSearchTool(query, 5);
-		const searchResults = JSON.parse(searchResultsJson);
+		// Step 0: Try to get SEO-optimized keywords first
+		let searchQueries: string[] = [query]; // Default: use original query
+		
+		try {
+			// Try to get keyword suggestions from SEO tool
+			const keywordResponse = await executeKeywordSuggestionsTool(query, ['all']);
+			const keywordData = JSON.parse(keywordResponse);
+			
+			if (keywordData.success && keywordData.allSuggestions && keywordData.allSuggestions.length > 0) {
+				// Use top 5 SEO-optimized queries
+				searchQueries = [
+					query, // Always include original
+					...keywordData.allSuggestions.slice(0, 4) // Add 4 more from SEO
+				];
+			}
+		} catch (error) {
+			// Silently ignore SEO tool errors and use original query
+			// Error getting SEO keywords, using original query
+		}
+
+		// Step 1: Perform web search (using SEO-optimized queries if available)
+		// Searching with optimized queries
+		const allSearchResults: any[] = [];
+		
+		// Search with first 2 queries (original + best SEO keyword)
+		for (let i = 0; i < Math.min(searchQueries.length, 2); i++) {
+			try {
+				const searchQuery = searchQueries[i];
+				const searchResultsJson = await executeWebSearchTool(searchQuery, 3);
+				const searchResults = JSON.parse(searchResultsJson);
+				
+				if (searchResults.results && searchResults.results.length > 0) {
+					allSearchResults.push(...searchResults.results);
+				}
+			} catch (error) {
+				// Continue with next query
+			}
+		}
+		
+		// Remove duplicates based on URL
+		const uniqueResults = Array.from(
+			new Map(allSearchResults.map(r => [r.url, r])).values()
+		);
+		
+		const searchResults = {
+			results: uniqueResults.slice(0, 5), // Keep top 5 unique results
+			total: uniqueResults.length
+		};
 		
 		if (!searchResults.results || searchResults.results.length === 0) {
 			return JSON.stringify({

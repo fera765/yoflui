@@ -1,14 +1,14 @@
 /**
- * Non-interactive mode for CLI
+ * Non-interactive mode for CLI - USANDO ORCHESTRATOR-V2
  * Usage: npm run start --prompt "Your question here"
  */
 
 import { setConfig, getConfig } from './llm-config.js';
-import { runAutonomousAgent } from './autonomous-agent.js';
 import { loadQwenCredentials } from './qwen-oauth.js';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { KanbanTask } from './tools/kanban.js';
+import { CentralOrchestratorV2 } from './agi/orchestrator-v2.js';
+import type { KanbanTask, FluiFeedback, ToolExecution } from './agi/types.js';
 
 interface ConfigFile {
 	endpoint: string;
@@ -65,7 +65,7 @@ function loadConfig(): ConfigFile {
 
 export async function runNonInteractive(prompt: string): Promise<void> {
 	console.log('===========================================');
-	console.log('[*] AUTONOMOUS AI AGENT - NON-INTERACTIVE');
+	console.log('[*] FLUI AGI - ORCHESTRATOR V2 MODE');
 	console.log('===========================================\n');
 
 	// Load and apply config
@@ -81,39 +81,68 @@ export async function runNonInteractive(prompt: string): Promise<void> {
 	console.log('[>] User Task:');
 	console.log(`    "${prompt}"\n`);
 
-	console.log('[*] Processing...\n');
+	console.log('[*] Initializing Orchestrator V2...\n');
 
 	try {
-		const workDir = join(process.cwd(), 'work', `task-${Date.now()}`);
+		// FIX: workDir deve ser o root do projeto, não um subdiretório
+		// Paths relativos do usuário (ex: work/arquivo.txt) serão resolvidos a partir daqui
+		const workDir = process.cwd();
 		let currentKanban: KanbanTask[] = [];
 		
-		const response = await runAutonomousAgent({
-			userMessage: prompt,
-			workDir,
-			onProgress: (message) => {
-				console.log(`    ${message}`);
+		// Criar instância do Orchestrator V2
+		const orchestrator = new CentralOrchestratorV2();
+		
+		// Configurar callbacks
+		orchestrator.setCallbacks({
+			onFeedback: (feedback: FluiFeedback) => {
+				console.log(`\n[FLUI] ${feedback.message}`);
 			},
-			onKanbanUpdate: (tasks) => {
-				currentKanban = tasks;
-				console.log('\n[TASK BOARD UPDATE]');
-				const todo = tasks.filter(t => t.status === 'todo').length;
-				const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-				const done = tasks.filter(t => t.status === 'done').length;
-				console.log(`    o Pending: ${todo} | o In Progress: ${inProgress} | + Done: ${done}`);
-				console.log('');
-			},
-			onToolExecute: (toolName, args) => {
-				console.log(`\n[>] TOOL: ${toolName.toUpperCase()}`);
-				console.log(`    Args: ${JSON.stringify(args).substring(0, 100)}...`);
-			},
-			onToolComplete: (toolName, args, result, error) => {
-				if (error) {
-					console.log(`    [x] Error: ${result.substring(0, 100)}`);
-				} else {
-					console.log(`    [+] Success`);
+			onToolExecution: (tool: ToolExecution) => {
+				console.log(`\n[>] TOOL: ${tool.name.toUpperCase()}`);
+				if (tool.args) {
+					const argsStr = JSON.stringify(tool.args).substring(0, 100);
+					console.log(`    Args: ${argsStr}...`);
 				}
-			},
+				if (tool.status === 'complete') {
+					console.log(`    [+] Success`);
+				} else if (tool.status === 'error') {
+					console.log(`    [x] Failed: ${tool.error || 'Unknown error'}`);
+				}
+			}
 		});
+
+		console.log('[✓] Orchestrator configured\n');
+		console.log('[*] Starting orchestration...\n');
+
+		// Executar orquestração
+		const result = await orchestrator.orchestrate(
+			prompt,
+			workDir,
+			(message: string, kanban?: KanbanTask[]) => {
+				if (kanban) {
+					// Update kanban state
+					currentKanban = kanban;
+					const received = kanban.filter(t => t.column === 'received').length;
+					const planning = kanban.filter(t => t.column === 'planning').length;
+					const queue = kanban.filter(t => t.column === 'execution_queue').length;
+					const inProgress = kanban.filter(t => t.column === 'in_progress').length;
+					const review = kanban.filter(t => t.column === 'review').length;
+					const completed = kanban.filter(t => t.column === 'completed').length;
+					const replanning = kanban.filter(t => t.column === 'replanning').length;
+					const delivery = kanban.filter(t => t.column === 'delivery').length;
+					
+					console.log('\n[KANBAN UPDATE]');
+					console.log(`    📥 Received: ${received} | 📋 Planning: ${planning} | 📦 Queue: ${queue}`);
+					console.log(`    ⚡ In Progress: ${inProgress} | 🔍 Review: ${review} | ✔️  Completed: ${completed}`);
+					if (replanning > 0) console.log(`    🔄 Replanning: ${replanning}`);
+					if (delivery > 0) console.log(`    🚀 Delivery: ${delivery}`);
+					console.log('');
+				}
+				if (message && message.trim()) {
+					console.log(`    ${message}`);
+				}
+			}
+		);
 
 		console.log('\n===========================================');
 		console.log('[+] FINAL RESULTS');
@@ -121,15 +150,16 @@ export async function runNonInteractive(prompt: string): Promise<void> {
 
 		if (currentKanban.length > 0) {
 			console.log('[TASK SUMMARY]');
-			const done = currentKanban.filter(t => t.status === 'done').length;
+			const completed = currentKanban.filter(t => t.column === 'completed' || t.column === 'delivery').length;
 			const total = currentKanban.length;
-			console.log(`    [+] Completed: ${done}/${total} tasks\n`);
+			console.log(`    [+] Completed: ${completed}/${total} tasks\n`);
 		}
 
 		console.log('[AI RESPONSE]\n');
-		console.log(response);
+		console.log(result.result);
 		console.log('\n');
 
+		console.log(`[*] Execution Mode: ${result.mode.toUpperCase()}`);
 		console.log(`[*] Work Directory: ${workDir}\n`);
 
 		console.log('===========================================');
