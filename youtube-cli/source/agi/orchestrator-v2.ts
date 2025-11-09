@@ -480,7 +480,7 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 		await this.moveTask(mainTask.id, 'planning');
 		onProgress?.('', this.getKanbanSnapshot());
 		
-		const subTasks = await this.decomposeTask(mainTask, intention, userPrompt);
+		const subTasks = await this.decomposeTask(mainTask, intention, userPrompt, workDir);
 
 		// NOVO: Atualizar execution state com total de steps
 		const context = loadOrCreateContext(undefined, workDir);
@@ -918,8 +918,8 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 			// Mover para Revisão
 			await this.moveTask(subTask.id, 'review');
 			
-			// Validar resultado
-			const isValid = await this.validateResult(subTask, result);
+			// Validar resultado (passar workDir para validação rigorosa)
+			const isValid = await this.validateResult(subTask, result, workDir);
 
 			if (isValid) {
 				await this.moveTask(subTask.id, 'completed');
@@ -954,7 +954,7 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 	}
 
 	/**
-	 * Tratar falha de validação
+	 * Tratar falha de validação COM DIAGNÓSTICO E AUTO-CORREÇÃO
 	 */
 	private async handleValidationFailure(
 		subTask: KanbanTask,
@@ -964,22 +964,64 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 	): Promise<string> {
 		const attempts = this.replanAttempts.get(subTask.id) || 0;
 		
-		if (attempts >= 3) {
-			// Aceitar resultado após 3 tentativas
-			await this.moveTask(subTask.id, 'completed');
-			subTask.metadata.result = result;
-			onProgress?.(
-				`⚠️ Aceitando resultado após ${attempts} tentativas: ${subTask.title}`,
-				this.getKanbanSnapshot()
-			);
-			return result;
+		if (attempts >= 5) {
+			// CRÍTICO: Não aceitar falha, mas sim FORÇAR correção final
+			onProgress?.(`🔍 Diagnóstico final após ${attempts} tentativas...`);
+			
+			try {
+				// Verificar estado atual do arquivo/tarefa
+				const { executeShellTool } = await import('../tools/shell.js');
+				const verifyCmd = await executeShellTool(
+					`cd ${workDir} && ls -la src/ && find src -name "*.tsx" -type f | head -15`,
+					10000
+				);
+				
+				onProgress?.(`📂 Estado atual:\n${verifyCmd.split('\n').slice(0, 10).join('\n')}`);
+				
+				// FORÇAR LLM a corrigir com contexto completo
+				onProgress?.(`🤖 Solicitando correção inteligente ao LLM...`);
+				
+				const correctionPrompt = `TAREFA FALHOU: ${subTask.title}
+
+CONTEXTO:
+- Tentativas: ${attempts}
+- Resultado anterior: ${result.slice(0, 300)}
+- Estrutura atual: ${verifyCmd.slice(0, 500)}
+
+VOCÊ DEVE:
+1. Identificar EXATAMENTE o que faltou
+2. Executar comandos de correção (read_file, write_file)
+3. VALIDAR que funcionou
+
+Analise e CORRIJA AGORA.`;
+
+				const correction = await this.delegateToAgentSimple(
+					correctionPrompt,
+					'code',
+					workDir,
+					onProgress
+				);
+				
+				// Marcar como completa APENAS se LLM confirmou correção
+				if (correction.includes('✅') || correction.includes('sucesso') || correction.includes('corrig')) {
+					await this.moveTask(subTask.id, 'completed');
+					onProgress?.(`✅ Correção final aplicada!`, this.getKanbanSnapshot());
+					return correction;
+				} else {
+					throw new Error(`Correção falhou: ${correction.slice(0, 200)}`);
+				}
+				
+			} catch (error) {
+				onProgress?.(`❌ FALHA CRÍTICA NA TAREFA: ${subTask.title}`);
+				throw new Error(`Tarefa não completada após ${attempts} tentativas: ${error}`);
+			}
 		}
 		
-		// Replanejar
+		// Replanejar com mais tentativas (5 ao invés de 3)
 		this.replanAttempts.set(subTask.id, attempts + 1);
 		await this.moveTask(subTask.id, 'replanning');
 		onProgress?.(
-			`🔄 Replanejando (${attempts + 1}/3): ${subTask.title}`,
+			`🔄 Replanejando (${attempts + 1}/5): ${subTask.title}`,
 			this.getKanbanSnapshot()
 		);
 		
@@ -1021,7 +1063,8 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 	private async decomposeTask(
 		mainTask: KanbanTask,
 		intention: any,
-		userPrompt: string
+		userPrompt: string,
+		workDir: string
 	): Promise<KanbanTask[]> {
 		if (!this.openai) throw new Error('OpenAI not initialized');
 
@@ -1211,6 +1254,7 @@ Retorne APENAS JSON array:
 					estimatedCost: data.estimatedCost,
 					stepIndex: i,
 					totalSteps: subTasksData.length,
+					workDir: workDir, // CRÍTICO: Adicionar workDir para validação
 				}
 			);
 			subTasks.push(subTask);
@@ -1279,15 +1323,69 @@ Retorne JSON:
 	}
 
 	/**
-	 * VALIDAÇÃO DE RESULTADO (mantida do original, otimizada)
+	 * VALIDAÇÃO DE RESULTADO COM VERIFICAÇÃO REAL DE ARQUIVOS
 	 */
-	private async validateResult(subTask: KanbanTask, result: string): Promise<boolean> {
+	private async validateResult(subTask: KanbanTask, result: string, workDir?: string): Promise<boolean> {
 		if (!this.openai) return true;
 
 		const hasContent = result && result.length > 50;
 		const noError = !result.toLowerCase().includes('error:') && 
 		                !result.toLowerCase().includes('failed') &&
 						!result.toLowerCase().includes('falha após');
+		
+		// VALIDAÇÃO ESPECIAL para tarefas de modificação de arquivos
+		const isFileModificationTask = /modificar|integrar|atualizar|app\.tsx|index\.tsx/i.test(subTask.title);
+		
+		if (isFileModificationTask) {
+			// CRÍTICO: Verificar ARQUIVO REAL ao invés de apenas o resultado textual
+			try {
+				const { executeShellTool } = await import('../tools/shell.js');
+				const actualWorkDir = workDir || subTask.metadata.workDir || '';
+				
+				// Detectar qual arquivo deve ter sido modificado
+				let targetFile = '';
+				if (subTask.title.toLowerCase().includes('app.tsx')) {
+					targetFile = `${actualWorkDir}/src/App.tsx`;
+				} else if (subTask.title.toLowerCase().includes('index')) {
+					targetFile = `${actualWorkDir}/src/pages/Index.tsx`;
+				}
+				
+				if (targetFile) {
+					// Verificar se arquivo foi realmente modificado (timestamp recente)
+					const fileCheck = await executeShellTool(
+						`stat -c %Y ${targetFile} 2>/dev/null || echo "0"`,
+						5000
+					);
+					
+					const timestamp = parseInt(fileCheck.trim()) || 0;
+					const now = Math.floor(Date.now() / 1000);
+					const ageInSeconds = now - timestamp;
+					
+					// Arquivo deve ter sido modificado nos últimos 60 segundos
+					if (ageInSeconds > 60) {
+						return false; // Arquivo NÃO foi modificado recentemente
+					}
+					
+					// Verificar se arquivo tem imports dos novos componentes
+					const content = await executeShellTool(
+						`head -50 ${targetFile}`,
+						5000
+					);
+					
+					const hasImports = content.includes('Sidebar') || 
+					                   content.includes('Player') || 
+									   content.includes('import');
+					
+					if (!hasImports) {
+						return false; // Arquivo não tem imports esperados
+					}
+				}
+				
+			} catch (error) {
+				// Em caso de erro na verificação, falhar
+				return false;
+			}
+		}
 		
 		if (hasContent && noError) {
 			return true;
@@ -1304,11 +1402,16 @@ SUB-TAREFA: ${subTask.title}
 CRITÉRIO: ${subTask.metadata.validation}
 RESULTADO: ${result.substring(0, 1000)}
 
+VALIDAÇÃO ESTRITA:
+- Se é uma tarefa de "modificar" ou "integrar", o resultado DEVE mostrar que arquivos foram alterados
+- Procure por evidências como: write_file, modified, ✅, updated
+- Se NÃO houver evidências de mudança real, retorne isValid: false
+
 Retorne JSON:
 {
   "isValid": true/false,
   "confidence": 0-100,
-  "reason": "explicação"
+  "reason": "explicação detalhada"
 }`;
 
 		const response = await this.openai.chat.completions.create({
@@ -1322,9 +1425,12 @@ Retorne JSON:
 			const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 			const validation = JSON.parse(cleanContent);
 			
-			return validation.isValid && validation.confidence >= 70;
+			// Exigir confiança maior para tarefas críticas
+			const requiredConfidence = isFileModificationTask ? 85 : 70;
+			return validation.isValid && validation.confidence >= requiredConfidence;
 		} catch (error) {
-			return true;
+			// Em caso de erro de parsing, ser mais rigoroso
+			return hasContent && noError && !isFileModificationTask;
 		}
 	}
 
