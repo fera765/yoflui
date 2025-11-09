@@ -859,10 +859,8 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 		const hasWriteFile = subTask.metadata.tools?.includes('write_file');
 		
 		if (hasWriteFile) {
-			// Aguardar para garantir que arquivo foi escrito no disco
-			await new Promise(resolve => setTimeout(resolve, 2000));
-			
-			// NOVO: Validar se arquivo foi realmente criado
+			// OTIMIZAÇÃO: Validação síncrona, sem delay
+			// Validar se arquivo foi realmente criado
 			const fileValidation = await this.validateFileCreationFromResult(result, workDir);
 			if (!fileValidation.success) {
 				onProgress?.(`❌ Arquivo não foi criado: ${fileValidation.error}`);
