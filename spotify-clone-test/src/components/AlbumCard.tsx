@@ -4,7 +4,7 @@ interface AlbumCardProps {
   title: string;
   artist: string;
   imageUrl: string;
-  year: string;
+  year?: number;
   onClick?: () => void;
 }
 
@@ -23,27 +23,24 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
       <div className="relative mb-4">
         <img 
           src={imageUrl} 
-          alt={title} 
-          className="w-full aspect-square object-cover rounded-md"
+          alt={`${title} album cover`} 
+          className="w-full aspect-square object-cover rounded-lg"
         />
-        <button className="absolute bottom-2 right-2 bg-green-500 rounded-full p-2 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-lg">
+        <button className="absolute bottom-2 right-2 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg">
           <svg 
-            className="w-6 h-6 text-black" 
+            className="w-6 h-6 text-black ml-0.5" 
             fill="currentColor" 
             viewBox="0 0 20 20"
           >
-            <path 
-              fillRule="evenodd" 
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" 
-              clipRule="evenodd" 
-            />
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
           </svg>
         </button>
       </div>
-      
       <h3 className="text-white font-semibold truncate">{title}</h3>
       <p className="text-gray-400 text-sm mt-1 truncate">{artist}</p>
-      <p className="text-gray-400 text-xs mt-1">{year}</p>
+      {year && (
+        <p className="text-gray-400 text-xs mt-1">{year}</p>
+      )}
     </div>
   );
 };

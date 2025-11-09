@@ -1,4 +1,28 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
+import Sidebar from '../components/Sidebar';
+import TopBar from '../components/TopBar';
+import MusicPlayer from '../components/MusicPlayer';
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+  return (
+    <div className="flex flex-col h-screen bg-black text-white">
+      <TopBar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-black p-6">
+          {children}
+        </main>
+      </div>
+      <MusicPlayer />
+    </div>
+  );
+};
+
+export default Layout;import React, { ReactNode } from 'react';
 import Header from './Header';
 import Sidebar from '../components/Sidebar';
 import Player from '../components/Player';
