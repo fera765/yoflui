@@ -1,0 +1,99 @@
+.volume-control-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.volume-control {
+  position: relative;
+  width: 40px;
+  height: 100px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 1000;
+}
+
+.volume-control.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.volume-control.hidden {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.volume-slider {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  position: relative;
+}
+
+.volume-track {
+  width: 6px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  position: relative;
+  margin: 0 auto;
+}
+
+.volume-level {
+  width: 100%;
+  background: #1db954;
+  border-radius: 3px;
+  position: absolute;
+  bottom: 0;
+  transition: height 0.1s ease;
+}
+
+.volume-thumb {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+  transition: bottom 0.1s ease;
+}
+
+/* Hover effect for better UX */
+.volume-track:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .volume-control {
+    width: 35px;
+    height: 80px;
+  }
+  
+  .volume-thumb {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .volume-control {
+    width: 30px;
+    height: 70px;
+  }
+  
+  .volume-thumb {
+    width: 12px;
+    height: 12px;
+  }
+}

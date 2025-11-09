@@ -1,0 +1,71 @@
+/* Transições suaves para elementos do player */
+.player-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Transições para botões de controle */
+.control-button {
+  transition: all 0.2s ease;
+}
+
+.control-button:hover {
+  transform: scale(1.05);
+}
+
+/* Transições para cards de playlist */
+.playlist-card {
+  transition: all 0.3s ease;
+}
+
+.playlist-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Transições para sidebar */
+.sidebar-transition {
+  transition: all 0.3s ease;
+}
+
+/* Transições para elementos de volume */
+.volume-control {
+  transition: opacity 0.2s ease;
+}
+
+/* Transições para progresso */
+.progress-bar {
+  transition: width 0.1s linear;
+}
+
+/* Transições para navegação */
+.nav-item {
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Transição suave para mudança de tema */
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Transição para botão de like */
+.like-button {
+  transition: all 0.2s ease;
+}
+
+.like-button:hover {
+  transform: scale(1.1);
+}
+
+/* Transição para elementos de conteúdo */
+.content-transition {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Transição para hover effects nos cards */
+.card-hover {
+  transition: all 0.3s ease;
+}
