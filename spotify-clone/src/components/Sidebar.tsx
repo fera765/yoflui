@@ -1,71 +1,96 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  HomeIcon, 
+  UserIcon, 
+  ShoppingBagIcon, 
+  ClipboardDocumentListIcon, 
+  TagIcon,
+  XMarkIcon,
+  Bars3Icon
+} from '@heroicons/react/24/outline';
+import { UserCircleIcon } from '@heroicons/react/24/solid';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+  const location = useLocation();
+
+  const navItems = [
+    { path: '/', label: 'Dashboard', icon: HomeIcon },
+    { path: '/users', label: 'Usuários', icon: UserIcon },
+    { path: '/products', label: 'Produtos', icon: ShoppingBagIcon },
+    { path: '/orders', label: 'Pedidos', icon: ClipboardDocumentListIcon },
+    { path: '/categories', label: 'Categorias', icon: TagIcon },
+  ];
+
   return (
-    <aside className="w-64 bg-gray-800 p-4 hidden md:block">
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-white">Music App</h2>
+    <>
+      {/* Botão de toggle para mobile */}
+      <button
+        onClick={onToggle}
+        className="md:hidden absolute top-4 left-4 z-30 p-2 rounded-md bg-gray-800 text-white"
+      >
+        {isOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+      </button>
+
+      {/* Sidebar */}
+      <div 
+        className={`fixed inset-y-0 left-0 z-20 w-64 bg-gray-800 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 md:static md:flex md:flex-col`}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h1 className="text-xl font-bold text-white">FLUI AGI</h1>
+        </div>
+        
+        <nav className="flex-1 p-4">
+          <ul className="space-y-2">
+            {navItems.map((item) => {
+              const IconComponent = item.icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center p-3 rounded-lg transition-colors ${
+                      isActive 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    <IconComponent className="h-5 w-5 mr-3" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+        
+        <div className="p-4 border-t border-gray-700">
+          <div className="flex items-center">
+            <UserCircleIcon className="h-10 w-10 text-gray-300" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-white">Usuário</p>
+              <p className="text-xs text-gray-400">Admin</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <nav>
-        <ul className="space-y-2">
-          <li>
-            <a href="#" className="flex items-center py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              Home
-            </a>
-          </li>
-          <li>
-            <a href="#" className="flex items-center py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Search
-            </a>
-          </li>
-          <li>
-            <a href="#" className="flex items-center py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20" />
-              </svg>
-              Your Library
-            </a>
-          </li>
-        </ul>
-      </nav>
-      
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4">Playlists</h3>
-        <ul className="space-y-2">
-          <li>
-            <a href="#" className="block py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200 truncate">
-              Liked Songs
-            </a>
-          </li>
-          <li>
-            <a href="#" className="block py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200 truncate">
-              My Playlist #1
-            </a>
-          </li>
-          <li>
-            <a href="#" className="block py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200 truncate">
-              Road Trip Tunes
-            </a>
-          </li>
-          <li>
-            <a href="#" className="block py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200 truncate">
-              Workout Hits
-            </a>
-          </li>
-          <li>
-            <a href="#" className="block py-2 px-4 rounded hover:bg-gray-700 transition-colors duration-200 truncate">
-              Chill Vibes
-            </a>
-          </li>
-        </ul>
-      </div>
-    </aside>
+
+      {/* Overlay para mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-10 bg-black bg-opacity-50 md:hidden"
+          onClick={onToggle}
+        ></div>
+      )}
+    </>
   );
 };
 

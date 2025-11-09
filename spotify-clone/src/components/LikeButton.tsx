@@ -1,66 +1,79 @@
 import React, { useState, useEffect } from 'react';
 
 interface LikeButtonProps {
-  trackId: string;
   initialLiked?: boolean;
-  onLikeChange?: (liked: boolean) => void;
+  initialCount?: number;
+  onLikeChange?: (liked: boolean, count: number) => void;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-const LikeButton: React.FC<LikeButtonProps> = ({ 
-  trackId, 
-  initialLiked = false, 
-  onLikeChange 
+const LikeButton: React.FC<LikeButtonProps> = ({
+  initialLiked = false,
+  initialCount = 0,
+  onLikeChange,
+  size = 'md'
 }) => {
-  const [isLiked, setIsLiked] = useState(initialLiked);
+  const [liked, setLiked] = useState(initialLiked);
+  const [count, setCount] = useState(initialCount);
 
-  // Atualiza o estado quando a propriedade initialLiked mudar
   useEffect(() => {
-    setIsLiked(initialLiked);
-  }, [initialLiked]);
+    setLiked(initialLiked);
+    setCount(initialCount);
+  }, [initialLiked, initialCount]);
 
   const handleLike = () => {
-    const newLikedState = !isLiked;
-    setIsLiked(newLikedState);
+    const newLiked = !liked;
+    const newCount = newLiked ? count + 1 : count - 1;
     
-    // Armazena o estado de like no localStorage
-    const likedTracks = JSON.parse(localStorage.getItem('likedTracks') || '{}');
-    if (newLikedState) {
-      likedTracks[trackId] = true;
-    } else {
-      delete likedTracks[trackId];
-    }
-    localStorage.setItem('likedTracks', JSON.stringify(likedTracks));
+    setLiked(newLiked);
+    setCount(newCount);
     
-    // Chama a função de callback se fornecida
     if (onLikeChange) {
-      onLikeChange(newLikedState);
+      onLikeChange(newLiked, newCount);
     }
+  };
+
+  // Determinar classes de tamanho
+  const sizeClasses = {
+    sm: 'w-6 h-6',
+    md: 'w-8 h-8',
+    lg: 'w-10 h-10'
   };
 
   return (
     <button
       onClick={handleLike}
-      className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-200 ${
-        isLiked 
-          ? 'text-red-500 hover:bg-red-500/10' 
-          : 'text-gray-400 hover:text-white hover:bg-white/10'
-      }`}
-      aria-label={isLiked ? 'Descurtir música' : 'Curtir música'}
+      className={`
+        flex items-center justify-center rounded-full transition-all duration-200
+        ${liked 
+          ? 'text-red-500 bg-red-50 hover:bg-red-100' 
+          : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+        }
+        ${sizeClasses[size]}
+      `}
+      aria-pressed={liked}
+      aria-label={liked ? 'Descurtir' : 'Curtir'}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
+        className={`${
+          size === 'sm' ? 'w-4 h-4' : 
+          size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'
+        } ${liked ? 'fill-current' : 'stroke-current fill-transparent'}`}
         viewBox="0 0 24 24"
-        fill={isLiked ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="cursor-pointer"
+        strokeWidth={liked ? 0 : 2}
       >
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+        />
       </svg>
+      {count > 0 && (
+        <span className={`ml-1 ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-sm'}`}>
+          {count}
+        </span>
+      )}
     </button>
   );
 };

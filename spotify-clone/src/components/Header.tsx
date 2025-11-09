@@ -1,48 +1,46 @@
 import React from 'react';
+import { Bars3Icon, MagnifyingGlassIcon, BellIcon } from '@heroicons/react/24/outline';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ isOpen, onToggle }) => {
   return (
-    <header className="bg-gray-900 border-b border-gray-800 p-4 sticky top-0 z-50 transition-all duration-300">
+    <header className="bg-gray-800 border-b border-gray-700 p-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-6">
-          <button className="text-white hover:text-green-400 transition-colors duration-300">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+        <div className="flex items-center">
+          {/* Botão de menu para mobile */}
+          <button
+            onClick={onToggle}
+            className="md:hidden mr-4 p-2 rounded-md bg-gray-700 text-white"
+          >
+            <Bars3Icon className="h-6 w-6" />
           </button>
-          <button className="text-gray-400 hover:text-white transition-colors duration-300">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-        
-        <div className="flex-1 max-w-md mx-6">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="O que você quer ouvir?"
-              className="w-full bg-gray-800 text-white rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-300"
-            />
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
+          
+          <h1 className="text-xl font-bold text-white">Dashboard</h1>
         </div>
         
         <div className="flex items-center space-x-4">
-          <button className="bg-black text-white rounded-full px-6 py-1.5 font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105">
-            Inscrever-se
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar..."
+              className="bg-gray-700 text-white rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
+            />
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
+          </div>
+          
+          <button className="p-2 rounded-full bg-gray-700 text-white hover:bg-gray-600">
+            <BellIcon className="h-6 w-6" />
           </button>
-          <button className="bg-white text-black rounded-full px-6 py-1.5 font-medium hover:bg-gray-200 transition-all duration-300 transform hover:scale-105">
-            Entrar
-          </button>
+          
+          <div className="flex items-center">
+            <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
+              <span className="text-white text-sm font-medium">U</span>
+            </div>
+          </div>
         </div>
       </div>
     </header>

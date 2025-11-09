@@ -1,33 +1,28 @@
 import React from 'react';
-import Sidebar from './Sidebar';
-import Player from './Player';
-import Header from './Header';
-import ScrollableContent from './ScrollableContent';
 
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* Header fixo */}
-      <Header />
-      
-      {/* Conteúdo principal com sidebar e área de conteúdo */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar fixa à esquerda */}
-        <div className="hidden md:block w-64 bg-gray-900 flex-shrink-0">
-          <Sidebar />
-        </div>
-        
-        {/* Área de conteúdo com scroll */}
-        <main className="flex-1 bg-gradient-to-b from-gray-800 to-gray-900">
-          <ScrollableContent>
-            {children}
-          </ScrollableContent>
-        </main>
+    <div className="flex h-screen bg-gray-900 text-white">
+      <div className="hidden md:flex md:w-64 bg-gray-800 flex-col">
+        {/* Sidebar content will be rendered here by the parent component */}
       </div>
       
-      {/* Player fixo inferior */}
-      <div className="bg-gray-800 border-t border-gray-700">
-        <Player />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-gray-800 border-b border-gray-700 p-4">
+          {/* Header content will be rendered here by the parent component */}
+        </header>
+        
+        <main className="flex-1 overflow-y-auto bg-gray-900 p-4">
+          {children}
+        </main>
+        
+        <footer className="bg-gray-800 border-t border-gray-700 p-4">
+          {/* Player will be rendered here by the parent component */}
+        </footer>
       </div>
     </div>
   );
