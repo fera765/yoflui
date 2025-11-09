@@ -1,73 +1,65 @@
-# React + TypeScript + Vite
+# Music Player App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Um aplicativo de música desenvolvido com React, TypeScript e Tailwind CSS.
 
-Currently, two official plugins are available:
+## Funcionalidades
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Player de música com controles básicos
+- Lista de playlists com músicas
+- Interface responsiva (mobile, tablet, desktop)
+- Sidebar de navegação
+- Header com informações do usuário
 
-## React Compiler
+## Tecnologias Utilizadas
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React
+- TypeScript
+- Tailwind CSS
+- Vite
+- React Icons
 
-## Expanding the ESLint configuration
+## Estrutura de Arquivos
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── components/
+│   ├── Header.tsx
+│   ├── Layout.tsx
+│   ├── Player.tsx
+│   ├── PlaylistCard.tsx
+│   └── Sidebar.tsx
+├── data/
+│   └── mockData.ts
+├── index.css
+└── main.tsx
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Instalação
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. Clone o repositório
+2. Execute `npm install` para instalar as dependências
+3. Execute `npm run dev` para iniciar o servidor de desenvolvimento
+4. Acesse `http://localhost:5173` no seu navegador
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Scripts Disponíveis
+
+- `npm run dev` - Inicia o servidor de desenvolvimento
+- `npm run build` - Cria uma build de produção
+- `npm run preview` - Inicia um servidor local para visualizar a build de produção
+
+## Componentes
+
+### Header
+Componente que exibe o cabeçalho da aplicação com informações do usuário.
+
+### Sidebar
+Componente de navegação lateral com links para diferentes seções da aplicação.
+
+### Player
+Componente do player de música com controles de reprodução.
+
+### PlaylistCard
+Componente que exibe informações sobre uma playlist, incluindo nome, imagem e número de músicas.
+
+### Layout
+Componente que estrutura o layout principal da aplicação com header, sidebar e conteúdo principal.
