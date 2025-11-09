@@ -1,0 +1,98 @@
+/* Tema escuro (padrão Spotify) */
+:root {
+  --bg-primary: #121212;
+  --bg-secondary: #181818;
+  --bg-tertiary: #242424;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #878787;
+  --accent-green: #1db954;
+  --accent-green-hover: #1ed760;
+  --border: #3e3e3e;
+  --overlay: rgba(0, 0, 0, 0.7);
+}
+
+/* Classes utilitárias para tema */
+.dark-theme {
+  --bg-primary: #121212;
+  --bg-secondary: #181818;
+  --bg-tertiary: #242424;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #878787;
+  --accent-green: #1db954;
+  --accent-green-hover: #1ed760;
+  --border: #3e3e3e;
+  --overlay: rgba(0, 0, 0, 0.7);
+}
+
+.light-theme {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e0e0e0;
+  --text-primary: #000000;
+  --text-secondary: #444444;
+  --text-tertiary: #666666;
+  --accent-green: #1db954;
+  --accent-green-hover: #1aa34a;
+  --border: #cccccc;
+  --overlay: rgba(0, 0, 0, 0.5);
+}
+
+/* Aplicação das variáveis de tema */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Componentes específicos para o tema */
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+
+.button-primary {
+  background-color: var(--accent-green);
+  color: var(--text-primary);
+}
+
+.button-primary:hover {
+  background-color: var(--accent-green-hover);
+}
+
+.input-field {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.input-field:focus {
+  border-color: var(--accent-green);
+}
+
+.nav-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.music-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.player-bar {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+}
+
+.search-bar {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar {
+  background-color: var(--bg-primary);
+}
+
+.main-content {
+  background-color: var(--bg-primary);
+}

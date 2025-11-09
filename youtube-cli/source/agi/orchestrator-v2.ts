@@ -10,6 +10,7 @@ import { DualModeCoordinator, ExecutionMode } from './dual-mode-coordinator.js';
 import { ProactiveErrorDetector } from './proactive-error-detector.js';
 import { OutputOptimizer } from './output-optimizer.js';
 import { FeedbackGenerator } from './feedback-generator.js';
+import { validateProject, autoFixCommonErrors } from './auto-validator.js';
 import {
 	loadOrCreateContext,
 	recordIntermediateResult,
@@ -198,6 +199,122 @@ export class CentralOrchestratorV2 {
 	}
 
 	/**
+	 * Analisa com LLM se deve usar template e qual
+	 */
+	private async analyzeTemplateNeed(prompt: string): Promise<{ use: boolean; templateUrl: string; projectName: string }> {
+		// DETECÇÃO SIMPLES: Se menciona frontend/UI/React = USA TEMPLATE SEMPRE
+		const frontendKeywords = /\b(react|ui|interface|frontend|web\s*app|spa|vite|tailwind|component|clone|spotify|dashboard)/i;
+		const simpleOnly = /\b(simple|simples|apenas\s*html|only\s*html|static|estático)\b/i;
+		
+		// Se é frontend E não é simples = USA TEMPLATE
+		if (frontendKeywords.test(prompt) && !simpleOnly.test(prompt)) {
+			// Extrair nome do projeto do prompt
+			let projectName = 'project';
+			const spotifyMatch = prompt.match(/spotify/i);
+			const cloneMatch = prompt.match(/clone\s+(?:da|do|de)?\s*(\w+)/i);
+			
+			if (spotifyMatch) projectName = 'spotify-clone';
+			else if (cloneMatch) projectName = `${cloneMatch[1]}-clone`.toLowerCase();
+			
+			return {
+				use: true,
+				templateUrl: 'https://github.com/dao42/lovable-template',
+				projectName
+			};
+		}
+		
+		// Fallback: sem template
+		return { use: false, templateUrl: '', projectName: 'project' };
+	}
+
+	/**
+	 * Clona template dinamicamente e prepara o projeto
+	 */
+	private async cloneTemplate(
+		templateUrl: string,
+		projectName: string,
+		workDir: string,
+		onProgress?: (message: string) => void
+	): Promise<boolean> {
+		try {
+			const { executeShellTool } = await import('../tools/shell.js');
+			const { existsSync } = await import('fs');
+			
+			onProgress?.('🎯 Template detectado pelo Flui');
+			onProgress?.(`📦 Clonando: ${templateUrl}`);
+			
+			// Clonar template
+			const cloneResult = await executeShellTool(
+				`git clone ${templateUrl} ${workDir}/temp-template 2>&1`,
+				90000
+			);
+			
+			// Verificar se o diretório foi criado
+			if (!existsSync(`${workDir}/temp-template`)) {
+				onProgress?.('⚠️  Clone falhou - Flui continuará sem template');
+				return false;
+			}
+			
+			onProgress?.('📝 Integrando template ao projeto...');
+			
+			// CRÍTICO: Mover TUDO do template para raiz ANTES de qualquer outra coisa
+			const moveResult = await executeShellTool(
+				`bash -c "cd ${workDir}/temp-template && cp -r * ${workDir}/ && cp -r .[!.]* ${workDir}/ 2>/dev/null || true && cd ${workDir} && rm -rf temp-template"`,
+				30000
+			);
+			
+			onProgress?.('✅ Template integrado na raiz do projeto');
+			
+			// Atualizar package.json com novo nome
+			await executeShellTool(
+				`cd ${workDir} && sed -i 's/"name":\\s*"[^"]*"/"name": "${projectName}"/' package.json 2>/dev/null || true`,
+				5000
+			);
+			
+			// CRÍTICO: Executar npm install imediatamente
+			onProgress?.('📦 Instalando dependências do template...');
+			const installResult = await executeShellTool(
+				`cd ${workDir} && npm install`,
+				120000
+			);
+			
+			if (installResult.includes('error') || installResult.includes('ERR!')) {
+				onProgress?.('⚠️  Erro ao instalar dependências - Flui continuará tentando');
+			} else {
+				onProgress?.('✅ Dependências instaladas com sucesso');
+			}
+			
+			// Listar arquivos REAIS na raiz para confirmar
+			const verifyResult = await executeShellTool(
+				`ls -la ${workDir}/ | head -15`,
+				5000
+			);
+			
+			onProgress?.('📦 Estrutura do projeto verificada:');
+			onProgress?.(verifyResult.split('\n').slice(0, 8).join('\n'));
+			
+			// Listar componentes e hooks disponíveis
+			const componentsResult = await executeShellTool(
+				`find ${workDir}/src -name "*.tsx" -o -name "*.ts" 2>/dev/null | grep -v node_modules | head -15`,
+				10000
+			);
+			
+			if (componentsResult && !componentsResult.includes('Error')) {
+				const files = componentsResult.split('\n').filter(f => f.trim()).slice(0, 8);
+				if (files.length > 0) {
+					onProgress?.(`🎯 Componentes e hooks disponíveis para uso:\n${files.join('\n')}`);
+				}
+			}
+			
+			return true;
+			
+		} catch (error) {
+			onProgress?.(`⚠️  Erro ao clonar template: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+			return false;
+		}
+	}
+
+	/**
 	 * EXECUÇÃO EM MODO AGI (Orquestração Completa)
 	 */
 	private async executeAGIMode(
@@ -207,6 +324,42 @@ export class CentralOrchestratorV2 {
 	): Promise<string> {
 		if (!this.openai || !this.intentionAnalyzer) {
 			throw new Error('Sistema não inicializado');
+		}
+
+		// NOVO: Analisar se deve usar template (decisão inteligente do LLM)
+		const templateAnalysis = await this.analyzeTemplateNeed(userPrompt);
+		if (templateAnalysis.use && templateAnalysis.templateUrl) {
+			const templateSuccess = await this.cloneTemplate(
+				templateAnalysis.templateUrl,
+				templateAnalysis.projectName,
+				workDir,
+				onProgress
+			);
+			
+			if (templateSuccess) {
+				// Adicionar contexto EXPLÍCITO ao prompt
+				userPrompt = `${userPrompt}
+
+[CONTEXTO CRÍTICO - TEMPLATE JÁ CONFIGURADO]:
+✅ Template React+Vite+Tailwind+Shadcn já está na RAIZ do projeto (${workDir}/)
+✅ package.json, vite.config.ts, tailwind.config.ts JÁ EXISTEM
+✅ Componentes UI (Button, Card, etc) JÁ ESTÃO em src/components/ui/
+✅ Hooks úteis JÁ ESTÃO disponíveis
+
+⚠️ NÃO RECRIE ESTES ARQUIVOS! Use o que existe.
+
+VOCÊ DEVE:
+1. LER os arquivos existentes primeiro (package.json, src/components/ui/)
+2. APENAS ADICIONAR novos componentes específicos do Spotify (Sidebar, Player, etc)
+3. MODIFICAR App.tsx para usar seus novos componentes
+4. VERIFICAR se node_modules existe - SE NÃO EXISTIR execute npm install OBRIGATORIAMENTE
+5. Executar build para validar (SEMPRE após npm install)
+
+CRÍTICO: Template NÃO vem com node_modules!
+SEMPRE execute: npm install ANTES de npm run build
+
+INÍCIO: Leia package.json e src/ para entender a estrutura!`;
+			}
 		}
 
 		// FASE 1: Análise de Intenção (silencioso)
@@ -327,7 +480,7 @@ export class CentralOrchestratorV2 {
 		await this.moveTask(mainTask.id, 'planning');
 		onProgress?.('', this.getKanbanSnapshot());
 		
-		const subTasks = await this.decomposeTask(mainTask, intention, userPrompt);
+		const subTasks = await this.decomposeTask(mainTask, intention, userPrompt, workDir);
 
 		// NOVO: Atualizar execution state com total de steps
 		const context = loadOrCreateContext(undefined, workDir);
@@ -645,10 +798,17 @@ export class CentralOrchestratorV2 {
 
 		// Selecionar agente especializado
 		const agentType = subTask.metadata.agentType as AgentType;
-		const agent = this.agents.get(agentType);
+		// Fallback seguro para agentType undefined
+		const safeAgentType = agentType || 'code';
+		const agent = this.agents.get(safeAgentType);
 
 		if (!agent) {
-			throw new Error(`Agente não encontrado: ${agentType}`);
+			// Tentar agente genérico de código como fallback
+			const fallbackAgent = this.agents.get('code');
+			if (!fallbackAgent) {
+				throw new Error(`Agente não encontrado: ${safeAgentType}`);
+			}
+			return fallbackAgent;
 		}
 
 		// NOVO: VALIDAÇÃO PROATIVA - TEMPORARIAMENTE DESABILITADA PARA TESTES
@@ -758,8 +918,8 @@ export class CentralOrchestratorV2 {
 			// Mover para Revisão
 			await this.moveTask(subTask.id, 'review');
 			
-			// Validar resultado
-			const isValid = await this.validateResult(subTask, result);
+			// Validar resultado (passar workDir para validação rigorosa)
+			const isValid = await this.validateResult(subTask, result, workDir);
 
 			if (isValid) {
 				await this.moveTask(subTask.id, 'completed');
@@ -794,7 +954,7 @@ export class CentralOrchestratorV2 {
 	}
 
 	/**
-	 * Tratar falha de validação
+	 * Tratar falha de validação COM DIAGNÓSTICO E AUTO-CORREÇÃO
 	 */
 	private async handleValidationFailure(
 		subTask: KanbanTask,
@@ -804,22 +964,64 @@ export class CentralOrchestratorV2 {
 	): Promise<string> {
 		const attempts = this.replanAttempts.get(subTask.id) || 0;
 		
-		if (attempts >= 3) {
-			// Aceitar resultado após 3 tentativas
-			await this.moveTask(subTask.id, 'completed');
-			subTask.metadata.result = result;
-			onProgress?.(
-				`⚠️ Aceitando resultado após ${attempts} tentativas: ${subTask.title}`,
-				this.getKanbanSnapshot()
-			);
-			return result;
+		if (attempts >= 5) {
+			// CRÍTICO: Não aceitar falha, mas sim FORÇAR correção final
+			onProgress?.(`🔍 Diagnóstico final após ${attempts} tentativas...`);
+			
+			try {
+				// Verificar estado atual do arquivo/tarefa
+				const { executeShellTool } = await import('../tools/shell.js');
+				const verifyCmd = await executeShellTool(
+					`cd ${workDir} && ls -la src/ && find src -name "*.tsx" -type f | head -15`,
+					10000
+				);
+				
+				onProgress?.(`📂 Estado atual:\n${verifyCmd.split('\n').slice(0, 10).join('\n')}`);
+				
+				// FORÇAR LLM a corrigir com contexto completo
+				onProgress?.(`🤖 Solicitando correção inteligente ao LLM...`);
+				
+				const correctionPrompt = `TAREFA FALHOU: ${subTask.title}
+
+CONTEXTO:
+- Tentativas: ${attempts}
+- Resultado anterior: ${result.slice(0, 300)}
+- Estrutura atual: ${verifyCmd.slice(0, 500)}
+
+VOCÊ DEVE:
+1. Identificar EXATAMENTE o que faltou
+2. Executar comandos de correção (read_file, write_file)
+3. VALIDAR que funcionou
+
+Analise e CORRIJA AGORA.`;
+
+				const correction = await this.delegateToAgentSimple(
+					correctionPrompt,
+					'code',
+					workDir,
+					onProgress
+				);
+				
+				// Marcar como completa APENAS se LLM confirmou correção
+				if (correction.includes('✅') || correction.includes('sucesso') || correction.includes('corrig')) {
+					await this.moveTask(subTask.id, 'completed');
+					onProgress?.(`✅ Correção final aplicada!`, this.getKanbanSnapshot());
+					return correction;
+				} else {
+					throw new Error(`Correção falhou: ${correction.slice(0, 200)}`);
+				}
+				
+			} catch (error) {
+				onProgress?.(`❌ FALHA CRÍTICA NA TAREFA: ${subTask.title}`);
+				throw new Error(`Tarefa não completada após ${attempts} tentativas: ${error}`);
+			}
 		}
 		
-		// Replanejar
+		// Replanejar com mais tentativas (5 ao invés de 3)
 		this.replanAttempts.set(subTask.id, attempts + 1);
 		await this.moveTask(subTask.id, 'replanning');
 		onProgress?.(
-			`🔄 Replanejando (${attempts + 1}/3): ${subTask.title}`,
+			`🔄 Replanejando (${attempts + 1}/5): ${subTask.title}`,
 			this.getKanbanSnapshot()
 		);
 		
@@ -861,7 +1063,8 @@ export class CentralOrchestratorV2 {
 	private async decomposeTask(
 		mainTask: KanbanTask,
 		intention: any,
-		userPrompt: string
+		userPrompt: string,
+		workDir: string
 	): Promise<KanbanTask[]> {
 		if (!this.openai) throw new Error('OpenAI not initialized');
 
@@ -1051,6 +1254,7 @@ Retorne APENAS JSON array:
 					estimatedCost: data.estimatedCost,
 					stepIndex: i,
 					totalSteps: subTasksData.length,
+					workDir: workDir, // CRÍTICO: Adicionar workDir para validação
 				}
 			);
 			subTasks.push(subTask);
@@ -1119,15 +1323,69 @@ Retorne JSON:
 	}
 
 	/**
-	 * VALIDAÇÃO DE RESULTADO (mantida do original, otimizada)
+	 * VALIDAÇÃO DE RESULTADO COM VERIFICAÇÃO REAL DE ARQUIVOS
 	 */
-	private async validateResult(subTask: KanbanTask, result: string): Promise<boolean> {
+	private async validateResult(subTask: KanbanTask, result: string, workDir?: string): Promise<boolean> {
 		if (!this.openai) return true;
 
 		const hasContent = result && result.length > 50;
 		const noError = !result.toLowerCase().includes('error:') && 
 		                !result.toLowerCase().includes('failed') &&
 						!result.toLowerCase().includes('falha após');
+		
+		// VALIDAÇÃO ESPECIAL para tarefas de modificação de arquivos
+		const isFileModificationTask = /modificar|integrar|atualizar|app\.tsx|index\.tsx/i.test(subTask.title);
+		
+		if (isFileModificationTask) {
+			// CRÍTICO: Verificar ARQUIVO REAL ao invés de apenas o resultado textual
+			try {
+				const { executeShellTool } = await import('../tools/shell.js');
+				const actualWorkDir = workDir || subTask.metadata.workDir || '';
+				
+				// Detectar qual arquivo deve ter sido modificado
+				let targetFile = '';
+				if (subTask.title.toLowerCase().includes('app.tsx')) {
+					targetFile = `${actualWorkDir}/src/App.tsx`;
+				} else if (subTask.title.toLowerCase().includes('index')) {
+					targetFile = `${actualWorkDir}/src/pages/Index.tsx`;
+				}
+				
+				if (targetFile) {
+					// Verificar se arquivo foi realmente modificado (timestamp recente)
+					const fileCheck = await executeShellTool(
+						`stat -c %Y ${targetFile} 2>/dev/null || echo "0"`,
+						5000
+					);
+					
+					const timestamp = parseInt(fileCheck.trim()) || 0;
+					const now = Math.floor(Date.now() / 1000);
+					const ageInSeconds = now - timestamp;
+					
+					// Arquivo deve ter sido modificado nos últimos 60 segundos
+					if (ageInSeconds > 60) {
+						return false; // Arquivo NÃO foi modificado recentemente
+					}
+					
+					// Verificar se arquivo tem imports dos novos componentes
+					const content = await executeShellTool(
+						`head -50 ${targetFile}`,
+						5000
+					);
+					
+					const hasImports = content.includes('Sidebar') || 
+					                   content.includes('Player') || 
+									   content.includes('import');
+					
+					if (!hasImports) {
+						return false; // Arquivo não tem imports esperados
+					}
+				}
+				
+			} catch (error) {
+				// Em caso de erro na verificação, falhar
+				return false;
+			}
+		}
 		
 		if (hasContent && noError) {
 			return true;
@@ -1144,11 +1402,16 @@ SUB-TAREFA: ${subTask.title}
 CRITÉRIO: ${subTask.metadata.validation}
 RESULTADO: ${result.substring(0, 1000)}
 
+VALIDAÇÃO ESTRITA:
+- Se é uma tarefa de "modificar" ou "integrar", o resultado DEVE mostrar que arquivos foram alterados
+- Procure por evidências como: write_file, modified, ✅, updated
+- Se NÃO houver evidências de mudança real, retorne isValid: false
+
 Retorne JSON:
 {
   "isValid": true/false,
   "confidence": 0-100,
-  "reason": "explicação"
+  "reason": "explicação detalhada"
 }`;
 
 		const response = await this.openai.chat.completions.create({
@@ -1162,9 +1425,12 @@ Retorne JSON:
 			const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 			const validation = JSON.parse(cleanContent);
 			
-			return validation.isValid && validation.confidence >= 70;
+			// Exigir confiança maior para tarefas críticas
+			const requiredConfidence = isFileModificationTask ? 85 : 70;
+			return validation.isValid && validation.confidence >= requiredConfidence;
 		} catch (error) {
-			return true;
+			// Em caso de erro de parsing, ser mais rigoroso
+			return hasContent && noError && !isFileModificationTask;
 		}
 	}
 

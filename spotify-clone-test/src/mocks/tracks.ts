@@ -1,0 +1,86 @@
+import { Track } from '../types/music';
+import { mockArtists } from './artists';
+import { mockAlbums } from './albums';
+
+export const mockTracks: Track[] = [
+  {
+    id: '1',
+    title: 'Blinding Lights',
+    artist: mockArtists[0],
+    album: mockAlbums[0],
+    duration: '3:20',
+    cover: mockAlbums[0].cover,
+  },
+  {
+    id: '2',
+    title: 'Save Your Tears',
+    artist: mockArtists[0],
+    album: mockAlbums[0],
+    duration: '3:35',
+    cover: mockAlbums[0].cover,
+  },
+  {
+    id: '3',
+    title: 'Die For You',
+    artist: mockArtists[0],
+    album: mockAlbums[0],
+    duration: '4:20',
+    cover: mockAlbums[0].cover,
+  },
+  {
+    id: '4',
+    title: 'Starboy',
+    artist: mockArtists[0],
+    album: mockAlbums[0],
+    duration: '3:50',
+    cover: mockAlbums[0].cover,
+  },
+  {
+    id: '5',
+    title: 'Can\'t Feel My Face',
+    artist: mockArtists[0],
+    album: mockAlbums[0],
+    duration: '3:37',
+    cover: mockAlbums[0].cover,
+  },
+  {
+    id: '6',
+    title: 'Watermelon Sugar',
+    artist: mockArtists[4],
+    album: mockAlbums[4],
+    duration: '2:54',
+    cover: mockAlbums[4].cover,
+  },
+  {
+    id: '7',
+    title: 'Shape of You',
+    artist: mockArtists[4],
+    album: mockAlbums[4],
+    duration: '3:53',
+    cover: mockAlbums[4].cover,
+  },
+  {
+    id: '8',
+    title: 'Bad Habits',
+    artist: mockArtists[4],
+    album: mockAlbums[4],
+    duration: '3:51',
+    cover: mockAlbums[4].cover,
+  },
+  {
+    id: '9',
+    title: 'Love Story',
+    artist: mockArtists[1],
+    album: mockAlbums[1],
+    duration: '3:55',
+    cover: mockAlbums[1].cover,
+  },
+  {
+    id: '10',
+    title: 'Cardigan',
+    artist: mockArtists[1],
+    album: mockAlbums[1],
+    duration: '3:59',
+    cover: mockAlbums[1].cover,
+  },
+];

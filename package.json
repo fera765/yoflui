@@ -3,14 +3,36 @@
     "@vitejs/plugin-react": "^5.1.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "vite": "^7.2.2"
   },
   "dependencies": {
+    "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/react-router-dom": "^5.3.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",
+    "react-router-dom": "^7.9.5",
     "typescript": "^5.9.3"
-  }
+  },
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "Sistema de chat com IA que analisa coment?rios do YouTube para extrair insights, identificar dores e tend?ncias do mercado.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fera765/yoflui.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fera765/yoflui/issues"
+  },
+  "homepage": "https://github.com/fera765/yoflui#readme"
 }
