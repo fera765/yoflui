@@ -73,16 +73,16 @@ work/
 ### 2. Exemplos de Paths
 
 ✅ **CORRETO:**
-- `work/dashboard/src/components/Dashboard.tsx`
-- `work/spotify-clone/src/pages/Login.tsx`
-- `work/my-app/src/hooks/useAuth.ts`
+- 'work/dashboard/src/components/Dashboard.tsx'
+- 'work/spotify-clone/src/pages/Login.tsx'
+- 'work/my-app/src/hooks/useAuth.ts'
 
 ❌ **ERRADO:**
-- `/workspace/dashboard/src/...` (workspace inválido)
-- `workspace/dashboard/src/...` (sem work/)
-- `work/src/components/...` (falta project-name)
-- `src/components/Dashboard.tsx` (path relativo sem work/)
-- `Dashboard.tsx` (apenas filename)
+- '/workspace/dashboard/src/...' (workspace inválido)
+- 'workspace/dashboard/src/...' (sem work/)
+- 'work/src/components/...' (falta project-name)
+- 'src/components/Dashboard.tsx' (path relativo sem work/)
+- 'Dashboard.tsx' (apenas filename)
 
 ### 3. Processo de Validação OBRIGATÓRIO
 
