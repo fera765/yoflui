@@ -10,6 +10,7 @@ import { DualModeCoordinator, ExecutionMode } from './dual-mode-coordinator.js';
 import { ProactiveErrorDetector } from './proactive-error-detector.js';
 import { OutputOptimizer } from './output-optimizer.js';
 import { FeedbackGenerator } from './feedback-generator.js';
+import { validateProject, autoFixCommonErrors } from './auto-validator.js';
 import {
 	loadOrCreateContext,
 	recordIntermediateResult,
@@ -198,84 +199,77 @@ export class CentralOrchestratorV2 {
 	}
 
 	/**
-	 * Detecta se é uma solicitação de frontend e se deve usar template
+	 * Analisa com LLM se deve usar template e qual
 	 */
-	private shouldUseFrontendTemplate(prompt: string): { use: boolean; projectName: string } {
-		const lowerPrompt = prompt.toLowerCase();
-		
-		// Se usuário pede explicitamente algo simples (apenas HTML/CSS/JS)
-		const isSimpleRequest = (
-			(lowerPrompt.includes('index.html') || lowerPrompt.includes('html') || 
-			 lowerPrompt.includes('site simples')) &&
-			(lowerPrompt.includes('apenas') || lowerPrompt.includes('só') || 
-			 lowerPrompt.includes('simples'))
-		);
-		
-		if (isSimpleRequest) {
-			return { use: false, projectName: '' };
+	private async analyzeTemplateNeed(prompt: string): Promise<{ use: boolean; templateUrl: string; projectName: string }> {
+		if (!this.openai) {
+			return { use: false, templateUrl: '', projectName: '' };
 		}
 		
-		// Detecta se é criação de frontend/UI
-		const isFrontendRequest = (
-			lowerPrompt.includes('frontend') ||
-			lowerPrompt.includes('interface') ||
-			lowerPrompt.includes('ui') ||
-			lowerPrompt.includes('clone') ||
-			(lowerPrompt.includes('criar') && (lowerPrompt.includes('react') || lowerPrompt.includes('vite'))) ||
-			lowerPrompt.includes('spotify') ||
-			lowerPrompt.includes('netflix') ||
-			lowerPrompt.includes('aplicação web') ||
-			lowerPrompt.includes('web app')
-		);
-		
-		if (!isFrontendRequest) {
-			return { use: false, projectName: '' };
+		try {
+			const analysis = await this.openai.chat.completions.create({
+				model: 'qwen-plus',
+				messages: [{
+					role: 'system',
+					content: `Você é um analisador de requisitos de projeto. Analise o prompt do usuário e determine:
+1. Se é uma solicitação de frontend/UI moderna (React, Vue, Angular, etc) que se beneficiaria de um template starter
+2. Se sim, sugira a URL de um template apropriado no GitHub (lovable-template para React+Vite+Shadcn)
+3. Extraia um nome apropriado para o projeto baseado no contexto
+
+Responda APENAS em JSON válido:
+{
+  "needsTemplate": boolean,
+  "templateUrl": "url-do-github-ou-vazio",
+  "projectName": "nome-do-projeto",
+  "reasoning": "breve explicação"
+}`
+				}, {
+					role: 'user',
+					content: prompt
+				}],
+				temperature: 0.3,
+				max_tokens: 300
+			});
+			
+			const response = analysis.choices[0]?.message?.content || '{}';
+			const parsed = JSON.parse(response.trim());
+			
+			return {
+				use: parsed.needsTemplate || false,
+				templateUrl: parsed.templateUrl || '',
+				projectName: parsed.projectName || 'project'
+			};
+		} catch (error) {
+			// Fallback: não usa template em caso de erro
+			return { use: false, templateUrl: '', projectName: 'project' };
 		}
-		
-		// Extrai nome do projeto do prompt
-		let projectName = 'frontend-project';
-		if (lowerPrompt.includes('spotify')) projectName = 'spotify-clone';
-		else if (lowerPrompt.includes('netflix')) projectName = 'netflix-clone';
-		else if (lowerPrompt.includes('clone')) {
-			const match = prompt.match(/clone\s+(?:do\s+|da\s+)?(\w+)/i);
-			if (match) projectName = `${match[1].toLowerCase()}-clone`;
-		}
-		
-		return { use: true, projectName };
 	}
 
 	/**
-	 * Clona o template Lovable e prepara o projeto
+	 * Clona template dinamicamente e prepara o projeto
 	 */
-	private async cloneFrontendTemplate(
+	private async cloneTemplate(
+		templateUrl: string,
 		projectName: string,
 		workDir: string,
 		onProgress?: (message: string) => void
 	): Promise<boolean> {
 		try {
 			const { executeShellTool } = await import('../tools/shell.js');
+			const { existsSync } = await import('fs');
 			
-			onProgress?.('🎯 Detectado: Criação de Frontend - Usando template Lovable');
-			onProgress?.('📦 Clonando template do GitHub...');
+			onProgress?.('🎯 Template detectado pelo Flui');
+			onProgress?.(`📦 Clonando: ${templateUrl}`);
 			
 			// Clonar template
 			const cloneResult = await executeShellTool(
-				`git clone https://github.com/dao42/lovable-template.git ${workDir}/temp-template 2>&1`,
+				`git clone ${templateUrl} ${workDir}/temp-template 2>&1`,
 				90000
 			);
 			
-			onProgress?.(`📥 Clone result: ${cloneResult.substring(0, 100)}...`);
-			
 			// Verificar se o diretório foi criado
-			const { readFileSync } = await import('fs');
-			try {
-				const { existsSync } = await import('fs');
-				if (!existsSync(`${workDir}/temp-template`)) {
-					onProgress?.('⚠️  Diretório template não encontrado - continuando sem template');
-					return false;
-				}
-			} catch {
-				onProgress?.('⚠️  Erro ao verificar template - continuando sem template');
+			if (!existsSync(`${workDir}/temp-template`)) {
+				onProgress?.('⚠️  Clone falhou - Flui continuará sem template');
 				return false;
 			}
 			
@@ -333,18 +327,19 @@ export class CentralOrchestratorV2 {
 			throw new Error('Sistema não inicializado');
 		}
 
-		// NOVO: Verificar se deve usar template de frontend
-		const templateCheck = this.shouldUseFrontendTemplate(userPrompt);
-		if (templateCheck.use) {
-			const templateSuccess = await this.cloneFrontendTemplate(
-				templateCheck.projectName,
+		// NOVO: Analisar se deve usar template (decisão inteligente do LLM)
+		const templateAnalysis = await this.analyzeTemplateNeed(userPrompt);
+		if (templateAnalysis.use && templateAnalysis.templateUrl) {
+			const templateSuccess = await this.cloneTemplate(
+				templateAnalysis.templateUrl,
+				templateAnalysis.projectName,
 				workDir,
 				onProgress
 			);
 			
 			if (templateSuccess) {
-				// Adicionar contexto ao prompt para o Flui saber que tem um template
-				userPrompt = `${userPrompt}\n\n[CONTEXTO INTERNO]: Um template React+Vite já foi clonado no diretório. Analise os arquivos existentes e desenvolva sobre esta base. NÃO recrie arquivos que já existem (package.json, vite.config.ts, etc). Apenas modifique e adicione o necessário.`;
+				// Adicionar contexto dinâmico ao prompt
+				userPrompt = `${userPrompt}\n\n[CONTEXTO FLUI]: Um template base foi clonado em ${workDir}/temp-template/. Analise a estrutura existente e integre seu desenvolvimento. Mova/copie arquivos necessários para a raiz do projeto e desenvolva sobre essa base.`;
 			}
 		}
 
@@ -784,10 +779,17 @@ export class CentralOrchestratorV2 {
 
 		// Selecionar agente especializado
 		const agentType = subTask.metadata.agentType as AgentType;
-		const agent = this.agents.get(agentType);
+		// Fallback seguro para agentType undefined
+		const safeAgentType = agentType || 'code';
+		const agent = this.agents.get(safeAgentType);
 
 		if (!agent) {
-			throw new Error(`Agente não encontrado: ${agentType}`);
+			// Tentar agente genérico de código como fallback
+			const fallbackAgent = this.agents.get('code');
+			if (!fallbackAgent) {
+				throw new Error(`Agente não encontrado: ${safeAgentType}`);
+			}
+			return fallbackAgent;
 		}
 
 		// NOVO: VALIDAÇÃO PROATIVA - TEMPORARIAMENTE DESABILITADA PARA TESTES
