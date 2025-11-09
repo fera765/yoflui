@@ -5,9 +5,11 @@
   "type": "module",
   "main": "hello.js",
   "scripts": {
-    "build": "npx tsc",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
     "start": "node dist/cli.js",
-    "dev": "npx tsx source/cli.tsx",
     "test:e2e": "node test-e2e-validation.mjs"
   },
   "keywords": [
