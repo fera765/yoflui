@@ -108,9 +108,9 @@ export class CentralOrchestratorV2 {
 			// Inicializar componentes do sistema superior
 			this.intentionAnalyzer = new IntentionAnalyzer();
 			this.dualModeCoordinator = new DualModeCoordinator(this.openai);
-			if (openai) {
-				this.errorDetector = new ProactiveErrorDetector(openai);
-				this.intelligentValidator = new IntelligentValidator(openai);
+			if (this.openai) {
+				this.errorDetector = new ProactiveErrorDetector(this.openai);
+				this.intelligentValidator = new IntelligentValidator(this.openai);
 			}
 			this.feedbackGenerator = new FeedbackGenerator(this.openai);
 
