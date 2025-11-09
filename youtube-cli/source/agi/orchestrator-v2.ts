@@ -198,6 +198,130 @@ export class CentralOrchestratorV2 {
 	}
 
 	/**
+	 * Detecta se é uma solicitação de frontend e se deve usar template
+	 */
+	private shouldUseFrontendTemplate(prompt: string): { use: boolean; projectName: string } {
+		const lowerPrompt = prompt.toLowerCase();
+		
+		// Se usuário pede explicitamente algo simples (apenas HTML/CSS/JS)
+		const isSimpleRequest = (
+			(lowerPrompt.includes('index.html') || lowerPrompt.includes('html') || 
+			 lowerPrompt.includes('site simples')) &&
+			(lowerPrompt.includes('apenas') || lowerPrompt.includes('só') || 
+			 lowerPrompt.includes('simples'))
+		);
+		
+		if (isSimpleRequest) {
+			return { use: false, projectName: '' };
+		}
+		
+		// Detecta se é criação de frontend/UI
+		const isFrontendRequest = (
+			lowerPrompt.includes('frontend') ||
+			lowerPrompt.includes('interface') ||
+			lowerPrompt.includes('ui') ||
+			lowerPrompt.includes('clone') ||
+			(lowerPrompt.includes('criar') && (lowerPrompt.includes('react') || lowerPrompt.includes('vite'))) ||
+			lowerPrompt.includes('spotify') ||
+			lowerPrompt.includes('netflix') ||
+			lowerPrompt.includes('aplicação web') ||
+			lowerPrompt.includes('web app')
+		);
+		
+		if (!isFrontendRequest) {
+			return { use: false, projectName: '' };
+		}
+		
+		// Extrai nome do projeto do prompt
+		let projectName = 'frontend-project';
+		if (lowerPrompt.includes('spotify')) projectName = 'spotify-clone';
+		else if (lowerPrompt.includes('netflix')) projectName = 'netflix-clone';
+		else if (lowerPrompt.includes('clone')) {
+			const match = prompt.match(/clone\s+(?:do\s+|da\s+)?(\w+)/i);
+			if (match) projectName = `${match[1].toLowerCase()}-clone`;
+		}
+		
+		return { use: true, projectName };
+	}
+
+	/**
+	 * Clona o template Lovable e prepara o projeto
+	 */
+	private async cloneFrontendTemplate(
+		projectName: string,
+		workDir: string,
+		onProgress?: (message: string) => void
+	): Promise<boolean> {
+		try {
+			const { executeShellTool } = await import('../tools/shell.js');
+			
+			onProgress?.('🎯 Detectado: Criação de Frontend - Usando template Lovable');
+			onProgress?.('📦 Clonando template do GitHub...');
+			
+			// Clonar template
+			const cloneResult = await executeShellTool(
+				`git clone https://github.com/dao42/lovable-template.git ${workDir}/temp-template 2>&1`,
+				90000
+			);
+			
+			onProgress?.(`📥 Clone result: ${cloneResult.substring(0, 100)}...`);
+			
+			// Verificar se o diretório foi criado
+			const { readFileSync } = await import('fs');
+			try {
+				const { existsSync } = await import('fs');
+				if (!existsSync(`${workDir}/temp-template`)) {
+					onProgress?.('⚠️  Diretório template não encontrado - continuando sem template');
+					return false;
+				}
+			} catch {
+				onProgress?.('⚠️  Erro ao verificar template - continuando sem template');
+				return false;
+			}
+			
+			onProgress?.('📝 Renomeando projeto...');
+			
+			// Mover arquivos do template para o diretório do projeto
+			const moveResult = await executeShellTool(
+				`bash -c "shopt -s dotglob && cp -r ${workDir}/temp-template/* ${workDir}/ && rm -rf ${workDir}/temp-template"`,
+				30000
+			);
+			
+			if (moveResult.includes('Error')) {
+				onProgress?.('⚠️  Problema ao mover arquivos - continuando...');
+			}
+			
+			// Atualizar package.json com novo nome
+			await executeShellTool(
+				`cd ${workDir} && sed -i 's/"name":.*/"name": "${projectName}",/' package.json 2>/dev/null || true`,
+				5000
+			);
+			
+			onProgress?.(`✅ Template clonado e configurado como "${projectName}"`);
+			onProgress?.('🔍 Analisando estrutura do projeto...');
+			
+			// Listar estrutura do projeto para contexto
+			const lsResult = await executeShellTool(
+				`find ${workDir} -type f \\( -name "*.tsx" -o -name "*.ts" -o -name "*.json" \\) | grep -v node_modules | head -20`,
+				10000
+			);
+			
+			if (lsResult && !lsResult.includes('Error')) {
+				const files = lsResult.split('\n').filter(f => f.trim()).slice(0, 10);
+				if (files.length > 0) {
+					onProgress?.(`📁 Arquivos encontrados no template:\n${files.join('\n')}`);
+				}
+			}
+			
+			return true;
+			
+		} catch (error) {
+			onProgress?.(`⚠️  Erro ao clonar template: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+			return false;
+		}
+	}
+
+	/**
 	 * EXECUÇÃO EM MODO AGI (Orquestração Completa)
 	 */
 	private async executeAGIMode(
@@ -207,6 +331,21 @@ export class CentralOrchestratorV2 {
 	): Promise<string> {
 		if (!this.openai || !this.intentionAnalyzer) {
 			throw new Error('Sistema não inicializado');
+		}
+
+		// NOVO: Verificar se deve usar template de frontend
+		const templateCheck = this.shouldUseFrontendTemplate(userPrompt);
+		if (templateCheck.use) {
+			const templateSuccess = await this.cloneFrontendTemplate(
+				templateCheck.projectName,
+				workDir,
+				onProgress
+			);
+			
+			if (templateSuccess) {
+				// Adicionar contexto ao prompt para o Flui saber que tem um template
+				userPrompt = `${userPrompt}\n\n[CONTEXTO INTERNO]: Um template React+Vite já foi clonado no diretório. Analise os arquivos existentes e desenvolva sobre esta base. NÃO recrie arquivos que já existem (package.json, vite.config.ts, etc). Apenas modifique e adicione o necessário.`;
+			}
 		}
 
 		// FASE 1: Análise de Intenção (silencioso)

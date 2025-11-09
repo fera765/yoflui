@@ -1,0 +1,349 @@
+/* Estilos globais para o tema escuro */
+:root {
+  /* Cores do tema escuro */
+  --dark-bg-primary: #121212;
+  --dark-bg-secondary: #181818;
+  --dark-bg-tertiary: #242424;
+  --dark-text-primary: #ffffff;
+  --dark-text-secondary: #b3b3b3;
+  --dark-text-tertiary: #878787;
+  --dark-accent-green: #1db954;
+  --dark-accent-green-hover: #1ed760;
+  --dark-border: #3e3e3e;
+  --dark-overlay: rgba(0, 0, 0, 0.7);
+}
+
+/* Aplicar tema escuro por padrão */
+body {
+  background-color: var(--dark-bg-primary);
+  color: var(--dark-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Estilos para elementos de formulário no tema escuro */
+input, textarea, select {
+  background-color: var(--dark-bg-secondary);
+  color: var(--dark-text-primary);
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--dark-accent-green);
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.25);
+}
+
+/* Estilos para links */
+a {
+  color: var(--dark-text-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--dark-accent-green);
+}
+
+/* Estilos para botões */
+button {
+  background-color: var(--dark-accent-green);
+  color: var(--dark-text-primary);
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: var(--dark-accent-green-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Estilos para elementos de lista */
+ul, ol {
+  padding-left: 0;
+  margin: 0;
+}
+
+li {
+  list-style: none;
+}
+
+/* Estilos para tabelas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--dark-border);
+}
+
+th {
+  color: var(--dark-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Estilos para código */
+code {
+  background-color: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875rem;
+}
+
+pre {
+  background-color: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  padding: 16px;
+  border-radius: 8px;
+  overflow: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875rem;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Estilos para elementos de destaque */
+.highlight {
+  background-color: var(--dark-accent-green);
+  color: var(--dark-text-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Estilos para elementos de overlay */
+.overlay {
+  background-color: var(--dark-overlay);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+}
+
+/* Estilos para elementos de loading */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+/* Estilos para elementos de tooltip */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  background-color: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  text-align: center;
+  border-radius: 4px;
+  padding: 5px 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Estilos para elementos de card */
+.card {
+  background-color: var(--dark-bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para elementos de modal */
+.modal {
+  background-color: var(--dark-bg-secondary);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 90%;
+  width: 500px;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Estilos para elementos de badge */
+.badge {
+  background-color: var(--dark-accent-green);
+  color: var(--dark-text-primary);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Estilos para elementos de progress bar */
+.progress-bar {
+  background-color: var(--dark-bg-tertiary);
+  border-radius: 4px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background-color: var(--dark-accent-green);
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+/* Estilos para elementos de dropdown */
+.dropdown {
+  background-color: var(--dark-bg-tertiary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+/* Estilos para elementos de input de busca */
+.search-input {
+  background-color: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  border: none;
+  border-radius: 20px;
+  padding: 10px 16px;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dark-accent-green);
+}
+
+/* Estilos para elementos de navegação */
+.nav-item {
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.nav-item:hover {
+  background-color: var(--dark-bg-tertiary);
+}
+
+.nav-item.active {
+  background-color: var(--dark-bg-tertiary);
+  color: var(--dark-accent-green);
+}
+
+/* Estilos para elementos de música/lista */
+.music-item {
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.music-item:hover {
+  background-color: var(--dark-bg-tertiary);
+}
+
+.music-item.playing {
+  background-color: rgba(29, 185, 84, 0.1);
+}
+
+/* Estilos para elementos de player */
+.player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.player-button {
+  background: none;
+  border: none;
+  color: var(--dark-text-primary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-button:hover {
+  background-color: var(--dark-bg-tertiary);
+}
+
+.player-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.player-progress {
+  width: 100%;
+  height: 4px;
+  background-color: var(--dark-bg-tertiary);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.player-progress-filled {
+  height: 100%;
+  background-color: var(--dark-accent-green);
+  border-radius: 2px;
+  position: relative;
+}
+
+/* Estilos para elementos de volume */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volume-slider {
+  width: 80px;
+  height: 4px;
+  background-color: var(--dark-bg-tertiary);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.volume-slider-filled {
+  height: 100%;
+  background-color: var(--dark-accent-green);
+  border-radius: 2px;
+  position: relative;
+}
