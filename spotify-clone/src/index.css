@@ -2,90 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-@import './styles/animations.css';
-
 /* Estilos globais */
 body {
   margin: 0;
-  padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #121212;
+  background-color: #000000;
   color: #ffffff;
-  overflow-x: hidden;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
-}
-
-/* Estilos para barras de rolagem personalizadas */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #121212;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #535353;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #878787;
-}
-
-/* Estilos para elementos com foco */
-button:focus,
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid #1db954;
-  outline-offset: 2px;
-}
-
-/* Estilos para seleção de texto */
-::selection {
-  background-color: #1db954;
-  color: #ffffff;
-}
-
-/* Estilos para elementos com transições */
-.transition-transform {
-  transition: transform 0.2s ease;
-}
-
-.transition-opacity {
-  transition: opacity 0.2s ease;
-}
-
-/* Estilos para elementos com efeito de brilho */
-.glow {
-  box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
-}
-
-/* Estilos para elementos com efeito de brilho em destaque */
-.glow-blue {
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-}
-
-/* Estilos para elementos com efeito de brilho em erro */
-.glow-red {
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-}
-
-/* Estilos para elementos com efeito de brilho em sucesso */
-.glow-green {
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
-}
-
-/* Estilos para elementos com efeito de brilho em aviso */
-.glow-yellow {
-  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
 }

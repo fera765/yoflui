@@ -1,0 +1,621 @@
+/* Transições CSS para o projeto */
+
+/* Transição suave para background-color */
+.bg-transition {
+  transition: background-color 0.3s ease;
+}
+
+/* Transição suave para color */
+.text-transition {
+  transition: color 0.3s ease;
+}
+
+/* Transição suave para transformações */
+.transform-transition {
+  transition: transform 0.3s ease;
+}
+
+/* Transição suave para opacidade */
+.opacity-transition {
+  transition: opacity 0.3s ease;
+}
+
+/* Transição suave para largura */
+.width-transition {
+  transition: width 0.3s ease;
+}
+
+/* Transição suave para altura */
+.height-transition {
+  transition: height 0.3s ease;
+}
+
+/* Transição suave para bordas */
+.border-transition {
+  transition: border 0.3s ease;
+}
+
+/* Transição suave para box-shadow */
+.shadow-transition {
+  transition: box-shadow 0.3s ease;
+}
+
+/* Transição combinada para múltiplas propriedades */
+.all-transition {
+  transition: all 0.3s ease;
+}
+
+/* Transição específica para hover em cards */
+.card-hover-transition {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Transição específica para botões */
+.button-transition {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Transição específica para elementos interativos */
+.interactive-transition {
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Transição específica para sidebar */
+.sidebar-transition {
+  transition: transform 0.3s ease, width 0.3s ease;
+}
+
+/* Transição específica para player */
+.player-transition {
+  transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+/* Transição específica para header */
+.header-transition {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Transição específica para animações de fade */
+.fade-transition {
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Transição específica para animações de slide */
+.slide-transition {
+  transition: transform 0.3s ease;
+}
+
+/* Transição específica para animações de scale */
+.scale-transition {
+  transition: transform 0.3s ease;
+}
+
+/* Transição específica para animações de blur */
+.blur-transition {
+  transition: filter 0.3s ease;
+}
+
+/* Transição específica para animações de color */
+.color-transition {
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+/* Transição específica para animações de border-radius */
+.radius-transition {
+  transition: border-radius 0.3s ease;
+}
+
+/* Transição específica para animações de margin */
+.margin-transition {
+  transition: margin 0.3s ease;
+}
+
+/* Transição específica para animações de padding */
+.padding-transition {
+  transition: padding 0.3s ease;
+}
+
+/* Transição específica para animações de font-size */
+.font-size-transition {
+  transition: font-size 0.3s ease;
+}
+
+/* Transição específica para animações de visibility */
+.visibility-transition {
+  transition: visibility 0.3s ease, opacity 0.3s ease;
+}
+
+/* Transição específica para animações de display */
+.display-transition {
+  transition: display 0.3s ease, opacity 0.3s ease;
+}
+
+/* Transição específica para animações de z-index */
+.z-index-transition {
+  transition: z-index 0.3s ease;
+}
+
+/* Transição específica para animações de position */
+.position-transition {
+  transition: position 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease;
+}
+
+/* Transição específica para animações de flex */
+.flex-transition {
+  transition: flex 0.3s ease;
+}
+
+/* Transição específica para animações de grid */
+.grid-transition {
+  transition: grid-template-columns 0.3s ease, grid-template-rows 0.3s ease;
+}
+
+/* Transição específica para animações de overflow */
+.overflow-transition {
+  transition: overflow 0.3s ease;
+}
+
+/* Transição específica para animações de text-shadow */
+.text-shadow-transition {
+  transition: text-shadow 0.3s ease;
+}
+
+/* Transição específica para animações de text-decoration */
+.text-decoration-transition {
+  transition: text-decoration 0.3s ease;
+}
+
+/* Transição específica para animações de cursor */
+.cursor-transition {
+  transition: cursor 0.3s ease;
+}
+
+/* Transição específica para animações de pointer-events */
+.pointer-events-transition {
+  transition: pointer-events 0.3s ease;
+}
+
+/* Transição específica para animações de user-select */
+.user-select-transition {
+  transition: user-select 0.3s ease;
+}
+
+/* Transição específica para animações de resize */
+.resize-transition {
+  transition: resize 0.3s ease;
+}
+
+/* Transição específica para animações de outline */
+.outline-transition {
+  transition: outline 0.3s ease;
+}
+
+/* Transição específica para animações de appearance */
+.appearance-transition {
+  transition: appearance 0.3s ease;
+}
+
+/* Transição específica para animações de box-sizing */
+.box-sizing-transition {
+  transition: box-sizing 0.3s ease;
+}
+
+/* Transição específica para animações de clip-path */
+.clip-path-transition {
+  transition: clip-path 0.3s ease;
+}
+
+/* Transição específica para animações de mask */
+.mask-transition {
+  transition: mask 0.3s ease;
+}
+
+/* Transição específica para animações de mask-image */
+.mask-image-transition {
+  transition: mask-image 0.3s ease;
+}
+
+/* Transição específica para animações de mask-size */
+.mask-size-transition {
+  transition: mask-size 0.3s ease;
+}
+
+/* Transição específica para animações de mask-position */
+.mask-position-transition {
+  transition: mask-position 0.3s ease;
+}
+
+/* Transição específica para animações de mask-repeat */
+.mask-repeat-transition {
+  transition: mask-repeat 0.3s ease;
+}
+
+/* Transição específica para animações de mask-mode */
+.mask-mode-transition {
+  transition: mask-mode 0.3s ease;
+}
+
+/* Transição específica para animações de mask-clip */
+.mask-clip-transition {
+  transition: mask-clip 0.3s ease;
+}
+
+/* Transição específica para animações de mask-origin */
+.mask-origin-transition {
+  transition: mask-origin 0.3s ease;
+}
+
+/* Transição específica para animações de mask-composite */
+.mask-composite-transition {
+  transition: mask-composite 0.3s ease;
+}
+
+/* Transição específica para animações de mask-type */
+.mask-type-transition {
+  transition: mask-type 0.3s ease;
+}
+
+/* Transição específica para animações de filter */
+.filter-transition {
+  transition: filter 0.3s ease;
+}
+
+/* Transição específica para animações de backdrop-filter */
+.backdrop-filter-transition {
+  transition: backdrop-filter 0.3s ease;
+}
+
+/* Transição específica para animações de mix-blend-mode */
+.mix-blend-mode-transition {
+  transition: mix-blend-mode 0.3s ease;
+}
+
+/* Transição específica para animações de isolation */
+.isolation-transition {
+  transition: isolation 0.3s ease;
+}
+
+/* Transição específica para animações de object-fit */
+.object-fit-transition {
+  transition: object-fit 0.3s ease;
+}
+
+/* Transição específica para animações de object-position */
+.object-position-transition {
+  transition: object-position 0.3s ease;
+}
+
+/* Transição específica para animações de overflow-wrap */
+.overflow-wrap-transition {
+  transition: overflow-wrap 0.3s ease;
+}
+
+/* Transição específica para animações de word-break */
+.word-break-transition {
+  transition: word-break 0.3s ease;
+}
+
+/* Transição específica para animações de hyphens */
+.hyphens-transition {
+  transition: hyphens 0.3s ease;
+}
+
+/* Transição específica para animações de line-break */
+.line-break-transition {
+  transition: line-break 0.3s ease;
+}
+
+/* Transição específica para animações de text-align */
+.text-align-transition {
+  transition: text-align 0.3s ease;
+}
+
+/* Transição específica para animações de text-align-last */
+.text-align-last-transition {
+  transition: text-align-last 0.3s ease;
+}
+
+/* Transição específica para animações de text-justify */
+.text-justify-transition {
+  transition: text-justify 0.3s ease;
+}
+
+/* Transição específica para animações de text-indent */
+.text-indent-transition {
+  transition: text-indent 0.3s ease;
+}
+
+/* Transição específica para animações de text-overflow */
+.text-overflow-transition {
+  transition: text-overflow 0.3s ease;
+}
+
+/* Transição específica para animações de text-rendering */
+.text-rendering-transition {
+  transition: text-rendering 0.3s ease;
+}
+
+/* Transição específica para animações de text-shadow */
+.text-shadow-transition {
+  transition: text-shadow 0.3s ease;
+}
+
+/* Transição específica para animações de text-size-adjust */
+.text-size-adjust-transition {
+  transition: text-size-adjust 0.3s ease;
+}
+
+/* Transição específica para animações de text-transform */
+.text-transform-transition {
+  transition: text-transform 0.3s ease;
+}
+
+/* Transição específica para animações de text-underline-position */
+.text-underline-position-transition {
+  transition: text-underline-position 0.3s ease;
+}
+
+/* Transição específica para animações de text-decoration */
+.text-decoration-transition {
+  transition: text-decoration 0.3s ease;
+}
+
+/* Transição específica para animações de text-decoration-color */
+.text-decoration-color-transition {
+  transition: text-decoration-color 0.3s ease;
+}
+
+/* Transição específica para animações de text-decoration-line */
+.text-decoration-line-transition {
+  transition: text-decoration-line 0.3s ease;
+}
+
+/* Transição específica para animações de text-decoration-style */
+.text-decoration-style-transition {
+  transition: text-decoration-style 0.3s ease;
+}
+
+/* Transição específica para animações de text-decoration-thickness */
+.text-decoration-thickness-transition {
+  transition: text-decoration-thickness 0.3s ease;
+}
+
+/* Transição específica para animações de text-emphasis */
+.text-emphasis-transition {
+  transition: text-emphasis 0.3s ease;
+}
+
+/* Transição específica para animações de text-emphasis-color */
+.text-emphasis-color-transition {
+  transition: text-emphasis-color 0.3s ease;
+}
+
+/* Transição específica para animações de text-emphasis-style */
+.text-emphasis-style-transition {
+  transition: text-emphasis-style 0.3s ease;
+}
+
+/* Transição específica para animações de text-emphasis-position */
+.text-emphasis-position-transition {
+  transition: text-emphasis-position 0.3s ease;
+}
+
+/* Transição específica para animações de text-orientation */
+.text-orientation-transition {
+  transition: text-orientation 0.3s ease;
+}
+
+/* Transição específica para animações de text-combine-upright */
+.text-combine-upright-transition {
+  transition: text-combine-upright 0.3s ease;
+}
+
+/* Transição específica para animações de writing-mode */
+.writing-mode-transition {
+  transition: writing-mode 0.3s ease;
+}
+
+/* Transição específica para animações de direction */
+.direction-transition {
+  transition: direction 0.3s ease;
+}
+
+/* Transição específica para animações de unicode-bidi */
+.unicode-bidi-transition {
+  transition: unicode-bidi 0.3s ease;
+}
+
+/* Transição específica para animações de quotes */
+.quotes-transition {
+  transition: quotes 0.3s ease;
+}
+
+/* Transição específica para animações de content */
+.content-transition {
+  transition: content 0.3s ease;
+}
+
+/* Transição específica para animações de counter-increment */
+.counter-increment-transition {
+  transition: counter-increment 0.3s ease;
+}
+
+/* Transição específica para animações de counter-reset */
+.counter-reset-transition {
+  transition: counter-reset 0.3s ease;
+}
+
+/* Transição específica para animações de counter-set */
+.counter-set-transition {
+  transition: counter-set 0.3s ease;
+}
+
+/* Transição específica para animações de resize */
+.resize-transition {
+  transition: resize 0.3s ease;
+}
+
+/* Transição específica para animações de cursor */
+.cursor-transition {
+  transition: cursor 0.3s ease;
+}
+
+/* Transição específica para animações de pointer-events */
+.pointer-events-transition {
+  transition: pointer-events 0.3s ease;
+}
+
+/* Transição específica para animações de user-select */
+.user-select-transition {
+  transition: user-select 0.3s ease;
+}
+
+/* Transição específica para animações de zoom */
+.zoom-transition {
+  transition: zoom 0.3s ease;
+}
+
+/* Transição específica para animações de fill */
+.fill-transition {
+  transition: fill 0.3s ease;
+}
+
+/* Transição específica para animações de stroke */
+.stroke-transition {
+  transition: stroke 0.3s ease;
+}
+
+/* Transição específica para animações de stroke-width */
+.stroke-width-transition {
+  transition: stroke-width 0.3s ease;
+}
+
+/* Transição específica para animações de stroke-dasharray */
+.stroke-dasharray-transition {
+  transition: stroke-dasharray 0.3s ease;
+}
+
+/* Transição específica para animações de stroke-dashoffset */
+.stroke-dashoffset-transition {
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+/* Transição específica para animações de stroke-linecap */
+.stroke-linecap-transition {
+  transition: stroke-linecap 0.3s ease;
+}
+
+/* Transição específica para animações de stroke-linejoin */
+.stroke-linejoin-transition {
+  transition: stroke-linejoin 0.3s ease;
+}
+
+/* Transição específica para animações de stroke-miterlimit */
+.stroke-miterlimit-transition {
+  transition: stroke-miterlimit 0.3s ease;
+}
+
+/* Transição específica para animações de stroke-opacity */
+.stroke-opacity-transition {
+  transition: stroke-opacity 0.3s ease;
+}
+
+/* Transição específica para animações de fill-opacity */
+.fill-opacity-transition {
+  transition: fill-opacity 0.3s ease;
+}
+
+/* Transição específica para animações de color-interpolation */
+.color-interpolation-transition {
+  transition: color-interpolation 0.3s ease;
+}
+
+/* Transição específica para animações de color-interpolation-filters */
+.color-interpolation-filters-transition {
+  transition: color-interpolation-filters 0.3s ease;
+}
+
+/* Transição específica para animações de color-rendering */
+.color-rendering-transition {
+  transition: color-rendering 0.3s ease;
+}
+
+/* Transição específica para animações de image-rendering */
+.image-rendering-transition {
+  transition: image-rendering 0.3s ease;
+}
+
+/* Transição específica para animações de shape-rendering */
+.shape-rendering-transition {
+  transition: shape-rendering 0.3s ease;
+}
+
+/* Transição específica para animações de text-rendering */
+.text-rendering-transition {
+  transition: text-rendering 0.3s ease;
+}
+
+/* Transição específica para animações de dominant-baseline */
+.dominant-baseline-transition {
+  transition: dominant-baseline 0.3s ease;
+}
+
+/* Transição específica para animações de baseline-shift */
+.baseline-shift-transition {
+  transition: baseline-shift 0.3s ease;
+}
+
+/* Transição específica para animações de alignment-baseline */
+.alignment-baseline-transition {
+  transition: alignment-baseline 0.3s ease;
+}
+
+/* Transição específica para animações de text-anchor */
+.text-anchor-transition {
+  transition: text-anchor 0.3s ease;
+}
+
+/* Transição específica para animações de writing-mode */
+.writing-mode-transition {
+  transition: writing-mode 0.3s ease;
+}
+
+/* Transição específica para animações de glyph-orientation-horizontal */
+.glyph-orientation-horizontal-transition {
+  transition: glyph-orientation-horizontal 0.3s ease;
+}
+
+/* Transição específica para animações de glyph-orientation-vertical */
+.glyph-orientation-vertical-transition {
+  transition: glyph-orientation-vertical 0.3s ease;
+}
+
+/* Transição específica para animações de vector-effect */
+.vector-effect-transition {
+  transition: vector-effect 0.3s ease;
+}
+
+/* Transição específica para animações de viewport-fill */
+.viewport-fill-transition {
+  transition: viewport-fill 0.3s ease;
+}
+
+/* Transição específica para animações de viewport-fill-opacity */
+.viewport-fill-opacity-transition {
+  transition: viewport-fill-opacity 0.3s ease;
+}
+
+/* Transição específica para animações de viewport-stroke */
+.viewport-stroke-transition {
+  transition: viewport-stroke 0.3s ease;
+}
+
+/* Transição específica para animações de viewport-stroke-opacity */
+.viewport-stroke-opacity-transition {
+  transition: viewport-stroke-opacity 0.3s ease;
+}
+
+/* Transição específica para animações de viewport-stroke-width */
+.viewport-stroke-width-transition {
+  transition: viewport-stroke-width 0.3s ease;
+}

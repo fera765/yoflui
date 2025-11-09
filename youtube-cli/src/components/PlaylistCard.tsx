@@ -1,61 +1,41 @@
+// src/components/PlaylistCard.tsx
 import React from 'react';
+import { Link } from 'react-router-dom';
+import LikeButton from './LikeButton';
+import { Playlist } from '../types';
 
 interface PlaylistCardProps {
-  title: string;
-  description: string;
-  songCount: number;
-  songs: Array<{
-    id: string;
-    title: string;
-    artist: string;
-    duration: string;
-  }>;
-  playlistId: string;
-  onLike: (playlistId: string, songId: string) => void;
-  isLiked: (playlistId: string, songId: string) => boolean;
+  playlist: Playlist;
+  userId: string;
 }
 
-const PlaylistCard: React.FC<PlaylistCardProps> = ({ 
-  title, 
-  description, 
-  songCount,
-  songs,
-  playlistId,
-  onLike,
-  isLiked
-}) => {
+const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, userId }) => {
   return (
-    <div className="playlist-card bg-gray-800 rounded-lg p-4 shadow-md hover:shadow-xl transition-shadow cursor-pointer transform hover:scale-105 transition-transform">
-      <div className="aspect-square bg-gray-700 rounded-lg mb-3 flex items-center justify-center">
-        <div className="bg-gray-600 border-2 border-dashed rounded-xl w-16 h-16" />
-      </div>
-      <h3 className="font-semibold text-white truncate">{title}</h3>
-      <p className="text-sm text-gray-400 truncate">{description}</p>
-      <p className="text-xs text-gray-500 mt-1">{songCount} songs</p>
-      
-      {/* Song list preview */}
-      <div className="mt-3 space-y-1 max-h-32 overflow-y-auto">
-        {songs.slice(0, 3).map((song, index) => (
-          <div key={song.id} className="flex justify-between items-center text-xs">
-            <span className="text-gray-300 truncate flex-1 mr-2">{index + 1}. {song.title}</span>
-            <div className="flex items-center space-x-1">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLike(playlistId, song.id);
-                }}
-                className="text-lg focus:outline-none"
-              >
-                {isLiked(playlistId, song.id) ? '❤️' : '🤍'}
-              </button>
-            </div>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+      <div className="p-4">
+        <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">{playlist.name}</h3>
+        <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-2">
+          {playlist.description}
+        </p>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {playlist.tracks.length} tracks
+          </span>
+          <div className="flex items-center space-x-2">
+            <LikeButton
+              itemId={playlist.id}
+              itemType="playlist"
+              userId={userId}
+              initialLikes={playlist.likes || 0}
+            />
+            <Link
+              to={`/playlist/${playlist.id}`}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition-colors duration-200"
+            >
+              Play
+            </Link>
           </div>
-        ))}
-        {songs.length > 3 && (
-          <div className="text-xs text-gray-500 text-center pt-1">
-            +{songs.length - 3} more
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

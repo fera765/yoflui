@@ -1,71 +1,65 @@
-# React TypeScript Music Player
+# Spotify Clone
 
-Um player de música moderno desenvolvido com React e TypeScript, utilizando Vite como bundler e Tailwind CSS para estilização.
+Um clone da interface do Spotify desenvolvido com React, TypeScript, Vite e Tailwind CSS.
 
-## Tecnologias Utilizadas
+## Pré-requisitos
 
-- React 18+
-- TypeScript
-- Vite
-- Tailwind CSS
-- npm
-
-## Funcionalidades
-
-- Player de música com controles de play/pause
-- Barra de progresso animada
-- Controle de volume visual
-- Navegação entre seções
-- Funcionalidade de like em músicas
-- Design responsivo (mobile, tablet e desktop)
-- Transições e animações suaves
-
-## Estrutura de Pastas
-
-```
-src/
-├── components/     # Componentes React
-├── utils/          # Utilitários
-├── types/          # Tipagens TypeScript
-├── assets/         # Imagens e outros recursos
-├── styles/         # Estilos globais
-├── hooks/          # Hooks personalizados
-├── contexts/       # Contextos React
-├── services/       # Serviços
-├── api/            # Integrações com API
-├── config/         # Configurações
-├── constants/      # Constantes
-├── helpers/        # Funções auxiliares
-├── layouts/        # Layouts da aplicação
-├── pages/          # Páginas da aplicação
-├── routes/         # Rotas da aplicação
-├── store/          # Gerenciamento de estado
-├── theme/          # Temas
-├── locales/        # Internacionalização
-├── tests/          # Testes
-└── __mocks__/      # Dados mockados
-```
+- Node.js (versão 16 ou superior)
+- npm ou yarn
 
 ## Instalação
 
-1. Clone o repositório
-2. Execute `npm install` para instalar as dependências
-3. Execute `npm run dev` para iniciar o servidor de desenvolvimento
+1. Clone este repositório:
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd spotify-clone
+```
+
+2. Instale as dependências:
+```bash
+npm install
+```
+ou
+```bash
+yarn install
+```
+
+## Execução
+
+Para iniciar o servidor de desenvolvimento:
+
+```bash
+npm run dev
+```
+ou
+```bash
+yarn dev
+```
+
+O aplicativo estará disponível em `http://localhost:3000`
 
 ## Scripts Disponíveis
 
 - `npm run dev` - Inicia o servidor de desenvolvimento
 - `npm run build` - Cria uma build de produção
-- `npm run preview` - Inicia um servidor de preview local para testar a build de produção
+- `npm run preview` - Inicia um servidor local para visualizar a build de produção
+- `npm run lint` - Executa o linter
+- `npm run test` - Executa os testes (se configurados)
 
-## Componentes Principais
+## Tecnologias Utilizadas
 
-- `Header.tsx` - Cabeçalho da aplicação
-- `Sidebar.tsx` - Barra lateral com navegação
-- `Player.tsx` - Controles do player de música
-- `PlaylistCard.tsx` - Componente para exibir playlists
-- `Layout.tsx` - Estrutura principal do layout
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- PostCSS
+- Autoprefixer
 
-## Mock Data
+## Estrutura do Projeto
 
-O projeto inclui dados mockados para simular uma API, localizados em `src/__mocks__/mockData.ts`, contendo playlists, faixas musicais e informações do usuário.
+- `src/` - Código-fonte da aplicação
+- `public/` - Arquivos estáticos
+- `vite.config.ts` - Configuração do Vite
+- `tsconfig.json` - Configuração do TypeScript
+- `tailwind.config.js` - Configuração do Tailwind CSS
+- `postcss.config.js` - Configuração do PostCSS
