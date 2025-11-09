@@ -202,47 +202,29 @@ export class CentralOrchestratorV2 {
 	 * Analisa com LLM se deve usar template e qual
 	 */
 	private async analyzeTemplateNeed(prompt: string): Promise<{ use: boolean; templateUrl: string; projectName: string }> {
-		if (!this.openai) {
-			return { use: false, templateUrl: '', projectName: '' };
-		}
+		// DETECÇÃO SIMPLES: Se menciona frontend/UI/React = USA TEMPLATE SEMPRE
+		const frontendKeywords = /\b(react|ui|interface|frontend|web\s*app|spa|vite|tailwind|component|clone|spotify|dashboard)/i;
+		const simpleOnly = /\b(simple|simples|apenas\s*html|only\s*html|static|estático)\b/i;
 		
-		try {
-			const analysis = await this.openai.chat.completions.create({
-				model: 'qwen-plus',
-				messages: [{
-					role: 'system',
-					content: `Você é um analisador de requisitos de projeto. Analise o prompt do usuário e determine:
-1. Se é uma solicitação de frontend/UI moderna (React, Vue, Angular, etc) que se beneficiaria de um template starter
-2. Se sim, sugira a URL de um template apropriado no GitHub (lovable-template para React+Vite+Shadcn)
-3. Extraia um nome apropriado para o projeto baseado no contexto
-
-Responda APENAS em JSON válido:
-{
-  "needsTemplate": boolean,
-  "templateUrl": "url-do-github-ou-vazio",
-  "projectName": "nome-do-projeto",
-  "reasoning": "breve explicação"
-}`
-				}, {
-					role: 'user',
-					content: prompt
-				}],
-				temperature: 0.3,
-				max_tokens: 300
-			});
+		// Se é frontend E não é simples = USA TEMPLATE
+		if (frontendKeywords.test(prompt) && !simpleOnly.test(prompt)) {
+			// Extrair nome do projeto do prompt
+			let projectName = 'project';
+			const spotifyMatch = prompt.match(/spotify/i);
+			const cloneMatch = prompt.match(/clone\s+(?:da|do|de)?\s*(\w+)/i);
 			
-			const response = analysis.choices[0]?.message?.content || '{}';
-			const parsed = JSON.parse(response.trim());
+			if (spotifyMatch) projectName = 'spotify-clone';
+			else if (cloneMatch) projectName = `${cloneMatch[1]}-clone`.toLowerCase();
 			
 			return {
-				use: parsed.needsTemplate || false,
-				templateUrl: parsed.templateUrl || '',
-				projectName: parsed.projectName || 'project'
+				use: true,
+				templateUrl: 'https://github.com/dao42/lovable-template',
+				projectName
 			};
-		} catch (error) {
-			// Fallback: não usa template em caso de erro
-			return { use: false, templateUrl: '', projectName: 'project' };
 		}
+		
+		// Fallback: sem template
+		return { use: false, templateUrl: '', projectName: 'project' };
 	}
 
 	/**
@@ -273,37 +255,54 @@ Responda APENAS em JSON válido:
 				return false;
 			}
 			
-			onProgress?.('📝 Renomeando projeto...');
+			onProgress?.('📝 Integrando template ao projeto...');
 			
-			// Mover arquivos do template para o diretório do projeto
+			// CRÍTICO: Mover TUDO do template para raiz ANTES de qualquer outra coisa
 			const moveResult = await executeShellTool(
-				`bash -c "shopt -s dotglob && cp -r ${workDir}/temp-template/* ${workDir}/ && rm -rf ${workDir}/temp-template"`,
+				`bash -c "cd ${workDir}/temp-template && cp -r * ${workDir}/ && cp -r .[!.]* ${workDir}/ 2>/dev/null || true && cd ${workDir} && rm -rf temp-template"`,
 				30000
 			);
 			
-			if (moveResult.includes('Error')) {
-				onProgress?.('⚠️  Problema ao mover arquivos - continuando...');
-			}
+			onProgress?.('✅ Template integrado na raiz do projeto');
 			
 			// Atualizar package.json com novo nome
 			await executeShellTool(
-				`cd ${workDir} && sed -i 's/"name":.*/"name": "${projectName}",/' package.json 2>/dev/null || true`,
+				`cd ${workDir} && sed -i 's/"name":\\s*"[^"]*"/"name": "${projectName}"/' package.json 2>/dev/null || true`,
 				5000
 			);
 			
-			onProgress?.(`✅ Template clonado e configurado como "${projectName}"`);
-			onProgress?.('🔍 Analisando estrutura do projeto...');
+			// CRÍTICO: Executar npm install imediatamente
+			onProgress?.('📦 Instalando dependências do template...');
+			const installResult = await executeShellTool(
+				`cd ${workDir} && npm install`,
+				120000
+			);
 			
-			// Listar estrutura do projeto para contexto
-			const lsResult = await executeShellTool(
-				`find ${workDir} -type f \\( -name "*.tsx" -o -name "*.ts" -o -name "*.json" \\) | grep -v node_modules | head -20`,
+			if (installResult.includes('error') || installResult.includes('ERR!')) {
+				onProgress?.('⚠️  Erro ao instalar dependências - Flui continuará tentando');
+			} else {
+				onProgress?.('✅ Dependências instaladas com sucesso');
+			}
+			
+			// Listar arquivos REAIS na raiz para confirmar
+			const verifyResult = await executeShellTool(
+				`ls -la ${workDir}/ | head -15`,
+				5000
+			);
+			
+			onProgress?.('📦 Estrutura do projeto verificada:');
+			onProgress?.(verifyResult.split('\n').slice(0, 8).join('\n'));
+			
+			// Listar componentes e hooks disponíveis
+			const componentsResult = await executeShellTool(
+				`find ${workDir}/src -name "*.tsx" -o -name "*.ts" 2>/dev/null | grep -v node_modules | head -15`,
 				10000
 			);
 			
-			if (lsResult && !lsResult.includes('Error')) {
-				const files = lsResult.split('\n').filter(f => f.trim()).slice(0, 10);
+			if (componentsResult && !componentsResult.includes('Error')) {
+				const files = componentsResult.split('\n').filter(f => f.trim()).slice(0, 8);
 				if (files.length > 0) {
-					onProgress?.(`📁 Arquivos encontrados no template:\n${files.join('\n')}`);
+					onProgress?.(`🎯 Componentes e hooks disponíveis para uso:\n${files.join('\n')}`);
 				}
 			}
 			
@@ -338,8 +337,28 @@ Responda APENAS em JSON válido:
 			);
 			
 			if (templateSuccess) {
-				// Adicionar contexto dinâmico ao prompt
-				userPrompt = `${userPrompt}\n\n[CONTEXTO FLUI]: Um template base foi clonado em ${workDir}/temp-template/. Analise a estrutura existente e integre seu desenvolvimento. Mova/copie arquivos necessários para a raiz do projeto e desenvolva sobre essa base.`;
+				// Adicionar contexto EXPLÍCITO ao prompt
+				userPrompt = `${userPrompt}
+
+[CONTEXTO CRÍTICO - TEMPLATE JÁ CONFIGURADO]:
+✅ Template React+Vite+Tailwind+Shadcn já está na RAIZ do projeto (${workDir}/)
+✅ package.json, vite.config.ts, tailwind.config.ts JÁ EXISTEM
+✅ Componentes UI (Button, Card, etc) JÁ ESTÃO em src/components/ui/
+✅ Hooks úteis JÁ ESTÃO disponíveis
+
+⚠️ NÃO RECRIE ESTES ARQUIVOS! Use o que existe.
+
+VOCÊ DEVE:
+1. LER os arquivos existentes primeiro (package.json, src/components/ui/)
+2. APENAS ADICIONAR novos componentes específicos do Spotify (Sidebar, Player, etc)
+3. MODIFICAR App.tsx para usar seus novos componentes
+4. VERIFICAR se node_modules existe - SE NÃO EXISTIR execute npm install OBRIGATORIAMENTE
+5. Executar build para validar (SEMPRE após npm install)
+
+CRÍTICO: Template NÃO vem com node_modules!
+SEMPRE execute: npm install ANTES de npm run build
+
+INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 			}
 		}
 
