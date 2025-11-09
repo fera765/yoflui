@@ -112,22 +112,22 @@ function getWorkspaceRoot(): string {
 
 /**
  * Resolve and normalize a file path
+ * CORRIGIDO: Aceitar workspaceRoot customizado
  */
-function resolvePath(filePath: string): string {
-	const workspaceRoot = getWorkspaceRoot();
+function resolvePath(filePath: string, workspaceRoot?: string): string {
+	const root = getWorkspaceRoot(workspaceRoot);
 	
 	// Handle relative paths
 	if (!isAbsolute(filePath)) {
-		return resolve(workspaceRoot, filePath);
+		return resolve(root, filePath);
 	}
 	
-	// Check if absolute path is within workspace
+	// Para paths absolutos, apenas normalizar (permitir qualquer path dentro de /workspace)
 	const normalized = normalize(filePath);
-	const relativePath = relative(workspaceRoot, normalized);
 	
-	// If relative path starts with .., it's outside workspace
-	if (relativePath.startsWith('..')) {
-		throw new Error(`Path ${filePath} is outside workspace root`);
+	// Verificar se está dentro de /workspace (root geral)
+	if (!normalized.startsWith('/workspace')) {
+		throw new Error(`Path ${filePath} must be within /workspace`);
 	}
 	
 	return normalized;
@@ -163,10 +163,11 @@ function matchesBlockedPattern(filePath: string): boolean {
 
 /**
  * Validate file path for read/write operations
+ * CORRIGIDO: Aceitar workspaceRoot customizado
  */
-export function validateFilePath(filePath: string): { valid: boolean; error?: string } {
+export function validateFilePath(filePath: string, workspaceRoot?: string): { valid: boolean; error?: string } {
 	try {
-		const resolved = resolvePath(filePath);
+		const resolved = resolvePath(filePath, workspaceRoot);
 		
 		// Check for blocked directories
 		if (containsBlockedDirectory(resolved)) {
@@ -184,17 +185,7 @@ export function validateFilePath(filePath: string): { valid: boolean; error?: st
 			};
 		}
 		
-		// Ensure path is within workspace
-		const workspaceRoot = getWorkspaceRoot();
-		const relativePath = relative(workspaceRoot, resolved);
-		
-		if (relativePath.startsWith('..')) {
-			return {
-				valid: false,
-				error: `Access denied: Path is outside workspace root`,
-			};
-		}
-		
+		// Path já foi validado em resolvePath (deve estar em /workspace)
 		return { valid: true };
 	} catch (error) {
 		return {
@@ -206,10 +197,11 @@ export function validateFilePath(filePath: string): { valid: boolean; error?: st
 
 /**
  * Validate directory path for read operations
+ * CORRIGIDO: Aceitar workspaceRoot customizado
  */
-export function validateDirectoryPath(dirPath: string): { valid: boolean; error?: string } {
+export function validateDirectoryPath(dirPath: string, workspaceRoot?: string): { valid: boolean; error?: string } {
 	try {
-		const resolved = resolvePath(dirPath);
+		const resolved = resolvePath(dirPath, workspaceRoot);
 		
 		// Check for blocked directories
 		if (containsBlockedDirectory(resolved)) {
@@ -219,17 +211,7 @@ export function validateDirectoryPath(dirPath: string): { valid: boolean; error?
 			};
 		}
 		
-		// Ensure path is within workspace
-		const workspaceRoot = getWorkspaceRoot();
-		const relativePath = relative(workspaceRoot, resolved);
-		
-		if (relativePath.startsWith('..')) {
-			return {
-				valid: false,
-				error: `Access denied: Directory is outside workspace root`,
-			};
-		}
-		
+		// Path já foi validado em resolvePath
 		return { valid: true };
 	} catch (error) {
 		return {

@@ -1,123 +1,95 @@
-import React from 'react';
-import { FiPlay, FiPause, FiSkipBack, FiSkipForward, FiRepeat, FiShuffle, FiVolume2 } from 'react-icons/fi';
+import React, { useState } from 'react';
 
-const Player = () => {
+interface PlayerProps {
+  songTitle?: string;
+  artist?: string;
+  albumCover?: string;
+}
+
+const Player: React.FC<PlayerProps> = ({
+  songTitle = 'Song Title',
+  artist = 'Artist Name',
+  albumCover = 'https://placehold.co/60x60'
+}) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4">
       <div className="flex items-center justify-between max-w-screen-xl mx-auto">
-        {/* Informações da música */}
+        {/* Song Info */}
         <div className="flex items-center space-x-3 w-1/4">
           <img 
-            src="https://placehold.co/60x60" 
-            alt="Capa do álbum" 
-            className="w-14 h-14 rounded"
+            src={albumCover} 
+            alt="Album cover" 
+            className="w-14 h-14 rounded-md"
           />
           <div>
-            <div className="text-white text-sm font-medium">Nome da Música</div>
-            <div className="text-gray-400 text-xs">Artista</div>
+            <div className="text-white text-sm font-medium">{songTitle}</div>
+            <div className="text-gray-400 text-xs">{artist}</div>
           </div>
         </div>
 
-        {/* Controles centrais */}
+        {/* Player Controls - Center */}
         <div className="flex flex-col items-center w-2/4">
-          <div className="flex items-center space-x-6 mb-2">
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <FiShuffle size={16} />
+          <div className="flex items-center space-x-6">
+            <button className="text-gray-400 hover:text-white">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4 5h2v10H4V5zm12 0h2v10h-2V5zM8 5h5v10H8V5z" />
+              </svg>
             </button>
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <FiSkipBack size={20} />
+            
+            <button 
+              onClick={togglePlayPause}
+              className="bg-white rounded-full p-2 hover:scale-105 transition-transform"
+            >
+              {isPlaying ? (
+                <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
+              )}
             </button>
-            <button className="bg-white text-black rounded-full p-2 hover:scale-105 transition-transform">
-              <FiPlay size={20} />
-            </button>
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <FiSkipForward size={20} />
-            </button>
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <FiRepeat size={16} />
+            
+            <button className="text-gray-400 hover:text-white">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4 5h2v10H4V5zm12 0h2v10h-2V5zM8 5h5v10H8V5z" />
+              </svg>
             </button>
           </div>
-          <div className="flex items-center w-full max-w-md space-x-2">
-            <span className="text-gray-400 text-xs">0:00</span>
-            <div className="flex-1 h-1 bg-gray-700 rounded-full">
-              <div className="h-1 bg-gray-400 rounded-full w-1/3"></div>
+          
+          {/* Progress Bar */}
+          <div className="flex items-center mt-2 w-full max-w-md">
+            <span className="text-xs text-gray-400 mr-2">1:23</span>
+            <div className="flex-1 h-1 bg-gray-600 rounded-full">
+              <div className="h-1 bg-gray-300 rounded-full w-1/3"></div>
             </div>
-            <span className="text-gray-400 text-xs">3:45</span>
+            <span className="text-xs text-gray-400 ml-2">3:45</span>
           </div>
         </div>
 
-        {/* Controles direita */}
-        <div className="flex items-center justify-end space-x-3 w-1/4">
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <FiVolume2 size={16} />
+        {/* Right Controls */}
+        <div className="flex items-center justify-end space-x-4 w-1/4">
+          <button className="text-gray-400 hover:text-white">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+            </svg>
           </button>
-          <div className="w-24 h-1 bg-gray-700 rounded-full">
-            <div className="h-1 bg-gray-400 rounded-full w-2/3"></div>
+          <button className="text-gray-400 hover:text-white">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
+            <span className="text-xs text-white">50</span>
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-export default Player;import React from 'react';
-import { FaStepBackward, FaStepForward, FaPlay, FaPause, FaRandom, FaRedo } from 'react-icons/fa';
-
-const Player = () => {
-  return (
-    <div className="bg-gray-800 border-t border-gray-700 p-4 flex items-center justify-between">
-      <div className="flex items-center space-x-4 w-1/3">
-        <img 
-          src="https://placehold.co/60x60" 
-          alt="Album cover" 
-          className="w-14 h-14 rounded"
-        />
-        <div>
-          <div className="text-white text-sm font-medium">Nome da Música</div>
-          <div className="text-gray-400 text-xs">Artista</div>
-        </div>
-        <div className="text-red-500">
-          <FaHeart />
-        </div>
-      </div>
-      
-      <div className="flex flex-col items-center w-1/3">
-        <div className="flex items-center space-x-6 mb-2">
-          <button className="text-gray-400 hover:text-white">
-            <FaRandom />
-          </button>
-          <button className="text-gray-400 hover:text-white">
-            <FaStepBackward />
-          </button>
-          <button className="bg-white text-black rounded-full p-2 hover:bg-gray-200">
-            <FaPlay />
-          </button>
-          <button className="text-gray-400 hover:text-white">
-            <FaStepForward />
-          </button>
-          <button className="text-gray-400 hover:text-white">
-            <FaRedo />
-          </button>
-        </div>
-        <div className="w-full max-w-md flex items-center space-x-2">
-          <span className="text-xs text-gray-400">0:00</span>
-          <div className="flex-1 h-1 bg-gray-600 rounded-full">
-            <div className="h-1 bg-gray-200 rounded-full w-1/4"></div>
-          </div>
-          <span className="text-xs text-gray-400">3:00</span>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-end space-x-4 w-1/3">
-        <button className="text-gray-400 hover:text-white">
-          <span className="text-xs">0:00</span>
-        </button>
-        <div className="w-24 h-1 bg-gray-600 rounded-full">
-          <div className="h-1 bg-gray-200 rounded-full w-3/4"></div>
-        </div>
-        <button className="text-gray-400 hover:text-white">
-          <span className="text-xs">100%</span>
-        </button>
       </div>
     </div>
   );

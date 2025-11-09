@@ -34,8 +34,8 @@ export async function executeWriteFileTool(filePath: string, content: string, wo
 			}
 		}
 		
-		// Validate file path
-		const validation = validateFilePath(finalPath);
+		// Validate file path (passar workDir como workspace root)
+		const validation = validateFilePath(finalPath, workDir);
 		if (!validation.valid) {
 			return `Error: ${validation.error}`;
 		}
