@@ -46,6 +46,27 @@ export const writeFileToolDefinition = {
 			enhancedLogger.warn('WRITE_FILE', `Fixed duplicate work/: ${filePath} -> ${sanitizedPath}`);
 		}
 		
+		// VALIDAÇÃO CRÍTICA: Rejeitar paths sem project-name
+		// work/src/ é INVÁLIDO, deve ser work/project-name/src/
+		if (sanitizedPath.startsWith('work/src/') || 
+		    sanitizedPath.startsWith('work/components/') ||
+		    sanitizedPath.startsWith('work/pages/') ||
+		    sanitizedPath.startsWith('work/hooks/')) {
+			// Tentar inferir project-name do workDir
+			if (workDir) {
+				const projectMatch = workDir.match(/work\/([^\/]+)/);
+				if (projectMatch) {
+					const projectName = projectMatch[1];
+					sanitizedPath = sanitizedPath.replace('work/', `work/${projectName}/`);
+					enhancedLogger.warn('WRITE_FILE', `Added missing project-name: ${filePath} -> ${sanitizedPath}`);
+				} else {
+					return `Error: Path inválido! Use work/project-name/src/ ao invés de work/src/. Path: ${filePath}`;
+				}
+			} else {
+				return `Error: Path inválido! Use work/project-name/src/ ao invés de work/src/. Path: ${filePath}`;
+			}
+		}
+		
 		let finalPath = sanitizedPath;
 		
 		// Se path é relativo, resolver a partir do workDir
