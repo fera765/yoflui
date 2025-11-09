@@ -40,6 +40,12 @@ export const writeFileToolDefinition = {
 			enhancedLogger.warn('WRITE_FILE', `Sanitized system path: ${filePath} -> ${sanitizedPath}`);
 		}
 		
+		// Corrigir work/work/ duplicado
+		if (sanitizedPath.startsWith('work/work/')) {
+			sanitizedPath = sanitizedPath.replace('work/work/', 'work/');
+			enhancedLogger.warn('WRITE_FILE', `Fixed duplicate work/: ${filePath} -> ${sanitizedPath}`);
+		}
+		
 		let finalPath = sanitizedPath;
 		
 		// Se path é relativo, resolver a partir do workDir
