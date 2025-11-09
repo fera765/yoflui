@@ -51,8 +51,9 @@ export class CentralOrchestratorV2 {
 	private intentionAnalyzer: IntentionAnalyzer | null = null;
 	private promptEngineer: PromptEngineer;
 	private automationAgent: AutomationAgent;
-	private dualModeCoordinator: DualModeCoordinator | null = null;	private errorDetector?: ProactiveErrorDetector;
-	private intelligentValidator?: IntelligentValidator;| null = null;
+	private dualModeCoordinator: DualModeCoordinator | null = null;
+	private errorDetector?: ProactiveErrorDetector;
+	private intelligentValidator?: IntelligentValidator;
 	private outputOptimizer: OutputOptimizer;
 	private feedbackGenerator: FeedbackGenerator | null = null;
 	private shortCircuit: ShortCircuitExecutor;
@@ -106,10 +107,12 @@ export class CentralOrchestratorV2 {
 
 			// Inicializar componentes do sistema superior
 			this.intentionAnalyzer = new IntentionAnalyzer();
-			this.dualModeCoordinator = new DualModeCoordinator(th		if (openai) {
-			this.errorDetector = new ProactiveErrorDetector(openai);
-			this.intelligentValidator = new IntelligentValidator(openai);
-		}	this.feedbackGenerator = new FeedbackGenerator(this.openai);
+			this.dualModeCoordinator = new DualModeCoordinator(this.openai);
+			if (openai) {
+				this.errorDetector = new ProactiveErrorDetector(openai);
+				this.intelligentValidator = new IntelligentValidator(openai);
+			}
+			this.feedbackGenerator = new FeedbackGenerator(this.openai);
 
 			// Inicializar agentes especializados com callbacks
 			const toolCallback: ToolExecutionCallback = (toolExec) => {
