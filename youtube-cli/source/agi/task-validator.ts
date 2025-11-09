@@ -209,6 +209,7 @@ export function validateTaskCompletion(
 
 /**
  * Verifica se um requisito específico foi cumprido
+ * CORRIGIDO: Agora verifica se arquivos REALMENTE foram criados
  */
 function checkRequirementMet(
 	requirement: TaskRequirement,
@@ -219,24 +220,41 @@ function checkRequirementMet(
 	for (const step of executedSteps) {
 		const stepStr = JSON.stringify(step).toLowerCase();
 		
-		// Se alguma keyword do requisito aparece no step, considera cumprido
-		if (requirement.keywords.some(keyword => stepStr.includes(keyword.toLowerCase()))) {
-			return true;
-		}
-		
-		// Verificações específicas por tipo de tool
-		if (step.tool) {
-			// write_file: verifica se criou arquivos relevantes
-			if (step.tool === 'write_file' && requirement.keywords.some(k => 
-				['criar', 'create', 'gerar', 'generate'].includes(k.toLowerCase())
+		// CRÍTICO: Se tool é write_file, verificar se resultado indica SUCESSO REAL
+		if (step.tool === 'write_file') {
+			const result = step.result || '';
+			// Só considera cumprido se vê "✓ File written" (confirmação real)
+			const fileCreated = result.includes('✓ File written') || result.includes('File written and verified');
+			
+			if (fileCreated && requirement.keywords.some(k => 
+				['criar', 'create', 'gerar', 'generate', 'escrever', 'write'].includes(k.toLowerCase())
 			)) {
 				return true;
 			}
 			
-			// execute_shell: verifica se instalou/configurou
-			if (step.tool === 'execute_shell' && requirement.keywords.some(k => 
-				['configurar', 'configure', 'instalar', 'install'].includes(k.toLowerCase())
+			// Se tool foi chamado MAS resultado tem "Error", NÃO considerar cumprido
+			if (result.includes('Error:') || result.includes('Failed')) {
+				continue;
+			}
+		}
+		
+		// execute_shell: verificar se comando teve SUCESSO
+		if (step.tool === 'execute_shell') {
+			const result = step.result || '';
+			// Só considera OK se não tem erro
+			const shellSuccess = !result.includes('Error:') && !result.includes('Failed');
+			
+			if (shellSuccess && requirement.keywords.some(k => 
+				['configurar', 'configure', 'instalar', 'install', 'build'].includes(k.toLowerCase())
 			)) {
+				return true;
+			}
+		}
+		
+		// Se alguma keyword do requisito aparece no step com sucesso
+		if (requirement.keywords.some(keyword => stepStr.includes(keyword.toLowerCase()))) {
+			// Mas verificar que não houve erro
+			if (!stepStr.includes('error') && !stepStr.includes('failed')) {
 				return true;
 			}
 		}

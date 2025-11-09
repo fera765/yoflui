@@ -99,9 +99,15 @@ const PATH_ESCAPE_PATTERNS = [
 
 /**
  * Get the workspace root directory
+ * CORRIGIDO: Permite acesso a todos os projetos em /workspace
  */
 function getWorkspaceRoot(): string {
-	return cwd();
+	const currentDir = cwd();
+	// Se estamos em /workspace/youtube-cli, permitir acesso a /workspace
+	if (currentDir.includes('/workspace/')) {
+		return '/workspace';
+	}
+	return currentDir;
 }
 
 /**

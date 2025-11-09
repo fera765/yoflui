@@ -18,17 +18,20 @@ export const writeFileToolDefinition = {
 	},
 };
 
-export async function executeWriteFileTool(filePath: string, content: string): Promise<string> {
+export async function executeWriteFileTool(filePath: string, content: string, workDir?: string): Promise<string> {
 	try {
-		// CRÍTICO: Se path não começa com work/ e não é absoluto, forçar prefixo work/
-		const { isAbsolute, join } = await import('path');
+		// CORRIGIDO: Usar workDir se fornecido, caso contrário usar path absoluto ou process.cwd()
+		const { isAbsolute, join, resolve } = await import('path');
 		let finalPath = filePath;
-		let pathWasCorrected = false;
 		
-		if (!isAbsolute(filePath) && !filePath.startsWith('work/') && !filePath.startsWith('work\\')) {
-			finalPath = join('work', filePath);
-			pathWasCorrected = true;
-			console.warn(`[WRITE_FILE] PATH corrigido: ${filePath} → ${finalPath}`);
+		// Se path é relativo, resolver a partir do workDir
+		if (!isAbsolute(filePath)) {
+			if (workDir) {
+				finalPath = resolve(workDir, filePath);
+			} else {
+				// Fallback para work/ apenas se não houver workDir
+				finalPath = join(process.cwd(), 'work', filePath);
+			}
 		}
 		
 		// Validate file path
@@ -37,7 +40,7 @@ export async function executeWriteFileTool(filePath: string, content: string): P
 			return `Error: ${validation.error}`;
 		}
 		
-		// Atualizar para usar finalPath em vez de filePath
+		// Usar finalPath
 		filePath = finalPath;
 		
 		// Create directories recursively
@@ -58,8 +61,7 @@ export async function executeWriteFileTool(filePath: string, content: string): P
 			return `Warning: File created but size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`;
 		}
 		
-		const pathNote = pathWasCorrected ? ` [PATH auto-corrected to work/]` : '';
-		return `✓ File written and verified: ${filePath} (${stats.size} bytes)${pathNote}`;
+		return `✓ File written and verified: ${filePath} (${stats.size} bytes)`;
 	} catch (error) {
 		return `Error: ${error instanceof Error ? error.message : 'Failed to write file'}`;
 	}
