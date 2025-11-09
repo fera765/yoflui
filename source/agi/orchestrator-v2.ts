@@ -8,6 +8,7 @@ import { PromptEngineer } from './prompt-engineer.js';
 import { AutomationAgent } from './automation-agent.js';
 import { DualModeCoordinator, ExecutionMode } from './dual-mode-coordinator.js';
 import { ProactiveErrorDetector } from './proactive-error-detector.js';
+import { IntelligentValidator, TaskRequirements } from './intelligent-validator.js';
 import { OutputOptimizer } from './output-optimizer.js';
 import { FeedbackGenerator } from './feedback-generator.js';
 import { validateProject, autoFixCommonErrors } from './auto-validator.js';
@@ -50,8 +51,8 @@ export class CentralOrchestratorV2 {
 	private intentionAnalyzer: IntentionAnalyzer | null = null;
 	private promptEngineer: PromptEngineer;
 	private automationAgent: AutomationAgent;
-	private dualModeCoordinator: DualModeCoordinator | null = null;
-	private errorDetector: ProactiveErrorDetector | null = null;
+	private dualModeCoordinator: DualModeCoordinator | null = null;	private errorDetector?: ProactiveErrorDetector;
+	private intelligentValidator?: IntelligentValidator;| null = null;
 	private outputOptimizer: OutputOptimizer;
 	private feedbackGenerator: FeedbackGenerator | null = null;
 	private shortCircuit: ShortCircuitExecutor;
@@ -105,9 +106,10 @@ export class CentralOrchestratorV2 {
 
 			// Inicializar componentes do sistema superior
 			this.intentionAnalyzer = new IntentionAnalyzer();
-			this.dualModeCoordinator = new DualModeCoordinator(this.openai);
-			this.errorDetector = new ProactiveErrorDetector(this.openai);
-			this.feedbackGenerator = new FeedbackGenerator(this.openai);
+			this.dualModeCoordinator = new DualModeCoordinator(th		if (openai) {
+			this.errorDetector = new ProactiveErrorDetector(openai);
+			this.intelligentValidator = new IntelligentValidator(openai);
+		}	this.feedbackGenerator = new FeedbackGenerator(this.openai);
 
 			// Inicializar agentes especializados com callbacks
 			const toolCallback: ToolExecutionCallback = (toolExec) => {
