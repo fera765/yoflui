@@ -1,0 +1,177 @@
+# Sequência de E-mails de Automação para Conversão - FLUI AGI
+
+## Estrutura da Sequência
+
+**Total de E-mails:** 7 e-mails
+**Período de Envio:** 14 dias
+**Persona Primária:** Empreendedor Digital Moderno (Carlos Mendes)
+**Persona Secundária:** Profissional de Marketing Estratégico (Fernanda Alves)
+
+---
+
+## E-mail 1: "A Revolução da Automação que está Transformando Negócios"
+**Dia:** 0
+**Assunto:** Sua empresa está perdendo clientes por causa de processos manuais?
+**Tom:** Profissional e inspirador
+
+Olá [Nome],
+
+Carlos, fundador de uma startup de SaaS, estava perdendo 40% dos leads qualificados por não conseguir nutrí-los no momento certo. Até que descobriu a automação inteligente.
+
+Hoje, sua empresa triplicou a taxa de conversão e reduziu em 70% o tempo gasto com tarefas repetitivas.
+
+Se você sente que está perdendo oportunidades por não ter um sistema de automação eficiente, continue lendo. Tenho algo que pode mudar sua realidade.
+
+Atenciosamente,
+Time FLUI AGI
+
+---
+
+## E-mail 2: "O Erro Comum que Destrói a Eficiência de Marketing"
+**Dia:** 2
+**Assunto:** 95% das empresas cometem esse erro com automação
+**Tom:** Profissional e educativo
+
+Olá [Nome],
+
+A maioria das empresas investe em ferramentas de automação sem uma estratégia clara. O resultado? Sistemas complexos que não geram resultados.
+
+O verdadeiro poder da automação está em integrar inteligência artificial com jornadas personalizadas para cada cliente.
+
+No próximo e-mail, vou compartilhar um framework que transforma a forma como você nutre seus leads.
+
+Atenciosamente,
+Time FLUI AGI
+
+---
+
+## E-mail 3: "O Framework que Triplica a Conversão de Leads"
+**Dia:** 4
+**Assunto:** O segredo para converter 3x mais leads com automação
+**Tom:** Profissional e revelador
+
+Olá [Nome],
+
+Após analisar mais de 500 campanhas de automação, identificamos um padrão claro:
+
+Empresas que utilizam IA para personalizar a jornada do cliente convertem 3x mais do que aquelas que usam automação genérica.
+
+O FLUI AGI aplica esse framework automaticamente, criando experiências únicas para cada lead com base em seu comportamento e histórico.
+
+Quer ver como isso funciona na prática? Continue lendo.
+
+Atenciosamente,
+Time FLUI AGI
+
+---
+
+## E-mail 4: "O Caso Real que Vai Mudar Sua Perspectiva"
+**Dia:** 6
+**Assunto:** Como uma empresa aumentou 400% o ROI com automação
+**Tom:** Profissional e inspirador
+
+Olá [Nome],
+
+A InovaTech, uma agência de marketing digital, estava perdendo 60% dos leads qualificados por não conseguir nutrí-los de forma eficiente.
+
+Com o FLUI AGI, eles:
+- Automatizaram 90% do processo de nutrição
+- Aumentaram em 400% o ROI das campanhas
+- Reduziram em 80% o tempo gasto com tarefas manuais
+
+O segredo? Uma plataforma que combina IA com estratégias de marketing humanizadas.
+
+Se você quer resultados como esses, continue lendo.
+
+Atenciosamente,
+Time FLUI AGI
+
+---
+
+## E-mail 5: "A Diferença que Faz a Diferença"
+**Dia:** 8
+**Assunto:** Por que FLUI AGI é diferente de tudo que você já viu
+**Tom:** Profissional e convincente
+
+Olá [Nome],
+
+Enquanto outras plataformas oferecem automação genérica, o FLUI AGI cria experiências únicas para cada cliente com base em IA avançada.
+
+Nossa proposta de valor:
+- Automação inteligente que aprende com cada interação
+- Integração perfeita com suas ferramentas existentes
+- Interface intuitiva que qualquer time consegue operar
+- Resultados mensuráveis em tempo real
+
+A automação do futuro já está aqui. E está disponível para sua empresa.
+
+Atenciosamente,
+Time FLUI AGI
+
+---
+
+## E-mail 6: "Oportunidade Exclusiva para Transformar Seu Negócio"
+**Dia:** 10
+**Assunto:** Convite exclusivo: Veja FLUI AGI em ação (gratuito)
+**Tom:** Profissional e urgente
+
+Olá [Nome],
+
+Estamos oferecendo uma demonstração exclusiva e gratuita do FLUI AGI para um número limitado de empresas.
+
+Durante esta sessão, você vai:
+- Ver o sistema em funcionamento real
+- Entender como adaptar para sua jornada de clientes
+- Receber uma análise personalizada da sua atual estratégia
+
+Esta oportunidade é limitada e exclusiva para empresas que já demonstraram interesse em automação inteligente.
+
+Clique aqui para agendar sua demonstração gratuita.
+
+Atenciosamente,
+Time FLUI AGI
+
+---
+
+## E-mail 7: "Última Chance: Não Deixe Passar Esta Oportunidade"
+**Dia:** 12
+**Assunto:** Últimas 48 horas para agendar sua demonstração gratuita
+**Tom:** Profissional e urgente
+
+Olá [Nome],
+
+Esta é sua última chance de agendar uma demonstração gratuita do FLUI AGI.
+
+Amanhã encerramos esta oportunidade exclusiva de ver como a automação inteligente pode transformar seu negócio.
+
+Se você deseja:
+- Triplicar sua taxa de conversão
+- Reduzir drasticamente tarefas manuais
+- Ter insights valiosos sobre seu público
+- Aumentar significativamente seu ROI
+
+Agora é o momento de agir.
+
+Clique aqui para garantir sua demonstração gratuita antes que expire.
+
+Atenciosamente,
+Time FLUI AGI
+
+---
+
+## Configurações de Automação
+
+### Condições de Disparo
+- Lead preenche formulário de interesse
+- Download de conteúdo de aterramento
+- Interesse demonstrado em automação
+
+### Segmentação
+- Por tamanho da empresa
+- Por setor de atuação
+- Por nível de maturidade digital
+
+### Gatilhos de Conversão
+- Clique em demonstração
+- Agendamento de call
+- Preenchimento de proposta

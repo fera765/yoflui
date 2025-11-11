@@ -1,0 +1,20 @@
+# Páginas de Captura para Testes A/B
+
+## Abordagem A - Design Moderno
+- Gradiente azul
+- Foco em benefícios claros
+- Estrutura HTML5 semântica
+- CSS moderno com gradientes e efeitos visuais
+- Formulário de captura otimizado
+
+## Abordagem B - Layout Corporativo
+- Estatísticas e depoimentos
+- Design profissional
+- Elementos de credibilidade
+- Formulário de captura estruturado
+
+## Abordagem C - Design Premium
+- Efeitos visuais avançados
+- Garantia de resultados
+- Elementos de exclusividade
+- Formulário de captura premium
