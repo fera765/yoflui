@@ -148,6 +148,18 @@ SUB-TAREFA ATUAL:
 OBJETIVO ESPECÍFICO:
 Você deve ${task.title.toLowerCase()}.`;
 
+		// CORREÇÃO CRÍTICA: Se task menciona YouTube e "mecânica das emoções", forçar query correta
+		if (task.metadata.tools && task.metadata.tools.includes('search_youtube_comments')) {
+			if (/mecânica.*emoções|emoções.*mulher/i.test(task.description || task.title)) {
+				if (!/query.*mecânica.*emoções.*mulher/i.test(task.description || '')) {
+					block += `\n\n⚠️ INSTRUÇÃO CRÍTICA PARA TOOL YOUTUBE:`;
+					block += `\n- Você DEVE usar a tool search_youtube_comments com query EXATA: "mecânica das emoções mulher emocional relacionamento"`;
+					block += `\n- NÃO use outras queries genéricas`;
+					block += `\n- Esta query é OBRIGATÓRIA e deve ser usada exatamente como especificado`;
+				}
+			}
+		}
+
 		// CRÍTICO: Detectar se é tarefa de EXPANSÃO
 		const isExpansion = task.metadata.isExpansion === true;
 		const originalFile = task.metadata.originalFile;

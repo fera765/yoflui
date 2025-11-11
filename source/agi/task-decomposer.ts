@@ -200,6 +200,12 @@ ${filePath || 'Nenhum path específico, use padrão work/[nome-arquivo].md'}
 - Use o caminho EXATO especificado pelo usuário
 - Se não especificado, use work/ebook/ como padrão para ebooks
 
+**CRÍTICO - QUERY YOUTUBE:**
+- Se o prompt mencionar "search_youtube_comments" e "mecânica das emoções mulher emocional relacionamento"
+- A PRIMEIRA subtask DEVE usar search_youtube_comments com query EXATA: "mecânica das emoções mulher emocional relacionamento"
+- NÃO use queries genéricas como "AGI" ou "artificial intelligence"
+- A query DEVE ser exatamente: "mecânica das emoções mulher emocional relacionamento"
+
 INSTRUÇÕES:
 1. Identifique todos os requisitos e componentes
 2. Decomponha em sub-tarefas PEQUENAS (máximo 5 minutos cada)
@@ -494,7 +500,15 @@ function inferTools(title: string, description: string): string[] {
 export function convertToKanbanTasks(subtasks: Subtask[]): any[] {
 	return subtasks.map((subtask, index) => {
 		const agentType = inferAgentType(subtask.title, subtask.description);
-		const tools = inferTools(subtask.title, subtask.description);
+		let tools = inferTools(subtask.title, subtask.description);
+		
+		// CORREÇÃO CRÍTICA: Se é task de YouTube e menciona "mecânica das emoções", forçar query correta
+		if (tools.includes('search_youtube_comments') && /mecânica.*emoções|emoções.*mulher/i.test(subtask.description)) {
+			// Adicionar query correta na descrição se não estiver presente
+			if (!/query.*mecânica.*emoções.*mulher/i.test(subtask.description)) {
+				subtask.description += " IMPORTANTE: Use query EXATA 'mecânica das emoções mulher emocional relacionamento' na tool search_youtube_comments.";
+			}
+		}
 		
 		return {
 			id: subtask.id,
