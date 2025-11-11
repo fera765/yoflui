@@ -191,18 +191,33 @@ Você deve ${task.title.toLowerCase()}.`;
 			block += `\n- Validar que o conteúdo expandido atinge os requisitos`;
 		}
 		
-		// CRÍTICO: Detectar se é tarefa de ESCRITA de capítulo/artigo
+		// CRÍTICO: Detectar se é tarefa de ESCRITA de capítulo/artigo/ebook
 		const isWritingTask = /escrever|criar|redigir|write/i.test(task.title);
 		const hasQuantitativeReq = task.metadata.validation && /\d+.*palavras|words|páginas|pages/i.test(task.metadata.validation);
+		const isEbook = /ebook|livro|book/i.test(task.title + ' ' + (task.description || '')) || /\d+\s*páginas|\d+\s*pages/i.test(task.title + ' ' + (task.description || ''));
 		
 		if (isWritingTask && hasQuantitativeReq) {
 			block += `\n\n📝 ATENÇÃO: TAREFA DE ESCRITA DE CONTEÚDO COMPLETO`;
-			block += `\n\n⚠️ REGRA CRÍTICA - ARQUIVO ÚNICO:`;
-			block += `\n- Você DEVE escrever TODO o conteúdo solicitado em UM ÚNICO arquivo`;
-			block += `\n- NÃO crie arquivos separados para introdução, fundamentos, etc.`;
-			block += `\n- Escreva todas as seções sequencialmente no mesmo arquivo`;
-			block += `\n- Use write_file UMA ÚNICA VEZ com o conteúdo completo`;
-			block += `\n- O arquivo final deve conter TODAS as seções solicitadas`;
+			
+			if (isEbook) {
+				block += `\n\n🚨 REGRA CRÍTICA - EBOOK EM ARQUIVO ÚNICO:`;
+				block += `\n- Você DEVE escrever TODO o ebook em UM ÚNICO ARQUIVO`;
+				block += `\n- NÃO crie arquivos separados para cada página (pagina_01.md, pagina_02.md, etc.)`;
+				block += `\n- Crie APENAS UM arquivo (ex: "work/ebook/ebook.md") com TODAS as páginas dentro`;
+				block += `\n- Separe cada página com marcadores claros (ex: "# Página 1", "# Página 2", etc.)`;
+				block += `\n- Mantenha consistência narrativa e qualidade best seller entre todas as páginas`;
+				block += `\n- Use dados reais coletados (YouTube, pesquisas) - SEM mocks, simulações ou presets`;
+				block += `\n- Cada página deve fluir naturalmente para a próxima`;
+				block += `\n- Use write_file UMA ÚNICA VEZ com TODO o conteúdo do ebook`;
+				block += `\n- O arquivo final deve conter TODAS as páginas solicitadas`;
+			} else {
+				block += `\n\n⚠️ REGRA CRÍTICA - ARQUIVO ÚNICO:`;
+				block += `\n- Você DEVE escrever TODO o conteúdo solicitado em UM ÚNICO arquivo`;
+				block += `\n- NÃO crie arquivos separados para introdução, fundamentos, etc.`;
+				block += `\n- Escreva todas as seções sequencialmente no mesmo arquivo`;
+				block += `\n- Use write_file UMA ÚNICA VEZ com o conteúdo completo`;
+				block += `\n- O arquivo final deve conter TODAS as seções solicitadas`;
+			}
 		}
 
 		// NOVO: Adicionar memória completa (contexto de etapas anteriores)
