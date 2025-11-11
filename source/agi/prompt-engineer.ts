@@ -151,16 +151,32 @@ Você deve ${task.title.toLowerCase()}.`;
 		// CRÍTICO: Detectar se é tarefa de EXPANSÃO
 		const isExpansion = task.metadata.isExpansion === true;
 		const originalFile = task.metadata.originalFile;
+		const expansionInstructions = task.metadata.expansionInstructions;
 
 		if (isExpansion && originalFile) {
-			block += `\n\n🔄 ATENÇÃO: TAREFA DE EXPANSÃO DE CONTEÚDO`;
+			block += `\n\n🔄 ATENÇÃO: TAREFA DE EXPANSÃO INTELIGENTE DE CONTEÚDO`;
 			block += `\n\nArquivo a expandir: ${originalFile}`;
-			block += `\n\nInstruções CRÍTICAS PARA EXPANSÃO:`;
-			block += `\n1. PRIMEIRO: Usar read_file para ler o arquivo existente`;
-			block += `\n2. ANALISAR o conteúdo atual e estilo de escrita`;
-			block += `\n3. EXPANDIR o conteúdo mantendo qualidade e coerência`;
-			block += `\n4. SOBRESCREVER usando write_file com conteúdo expandido`;
-			block += `\n5. NÃO criar arquivo novo, EDITAR o existente`;
+			
+			// Se temos instruções específicas de expansão, usar elas
+			if (expansionInstructions) {
+				block += `\n\n${expansionInstructions}`;
+			} else {
+				// Instruções padrão
+				block += `\n\nInstruções CRÍTICAS PARA EXPANSÃO:`;
+				block += `\n1. PRIMEIRO: Usar read_file para ler o arquivo existente`;
+				block += `\n2. ANALISAR o conteúdo atual e estilo de escrita`;
+				block += `\n3. EXPANDIR o conteúdo mantendo qualidade e coerência`;
+				block += `\n4. SOBRESCREVER usando write_file com conteúdo expandido`;
+				block += `\n5. NÃO criar arquivo novo, EDITAR o existente`;
+			}
+			
+			// Regras adicionais para garantir qualidade
+			block += `\n\n⚠️ REGRAS DE QUALIDADE:`;
+			block += `\n- Manter coesão e fluxo narrativo com conteúdo existente`;
+			block += `\n- NÃO repetir informações já presentes no arquivo`;
+			block += `\n- Manter o mesmo tom e estilo de escrita`;
+			block += `\n- Adicionar valor real, não apenas palavras de enchimento`;
+			block += `\n- Validar que o conteúdo expandido atinge os requisitos`;
 		}
 		
 		// CRÍTICO: Detectar se é tarefa de ESCRITA de capítulo/artigo

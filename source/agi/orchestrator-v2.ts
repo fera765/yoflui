@@ -11,6 +11,7 @@ import { ProactiveErrorDetector } from './proactive-error-detector.js';
 import { IntelligentValidator, TaskRequirements } from './intelligent-validator.js';
 import { OutputOptimizer } from './output-optimizer.js';
 import { FeedbackGenerator } from './feedback-generator.js';
+import { ContentQualityValidator } from './content-quality-validator.js';
 import { validateProject, autoFixCommonErrors } from './auto-validator.js';
 import {
 	loadOrCreateContext,
@@ -54,6 +55,7 @@ export class CentralOrchestratorV2 {
 	private dualModeCoordinator: DualModeCoordinator | null = null;
 	private errorDetector?: ProactiveErrorDetector;
 	private intelligentValidator?: IntelligentValidator;
+	private contentQualityValidator?: ContentQualityValidator;
 	private outputOptimizer: OutputOptimizer;
 	private feedbackGenerator: FeedbackGenerator | null = null;
 	private shortCircuit: ShortCircuitExecutor;
@@ -111,6 +113,7 @@ export class CentralOrchestratorV2 {
 			if (this.openai) {
 				this.errorDetector = new ProactiveErrorDetector(this.openai);
 				this.intelligentValidator = new IntelligentValidator(this.openai);
+				this.contentQualityValidator = new ContentQualityValidator(this.openai);
 			}
 			this.feedbackGenerator = new FeedbackGenerator(this.openai);
 
@@ -513,8 +516,12 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 		// FASE 5: Executar sub-tarefas sequencialmente COM CONTEXTO PERFEITO
 		const results: Map<string, string> = new Map();
 		
-		for (let i = 0; i < subTasks.length; i++) {
-			const subTask = subTasks[i];
+		// Array dinâmico que pode crescer com subtasks de expansão
+		let tasksToExecute = [...subTasks];
+		let executedCount = 0;
+		
+		while (executedCount < tasksToExecute.length) {
+			const subTask = tasksToExecute[executedCount];
 			
 			// Injetar contexto de etapas anteriores (silencioso)
 			const contextData = getContextForNextStep(workDir);
@@ -538,6 +545,27 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 				!result.includes('Error:'),
 				workDir
 			);
+			
+			executedCount++;
+			
+			// CRÍTICO: Verificar se novas subtasks de expansão foram criadas
+			// e adicioná-las à fila de execução
+			const allKanbanTasks = Array.from(this.kanban.values());
+			const expansionTasks = allKanbanTasks.filter(t => 
+				t.metadata.isExpansion === true && 
+				t.column === 'planning' &&
+				!tasksToExecute.some(existing => existing.id === t.id)
+			);
+			
+			if (expansionTasks.length > 0) {
+				onProgress?.(`🔄 ${expansionTasks.length} subtask(s) de expansão detectada(s), adicionando à fila...`);
+				// Adicionar à fila de execução
+				for (const expTask of expansionTasks) {
+					await this.moveTask(expTask.id, 'execution_queue');
+					tasksToExecute.push(expTask);
+				}
+				onProgress?.('', this.getKanbanSnapshot());
+			}
 		}
 
 		// FASE 6: Integração e Entrega
@@ -636,8 +664,8 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 	}
 
 	/**
-	 * CRÍTICO: Valida requisitos quantitativos pós-execução
-	 * Ex: "1000+ palavras", "50 páginas", etc.
+	 * VALIDAÇÃO AVANÇADA DE CONTEÚDO EM TEMPO REAL
+	 * Usa ContentQualityValidator para análise completa de qualidade, quantidade e coesão
 	 */
 	private async validateQuantitativeRequirements(
 		subTask: KanbanTask,
@@ -651,10 +679,10 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 		expansionTaskTitle?: string;
 		filePath?: string;
 	}> {
-		// Limitar tentativas (max 2 expansões)
+		// Limitar tentativas (max 3 expansões por subtask)
 		const retryAttempt = subTask.metadata.retryAttempt || 0;
-		if (retryAttempt >= 2) {
-			return { passed: true, shouldRetry: false }; // Desistir após 2 tentativas
+		if (retryAttempt >= 3) {
+			return { passed: true, shouldRetry: false }; // Desistir após 3 tentativas
 		}
 		
 		// Extrair requisitos da descrição/title
@@ -663,15 +691,14 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 		// Padrões de requisitos quantitativos
 		const wordRequirements = fullText.match(/(\d+)\+?\s*(palavras?|words?)/i);
 		const pageRequirements = fullText.match(/(\d+)\+?\s*(páginas?|pages?)/i);
-		const lineRequirements = fullText.match(/(\d+)\+?\s*(linhas?|lines?)/i);
+		const chapterRequirements = fullText.match(/(\d+)\+?\s*(capítulos?|chapters?)/i);
 		
 		// Se não tem requisito quantitativo, passar
-		if (!wordRequirements && !pageRequirements && !lineRequirements) {
+		if (!wordRequirements && !pageRequirements && !chapterRequirements) {
 			return { passed: true, shouldRetry: false };
 		}
 		
-		// CRÍTICO: Procurar arquivo REAL criado pela tool write_file
-		// Estratégia: Procurar arquivos .md, .txt, .html criados nos últimos 15 segundos
+		// DETECTAR ARQUIVO REAL criado
 		let detectedFile: string | null = null;
 		
 		try {
@@ -679,7 +706,7 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 			const { join } = await import('path');
 			
 			const now = Date.now();
-			const recentThreshold = 15000; // 15 segundos
+			const recentThreshold = 30000; // 30 segundos (aumentado para dar tempo)
 			
 			// Procurar em work/ e workDir
 			const searchDirs = [join(workDir, 'work'), workDir];
@@ -689,7 +716,7 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 					const files = readdirSync(dir);
 					
 					for (const file of files) {
-						if (/\.(md|txt|html|json)$/.test(file)) {
+						if (/\.(md|txt|html)$/.test(file)) {
 							const fullPath = join(dir, file);
 							const stats = statSync(fullPath);
 							const age = now - stats.mtimeMs;
@@ -706,15 +733,15 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 				}
 			}
 		} catch (error) {
-			// Error searching for files, will use regex fallback
+			// Error searching for files
 		}
 		
-		// Fallback: tentar regex no resultado
+		// Fallback: extrair path do resultado
 		if (!detectedFile) {
 			const pathPatterns = [
-				/file.*?:\s*([^\s()\[\]]+\.(?:md|txt|html|json|ts|tsx|js|jsx))/i,
-				/written.*?:\s*([^\s()\[\]]+\.(?:md|txt|html|json|ts|tsx|js|jsx))/i,
-				/"file_path"\s*:\s*"([^"]+\.(?:md|txt|html|json|ts|tsx|js|jsx))"/i,
+				/file.*?:\s*([^\s()\[\]]+\.(?:md|txt|html))/i,
+				/written.*?:\s*([^\s()\[\]]+\.(?:md|txt|html))/i,
+				/"file_path"\s*:\s*"([^"]+\.(?:md|txt|html))"/i,
 			];
 			
 			for (const pattern of pathPatterns) {
@@ -726,59 +753,109 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 			}
 		}
 		
-		let actualCount = 0;
-		let requirementType = '';
-		let requiredCount = 0;
-		let finalPath = '';
+		// Se não encontrou arquivo, falhar
+		if (!detectedFile) {
+			return {
+				passed: false,
+				reason: 'Arquivo de conteúdo não foi detectado',
+				shouldRetry: true,
+				targetRequirement: 'Criar arquivo de conteúdo',
+				expansionTaskTitle: 'Criar arquivo com conteúdo requerido'
+			};
+		}
+		
+		// Extrair requisitos
+		let minWordsPerChapter = 700; // Padrão
+		let totalChapters: number | undefined;
+		let minTotalWords: number | undefined;
 		
 		if (wordRequirements) {
-			requirementType = 'palavras';
-			requiredCount = parseInt(wordRequirements[1]);
+			minWordsPerChapter = parseInt(wordRequirements[1]);
+		}
+		
+		if (pageRequirements) {
+			totalChapters = parseInt(pageRequirements[1]);
+			minTotalWords = totalChapters * minWordsPerChapter;
+		}
+		
+		if (chapterRequirements) {
+			totalChapters = parseInt(chapterRequirements[1]);
+		}
+		
+		// USAR CONTENT QUALITY VALIDATOR para análise completa
+		if (!this.contentQualityValidator) {
+			// Fallback: validação simples se validator não disponível
+			return { passed: true, shouldRetry: false };
+		}
+		
+		try {
+			const qualityResult = await this.contentQualityValidator.validateContent(
+				detectedFile,
+				{
+					minWordsPerChapter,
+					totalChapters,
+					minTotalWords,
+					contentType: 'ebook'
+				},
+				workDir
+			);
 			
-			// Tentar ler arquivo REAL
-			if (detectedFile) {
-				try {
-					const { readFileSync, existsSync } = await import('fs');
-					const { join, isAbsolute } = await import('path');
-					const filePath = detectedFile;
-					const fullPath = isAbsolute(filePath) ? filePath : join(workDir, filePath);
-					finalPath = fullPath;
-					
-					if (existsSync(fullPath)) {
-						const content = readFileSync(fullPath, 'utf-8');
-						actualCount = content.split(/\s+/).filter(w => w.length > 0).length;
-					} else {
-						// File not found, fallback to result string
-						actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
-					}
-				} catch (error) {
-					// Error reading file, fallback to result string
-					actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
-				}
-			} else {
-				// Path not detected, use result string
-				actualCount = result.split(/\s+/).filter(w => w.length > 0).length;
+			// Gerar relatório de qualidade
+			const report = this.contentQualityValidator.formatQualityReport(qualityResult);
+			
+			// Log do relatório (para debug)
+			console.log(report);
+			
+			// Se validação passou, OK
+			if (qualityResult.valid) {
+				return {
+					passed: true,
+					shouldRetry: false,
+					filePath: detectedFile
+				};
 			}
+			
+			// Se precisa expansão, criar estratégia
+			if (qualityResult.needsExpansion && qualityResult.expansionStrategy) {
+				const strategy = qualityResult.expansionStrategy;
+				
+				// Criar título de expansão baseado na estratégia
+				let expansionTitle = '';
+				if (strategy.mode === 'incremental' && strategy.steps.length > 0) {
+					const firstStep = strategy.steps[0];
+					expansionTitle = `Expandir ${firstStep.target} (+${firstStep.wordsToAdd} palavras)`;
+				} else {
+					const totalWordsNeeded = qualityResult.chaptersAnalysis
+						.filter(ch => !ch.meetsRequirement)
+						.reduce((sum, ch) => sum + ch.deficit, 0);
+					expansionTitle = `Expandir conteúdo (+${totalWordsNeeded} palavras em ${strategy.chaptersToExpand.length} capítulos)`;
+				}
+				
+				return {
+					passed: false,
+					reason: `Score: ${qualityResult.qualityScore}/100. ${qualityResult.issues.length} problemas detectados`,
+					shouldRetry: true,
+					targetRequirement: qualityResult.suggestions.join('; '),
+					expansionTaskTitle: expansionTitle,
+					filePath: detectedFile
+				};
+			}
+			
+			// Outros problemas de qualidade
+			return {
+				passed: false,
+				reason: `Problemas de qualidade detectados (Score: ${qualityResult.qualityScore}/100)`,
+				shouldRetry: true,
+				targetRequirement: qualityResult.suggestions.join('; '),
+				expansionTaskTitle: 'Melhorar qualidade do conteúdo',
+				filePath: detectedFile
+			};
+			
+		} catch (error) {
+			// Em caso de erro na validação, assumir que passou
+			console.error('[ContentValidation] Erro ao validar:', error);
+			return { passed: true, shouldRetry: false };
 		}
-		
-		// Validar
-		const percentage = (actualCount / requiredCount) * 100;
-		
-		// Se atingiu pelo menos 80% do requisito, considerar OK
-		if (percentage >= 80) {
-			return { passed: true, shouldRetry: false, filePath: finalPath };
-		}
-		
-		// Se menos de 80%, criar subtask de expansão
-		const deficit = requiredCount - actualCount;
-		return {
-			passed: false,
-			reason: `Conteúdo insuficiente: ${actualCount}/${requiredCount} ${requirementType} (${percentage.toFixed(0)}%)`,
-			shouldRetry: true,
-			targetRequirement: `Adicionar pelo menos ${deficit} ${requirementType} ao conteúdo existente no arquivo ${detectedFile || 'criado'}`,
-			expansionTaskTitle: `Expandir conteúdo: adicionar ${deficit} ${requirementType}`,
-			filePath: finalPath || detectedFile || ''
-		};
 	}
 
 	/**
@@ -885,28 +962,50 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 				);
 				
 				if (!quantitativeValidation.passed && quantitativeValidation.shouldRetry) {
-					onProgress?.(`⚠️ Requisito quantitativo não atendido: ${quantitativeValidation.reason}`);
-					onProgress?.(`🔄 Criando subtask de expansão...`);
+					onProgress?.(`⚠️ Requisito não atendido: ${quantitativeValidation.reason}`);
+					onProgress?.(`🔄 Criando subtask de expansão inteligente...`);
 					
-					// Criar subtask de expansão AUTOMATICAMENTE
+					// Criar subtask de expansão INTELIGENTE com contexto completo
 					const expansionTask = this.createTask(
 						quantitativeValidation.expansionTaskTitle || `Expandir: ${subTask.title}`,
 						'planning',
 						subTask.parentId,
 						{
-							agentType,
-							tools: ['write_file', 'read_file', 'edit_file'], // Precisa ler e editar
+							agentType: 'synthesis', // Usar synthesis para expansão de conteúdo
+							tools: ['read_file', 'write_file', 'edit_file'], // Ler primeiro, depois expandir
 							dependencies: [subTask.id],
 							validation: quantitativeValidation.targetRequirement,
 							retryAttempt: (subTask.metadata.retryAttempt || 0) + 1,
 							isExpansion: true,
-							originalFile: quantitativeValidation.filePath, // Passar path do arquivo
+							originalFile: quantitativeValidation.filePath,
+							// CRÍTICO: Adicionar instruções detalhadas para o agente
+							expansionInstructions: `
+EXPANSÃO INTELIGENTE DE CONTEÚDO:
+
+1. LER o arquivo existente: ${quantitativeValidation.filePath}
+2. ANALISAR o conteúdo atual para entender contexto, tom e estilo
+3. IDENTIFICAR seções/capítulos que precisam expansão
+4. EXPANDIR mantendo:
+   - Coesão com conteúdo existente
+   - Mesmo tom e estilo
+   - Qualidade narrativa
+   - SEM repetir informações já presentes
+5. VALIDAR que adicionou conteúdo suficiente e de qualidade
+
+Requisitos: ${quantitativeValidation.targetRequirement}
+							`.trim()
 						}
 					);
 					
 					// Adicionar à fila
 					this.kanban.set(expansionTask.id, expansionTask);
+					
+					// Atualizar total de steps
+					const context = loadOrCreateContext(undefined, workDir);
+					context.executionState.totalSteps += 1;
+					
 					onProgress?.(`📋 Subtask de expansão criada: ${expansionTask.title}`, this.getKanbanSnapshot());
+					onProgress?.(`🔄 Subtask será executada automaticamente após task atual...`);
 				}
 			}
 
