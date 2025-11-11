@@ -1,0 +1,104 @@
+Slide 1:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "s elegantes"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 2:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 2"
+  Conteúdo: ✅ (596 caracteres)
+  Sobre emagrecimento: SIM
+  Preview: "O emagrecimento começa com o entendimento de que cada corpo é único. O que funciona para uma pessoa pode não funcionar p..."
+
+Slide 3:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 3"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 4:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 4"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 5:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 5"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 6:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 6"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 7:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 7"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 8:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 8"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 9:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 9"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 10:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 10"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 11:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 11"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 12:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 12"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 13:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 13"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 14:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 14"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 15:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 15"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 16:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 16"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 17:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 17"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 18:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 18"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 19:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 19"
+  Conteúdo: ⚠️  VAZIO ou muito curto (0 chars)
+
+Slide 20:
+  UI Elegante: ✅ (10 elementos de estilo)
+  Título: "Página 20"
+  Conteúdo: ✅ (710 caracteres)
+  Sobre emagrecimento: SIM
+  Preview: "Parabéns por chegar até aqui! Você está mais perto do seu objetivo de emagrecimento saudável. Lembre-se: cada pequena mu..."
+
