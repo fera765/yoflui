@@ -1,0 +1,87 @@
+# Conteúdo para Campanha FLUI AGI - Parte 1
+
+## Anúncios de Alta Conversão
+
+### Anúncio Principal (Facebook/Instagram)
+**Título:** Transforme seu Marketing com IA Autônoma
+**Texto:** Pare de perder tempo com tarefas repetitivas. O FLUI AGI automatiza seu marketing com inteligência artificial, integrando todos os seus canais em fluxos inteligentes que trabalham 24/7. Mais leads, menos trabalho manual. Experimente grátis por 14 dias.
+
+**CTA:** Experimentar Agora
+
+### Anúncio Alternativo (Google Ads)
+**Título:** Marketing Automatizado com IA | FLUI AGI
+**Descrição:** Transforme processos manuais em fluxos inteligentes. Integre todos os seus canais de marketing em uma plataforma unificada com IA. Aumente sua produtividade em até 300%. Comece grátis.
+
+**CTA:** Começar Agora
+
+### Anúncio de Retargeting
+**Título:** Seu Marketing Merece Mais Inteligência
+**Texto:** Volte para descobrir como a IA pode transformar seu marketing. FLUI AGI conecta todos os seus canais, automatiza tarefas e gera resultados reais. A inteligência que seu negócio precisa para crescer.
+
+**CTA:** Ver Demonstração
+
+## Landing Pages - Estrutura e Copy
+
+### Headline Principal
+**"Marketing Inteligente que Funciona Sozinho"**
+*Transforme processos manuais em fluxos autônomos com IA que entende seu negócio*
+
+### Subheadline
+O FLUI AGI automatiza seu marketing com inteligência artificial, integrando todos os seus canais em fluxos inteligentes que trabalham 24/7 para gerar mais leads e vendas.
+
+### Seção de Benefícios
+#### 1. Automação Inteligente
+**"Processos que aprendem e evoluem"**
+Sua automação não é mais apenas programada - ela entende padrões, reconhece oportunidades e otimiza resultados automaticamente.
+
+#### 2. Integração Completa
+**"Todos os canais, uma única plataforma"**
+Conecte CRM, e-mail marketing, redes sociais, analytics e mais em um único fluxo de trabalho inteligente.
+
+#### 3. Tomada de Decisão Autônoma
+**"IA que decide como um especialista"**
+Regras inteligentes e modelos preditivos tomam decisões em tempo real, como um especialista sênior de marketing.
+
+### Depoimento Social Proof
+*"Em 30 dias, dobramos nossa taxa de conversão. A IA identificou padrões que nossos especialistas não viam. É como ter um time de 10 especialistas trabalhando 24/7."*
+- [Nome do cliente], [Cargo], [Empresa]
+
+### Seção de Funcionalidades
+- **Fluxos Inteligentes:** Crie automações que aprendem e se adaptam
+- **Análise Preditiva:** Preveja comportamentos e otimize campanhas
+- **Integração Universal:** Conecte qualquer ferramenta com APIs abertas
+- **Relatórios Avançados:** Insights em tempo real com recomendações acionáveis
+
+### Call-to-Action Final
+**"Comece sua transformação digital hoje"**
+Experimente o FLUI AGI gratuitamente por 14 dias. Sem cartão de crédito necessário.
+
+**CTA:** Testar Grátis por 14 Dias
+
+## E-mails de Nurturing (Série de 3 emails)
+
+### Email 1: Apresentação da Solução
+**Assunto:** Sua automação de marketing está subutilizada?
+
+Corpo: Apresentação da proposta de valor, explicando como IA pode transformar automações tradicionais em sistemas inteligentes que aprendem e evoluem.
+
+### Email 2: Caso de Uso Real
+**Assunto:** Como [Empresa] dobrou conversões com IA
+
+Corpo: Estudo de caso detalhado mostrando resultados reais, métricas e processo de implementação.
+
+### Email 3: Convite para Ação
+**Assunto:** Últimas horas para experimentar grátis
+
+Corpo: Urgência e benefícios da trial, com depoimentos e garantia de fácil implementação.
+
+## Scripts para Vídeos (30 segundos cada)
+
+### Vídeo 1: Problema
+Mostre profissionais sobrecarregados com tarefas manuais. Texto: "Parar de automatizar tarefas repetitivas. Comece a usar IA que entende seu negócio."
+
+### Vídeo 2: Solução
+Demonstração rápida da plataforma. Texto: "FLUI AGI: Marketing inteligente que funciona sozinho."
+
+### Vídeo 3: Resultado
+Gráficos subindo, equipe feliz. Texto: "Mais leads, menos trabalho. Experimente grátis."

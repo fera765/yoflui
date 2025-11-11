@@ -194,6 +194,22 @@ ${quantitativeRequirements.length > 0 ? quantitativeRequirements.join('\n') : 'N
 PATH DE ARQUIVO ESPECIFICADO (CRÍTICO - DEVE SER USADO EXATAMENTE COMO ESTÁ):
 ${filePath || 'Nenhum path específico, use padrão work/ebook/[nome-arquivo].md'}
 
+**CRÍTICO - DETECÇÃO DE MARKETING/CAMPANHA:**
+- Se o prompt mencionar "campanha de marketing", "marketing campaign", "criar campanha", "anúncio", "copy", "landing page"
+- A PRIMEIRA subtask DEVE usar a ferramenta generate_marketing_campaign DIRETAMENTE
+- NÃO faça pesquisa primeiro - a ferramenta já gera tudo automaticamente
+- NÃO use write_file diretamente para criar campanhas
+- Use generate_marketing_campaign com os parâmetros extraídos do prompt:
+  * product: nome do produto/serviço mencionado
+  * targetAudience: público-alvo mencionado
+  * objective: objetivo mencionado (awareness/conversion/engagement/education)
+  * tone: tom mencionado (professional/casual/funny/inspirational/urgent)
+  * keyMessages: mensagens-chave extraídas do prompt
+  * cta: CTA mencionado (ou padrão)
+- A ferramenta gera automaticamente: vídeo script, copy de anúncio, landing page, e-mail, post social, e-book
+- Tudo sincronizado e coeso com narrativa unificada
+- Exemplo de subtask: {"id": "1", "title": "Gerar campanha de marketing completa", "description": "Usar generate_marketing_campaign com product='X', targetAudience='Y', objective='conversion', tone='professional', keyMessages=['msg1', 'msg2']", "tools": ["generate_marketing_campaign"], "agentType": "marketing"}
+
 **CRÍTICO - DETECÇÃO DE EBOOK:**
 - Se o prompt mencionar "ebook", "livro", "30 páginas", "múltiplas páginas" OU se houver requisito de páginas (ex: "30 páginas")
 - O ebook DEVE ser criado em UM ÚNICO ARQUIVO
@@ -431,6 +447,11 @@ function fallbackDecomposition(prompt: string): Subtask[] {
 function inferAgentType(title: string, description: string): string {
 	const combined = `${title} ${description}`.toLowerCase();
 	
+	// Marketing/Campanha
+	if (/campanha.*marketing|marketing.*campaign|criar.*campanha|anúncio|copy|landing.*page|email.*marketing|post.*social/i.test(combined)) {
+		return 'marketing';
+	}
+	
 	// Código/Desenvolvimento
 	if (/criar.*componente|implementar|desenvolver|código|typescript|react|configurar.*arquivo/i.test(combined)) {
 		return 'code';
@@ -469,6 +490,13 @@ function inferTools(title: string, description: string): string[] {
 	
 	// CRÍTICO: Detectar requisito quantitativo
 	const hasQuantitativeRequirement = /(\d+)\+?\s*(palavras?|words?|páginas?|pages?|linhas?|lines?)/i.test(combined);
+	
+	// Marketing/Campanha - PRIORIDADE ALTA
+	if (/campanha.*marketing|marketing.*campaign|criar.*campanha|anúncio|copy|landing.*page|email.*marketing|post.*social/i.test(combined)) {
+		tools.push('generate_marketing_campaign');
+		// Não adicionar write_file para campanhas - a ferramenta já cria tudo
+		return tools;
+	}
 	
 	// Shell commands
 	if (/npm|instalar|comando|executar|criar.*projeto|vite/i.test(combined)) {

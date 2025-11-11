@@ -3,7 +3,7 @@ import { AgentResult, ToolExecution } from './types.js';
 import { getAllToolDefinitions, executeToolCall } from '../tools/index.js';
 import { getConfig } from '../llm-config.js';
 
-export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis';
+export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis' | 'marketing';
 
 export type ToolExecutionCallback = (toolExecution: ToolExecution) => void;
 

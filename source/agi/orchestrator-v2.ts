@@ -129,6 +129,7 @@ export class CentralOrchestratorV2 {
 			this.agents.set('automation', new SpecializedAgent('automation', this.openai));
 			this.agents.set('analysis', new SpecializedAgent('analysis', this.openai));
 			this.agents.set('synthesis', new SpecializedAgent('synthesis', this.openai));
+			this.agents.set('marketing', new SpecializedAgent('marketing', this.openai));
 			
 			// Configurar callbacks em todos os agentes
 			for (const agent of this.agents.values()) {
