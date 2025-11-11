@@ -516,8 +516,12 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 		// FASE 5: Executar sub-tarefas sequencialmente COM CONTEXTO PERFEITO
 		const results: Map<string, string> = new Map();
 		
-		for (let i = 0; i < subTasks.length; i++) {
-			const subTask = subTasks[i];
+		// Array dinâmico que pode crescer com subtasks de expansão
+		let tasksToExecute = [...subTasks];
+		let executedCount = 0;
+		
+		while (executedCount < tasksToExecute.length) {
+			const subTask = tasksToExecute[executedCount];
 			
 			// Injetar contexto de etapas anteriores (silencioso)
 			const contextData = getContextForNextStep(workDir);
@@ -541,6 +545,27 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 				!result.includes('Error:'),
 				workDir
 			);
+			
+			executedCount++;
+			
+			// CRÍTICO: Verificar se novas subtasks de expansão foram criadas
+			// e adicioná-las à fila de execução
+			const allKanbanTasks = Array.from(this.kanban.values());
+			const expansionTasks = allKanbanTasks.filter(t => 
+				t.metadata.isExpansion === true && 
+				t.column === 'planning' &&
+				!tasksToExecute.some(existing => existing.id === t.id)
+			);
+			
+			if (expansionTasks.length > 0) {
+				onProgress?.(`🔄 ${expansionTasks.length} subtask(s) de expansão detectada(s), adicionando à fila...`);
+				// Adicionar à fila de execução
+				for (const expTask of expansionTasks) {
+					await this.moveTask(expTask.id, 'execution_queue');
+					tasksToExecute.push(expTask);
+				}
+				onProgress?.('', this.getKanbanSnapshot());
+			}
 		}
 
 		// FASE 6: Integração e Entrega
@@ -974,7 +999,13 @@ Requisitos: ${quantitativeValidation.targetRequirement}
 					
 					// Adicionar à fila
 					this.kanban.set(expansionTask.id, expansionTask);
+					
+					// Atualizar total de steps
+					const context = loadOrCreateContext(undefined, workDir);
+					context.executionState.totalSteps += 1;
+					
 					onProgress?.(`📋 Subtask de expansão criada: ${expansionTask.title}`, this.getKanbanSnapshot());
+					onProgress?.(`🔄 Subtask será executada automaticamente após task atual...`);
 				}
 			}
 
