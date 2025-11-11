@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=SF+Pro:wght@300;400;600&display=swap');
+      
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'SF Pro', sans-serif;
+      }
+      
+      .slide-container {
+        width: 1280px;
+        min-height: 720px;
+        background: #000000;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+      }
+      
+      .title {
+        font-family: 'Inter', sans-serif;
+        font-size: 72px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-align: center;
+        line-height: 1.2;
+        color: #22C55E;
+      }
+      
+      .subtitle {
+        font-family: 'Inter', sans-serif;
+        font-size: 36px;
+        font-weight: 300;
+        margin-bottom: 60px;
+        text-align: center;
+        opacity: 0.8;
+        color: #FFFFFF;
+      }
+      
+      .void-image {
+        position: absolute;
+        opacity: 0.2;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      
+      .content {
+        position: relative;
+        z-index: 1;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+      
+      .circle {
+        width: 120px;
+        height: 120px;
+        border: 2px solid #22C55E;
+        border-radius: 50%;
+        margin-bottom: 60px;
+        opacity: 0.6;
+      }
+      
+      .content-text {
+        font-size: 24px;
+        line-height: 1.6;
+        max-width: 1000px;
+        text-align: center;
+        color: #FFFFFF;
+      }
+      
+      .slide-number {
+        position: absolute;
+        bottom: 20px;
+        right: 40px;
+        font-size: 18px;
+        opacity: 0.5;
+        color: #FFFFFF;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slide-container">
+      
+      <div class="content">
+        
+        <h1 class="title" style="font-size: 56px; margin-bottom: 40px;">Página 4</h1>
+        <div class="content-text">**Página 4: Alimentação Consciente – A Chave para o Controle do Peso**
+
+Comer de forma consciente é tão importante quanto o que você come. A alimentação consciente envolve prestar atenção ao ato de comer, saborear cada mordida e reconhecer os sinais de fome e saciedade do corpo. Evite distrações como TV ou celular durante as refeições, pois isso pode levar ao consumo exagerado. Pratique pausas entre as mordidas e mastigue lentamente. Isso ajuda o cérebro a registrar quando está satisfeito, evitando excessos. Além disso, beba água antes das refeições e priorize alimentos integrais, ricos em fibras, que promovem saciedade por mais tempo. Essa prática não é uma dieta passageira, mas um hábito sustentável que apoia o emagrecimento saudável e duradouro.</div>
+      
+      </div>
+      <div class="slide-number">4 / 20</div>
+    </div>
+  </body>
+</html>

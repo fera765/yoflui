@@ -23,6 +23,7 @@
   "author": "fera765",
   "license": "MIT",
   "dependencies": {
+    "@types/puppeteer": "^5.4.7",
     "axios": "^1.13.2",
     "chalk": "^5.6.2",
     "cheerio": "^1.1.2",
@@ -35,6 +36,9 @@
     "ink-text-input": "^6.0.0",
     "openai": "^6.8.1",
     "p-queue": "^9.0.0",
+    "pdf-lib": "^1.17.1",
+    "pptxgenjs": "^4.0.1",
+    "puppeteer": "^24.29.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "scrape-youtube": "^2.4.0",

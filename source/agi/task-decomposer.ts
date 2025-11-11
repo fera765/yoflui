@@ -194,6 +194,15 @@ ${quantitativeRequirements.length > 0 ? quantitativeRequirements.join('\n') : 'N
 PATH DE ARQUIVO ESPECIFICADO (CRÍTICO - DEVE SER USADO EXATAMENTE COMO ESTÁ):
 ${filePath || 'Nenhum path específico, use padrão work/ebook/[nome-arquivo].md'}
 
+**CRÍTICO - DETECÇÃO DE SLIDE/PDF/POWERPOINT:**
+- Se o prompt mencionar "slide", "pdf", "powerpoint", "pptx", "apresentação", "ebook" com slides
+- A subtask DEVE usar a ferramenta slide_pdf
+- slide_pdf cria slides HTML elegantes e converte para PDF ou PowerPoint
+- Mantém consistência visual entre todas as páginas
+- Parâmetros: title, slides (array), outputFormat ('pdf' | 'pptx' | 'both'), outputPath, theme
+- Cada slide deve ter: title, subtitle (opcional), content, layout (opcional)
+- Exemplo: {"title": "Ebook Emagrecimento", "slides": [{"title": "Página 1", "content": "..."}], "outputFormat": "pdf", "outputPath": "work/ebook-emagrecimento"}
+
 **CRÍTICO - DETECÇÃO DE MARKETING/CAMPANHA:**
 - Se o prompt mencionar "campanha de marketing", "marketing campaign", "criar campanha", "anúncio", "copy", "landing page"
 - A PRIMEIRA subtask DEVE usar a ferramenta generate_marketing_campaign DIRETAMENTE
@@ -490,6 +499,12 @@ function inferTools(title: string, description: string): string[] {
 	
 	// CRÍTICO: Detectar requisito quantitativo
 	const hasQuantitativeRequirement = /(\d+)\+?\s*(palavras?|words?|páginas?|pages?|linhas?|lines?)/i.test(combined);
+	
+	// Slide/PDF/PowerPoint
+	if (/slide|pdf|powerpoint|pptx|apresentação|ebook.*slide/i.test(combined)) {
+		tools.push('slide_pdf');
+		return tools;
+	}
 	
 	// Marketing/Campanha - PRIORIDADE ALTA
 	if (/campanha.*marketing|marketing.*campaign|criar.*campanha|anúncio|copy|landing.*page|email.*marketing|post.*social/i.test(combined)) {

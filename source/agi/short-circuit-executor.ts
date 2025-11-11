@@ -66,6 +66,25 @@ export class ShortCircuitExecutor {
 			}
 		}
 		
+		// CRÍTICO: Detectar slide_pdf e usar ferramenta diretamente
+		const slidePDFMatch = this.matchSlidePDF(userPrompt);
+		if (slidePDFMatch) {
+			try {
+				console.log('[ShortCircuit] slide_pdf detectado:', slidePDFMatch.title, slidePDFMatch.slides.length, 'slides');
+				const { executeSlidePDFTool } = await import('../tools/slide-pdf-tool.js');
+				const result = await executeSlidePDFTool(slidePDFMatch, workDir);
+				
+				return {
+					handled: true,
+					toolUsed: 'slide_pdf',
+					result: JSON.stringify(result, null, 2)
+				};
+			} catch (error) {
+				console.error('[ShortCircuit] Erro ao executar slide_pdf:', error);
+				return { handled: false };
+			}
+		}
+		
 		// 1. CRIAR ARQUIVO
 		const createFileMatch = this.matchCreateFile(userPrompt);
 		if (createFileMatch) {
@@ -194,6 +213,101 @@ export class ShortCircuitExecutor {
 			tone: normalizedTone,
 			keyMessages: keyMessages.length > 0 ? keyMessages : ['Automação total', 'Qualidade global'],
 			cta
+		};
+	}
+
+	/**
+	 * Detectar e extrair parâmetros de slide_pdf
+	 */
+	private matchSlidePDF(prompt: string): any | null {
+		const lowerPrompt = prompt.toLowerCase();
+		
+		// Verificar se é tarefa de slide/pdf/powerpoint - REGEX MAIS PERMISSIVO
+		const hasSlideKeyword = /slide|pdf|powerpoint|pptx|ebook.*slide|apresentação|usando.*slide|slide_pdf/i.test(lowerPrompt);
+		
+		if (!hasSlideKeyword) {
+			return null;
+		}
+		
+		// Extrair informações do prompt
+		const titleMatch = prompt.match(/ebook.*?de\s+([^com]+?)(?:\s+com|\s+usando|$)/i) || 
+		                  prompt.match(/criar.*?(?:ebook|slide|apresentação).*?([^com]+?)(?:\s+com|\s+usando|$)/i) ||
+		                  prompt.match(/(?:ebook|slide|apresentação).*?de\s+([^\s]+)/i);
+		
+		const pagesMatch = prompt.match(/(\d+)\s*(?:páginas?|pages?|slides?)/i);
+		const formatMatch = prompt.match(/salve?\s+como\s+(pdf|pptx|powerpoint)/i);
+		const themeMatch = prompt.match(/tema[:\s]+([^\.]+)/i);
+		
+		// Se menciona slide_pdf ou slide/pdf, sempre processar
+		if (!titleMatch && !pagesMatch && !/slide.*pdf|slide_pdf/i.test(lowerPrompt)) {
+			return null; // Informações insuficientes
+		}
+		
+		// Extrair título
+		let title = 'Ebook';
+		if (titleMatch) {
+			title = titleMatch[1].trim();
+		} else if (lowerPrompt.includes('emagrecimento')) {
+			title = 'Ebook de Emagrecimento';
+		} else if (lowerPrompt.includes('low ticket')) {
+			title = 'Ebook Low Ticket';
+		}
+		
+		const pages = pagesMatch ? parseInt(pagesMatch[1]) : 20;
+		const outputFormat = formatMatch ? (formatMatch[1].toLowerCase() === 'powerpoint' ? 'pptx' : formatMatch[1].toLowerCase()) : 'pdf';
+		
+		// Extrair tema de cores
+		let theme: any = {};
+		if (themeMatch) {
+			const themeText = themeMatch[1].toLowerCase();
+			if (themeText.includes('verde') || themeText.includes('green')) {
+				theme = {
+					primaryColor: '#22C55E', // Verde
+					secondaryColor: '#FFFFFF',
+					backgroundColor: '#000000',
+					textColor: '#FFFFFF',
+					fontFamily: 'SF Pro'
+				};
+			} else if (themeText.includes('branco') || themeText.includes('white')) {
+				theme = {
+					primaryColor: '#FFFFFF',
+					secondaryColor: '#000000',
+					backgroundColor: '#000000',
+					textColor: '#FFFFFF',
+					fontFamily: 'SF Pro'
+				};
+			}
+		}
+		
+		// Se menciona verde e branco, usar tema verde
+		if (lowerPrompt.includes('verde') && lowerPrompt.includes('branco')) {
+			theme = {
+				primaryColor: '#22C55E', // Verde
+				secondaryColor: '#FFFFFF',
+				backgroundColor: '#000000',
+				textColor: '#FFFFFF',
+				fontFamily: 'SF Pro'
+			};
+		}
+		
+		// Gerar slides básicos (o LLM vai criar o conteúdo depois)
+		const slides: any[] = [];
+		for (let i = 1; i <= pages; i++) {
+			slides.push({
+				title: i === 1 ? title : `Página ${i}`,
+				content: `Conteúdo da página ${i} será gerado pelo LLM`,
+				slideNumber: i,
+				totalSlides: pages,
+				layout: i === 1 ? 'title' : 'content'
+			});
+		}
+		
+		return {
+			title: title,
+			slides: slides,
+			outputFormat: outputFormat,
+			outputPath: `work/${title.replace(/[^a-z0-9]/gi, '_')}`,
+			theme: theme
 		};
 	}
 

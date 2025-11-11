@@ -58,6 +58,7 @@ import {
 	executeMarketingTool,
 	initializeMarketingTools
 } from '../marketing/marketing-tools.js';
+import { slidePDFToolDefinition, executeSlidePDFTool } from './slide-pdf-tool.js';
 import { getConfig } from '../llm-config.js';
 import OpenAI from 'openai';
 
@@ -87,6 +88,8 @@ export function getAllToolDefinitions() {
 		generateMarketingCampaignTool,
 		getCopyTemplateTool,
 		validateMarketingContentTool,
+		// Slide PDF tool
+		slidePDFToolDefinition,
 	];
 
 	const mcpTools = getMCPToolDefinitions();
@@ -216,6 +219,8 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 		case 'get_copy_template':
 		case 'validate_marketing_content':
 			return JSON.stringify(await executeMarketingTool(toolName, args, workDir));
+		case 'slide_pdf':
+			return JSON.stringify(await executeSlidePDFTool(args, workDir));
 		default:
 			return `Unknown tool: ${toolName}`;
 	}
