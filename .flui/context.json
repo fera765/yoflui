@@ -1,6 +1,6 @@
 {
   "sessionId": "session-1762793915656",
-  "timestamp": 1762863839122,
+  "timestamp": 1762864027436,
   "workingDirectory": "/workspace",
   "folderStructure": [
     {
@@ -960,7 +960,7 @@
   "projectType": "nodejs",
   "conversationHistory": [],
   "executionState": {
-    "currentStep": 10,
+    "currentStep": 15,
     "totalSteps": 0,
     "completedTasks": [
       "task-2",
@@ -972,7 +972,12 @@
       "task-8",
       "task-9",
       "task-10",
-      "task-11"
+      "task-11",
+      "task-12",
+      "task-13",
+      "task-14",
+      "task-15",
+      "task-16"
     ],
     "failedTasks": [],
     "resourcesCreated": [],
@@ -1084,6 +1089,61 @@
       "taskTitle": "Escrever e salvar página 6 do ebook",
       "result": "Página 6 do ebook \"Mecânica das Emoções\" criada com sucesso. O conteúdo aborda o papel das emoções no processo de tomada de decisão, explorando como as emoções influenciam nossas escolhas, a teoria do marcador somático, a relação entre emoção e razão, e a importância da inteligência emocional na tomada de decisões equilibradas. O texto contém aproximadamente 700 palavras e está integrado à sequência do capítulo 1, mantendo a continuidade temática com as páginas anteriores.\n\nNível de confiança na resposta: 100%",
       "timestamp": 1762863839123,
+      "toolsUsed": [
+        "write_file",
+        "read_file"
+      ],
+      "success": true
+    },
+    "task-12": {
+      "taskId": "task-12",
+      "taskTitle": "Escrever e salvar página 7 do ebook",
+      "result": "Página 7 do ebook \"Mecânica das Emoções\" criada com sucesso. O conteúdo aborda o tema \"As Emoções e a Regulação Interna\", explorando como funciona a regulação emocional, as estratégias envolvidas, o papel das diferentes regiões cerebrais e práticas para desenvolver essa capacidade. O texto segue a estrutura do capítulo 1 e mantém a continuidade temática com as páginas anteriores, atendendo aos requisitos de profundidade e qualidade estabelecidos para o ebook.\n\nNível de confiança na resposta: 100%",
+      "timestamp": 1762863874399,
+      "toolsUsed": [
+        "write_file",
+        "read_file"
+      ],
+      "success": true
+    },
+    "task-13": {
+      "taskId": "task-13",
+      "taskTitle": "Escrever e salvar página 8 do ebook",
+      "result": "Página 8 do ebook \"Mecânica das Emoções\" criada com sucesso. O conteúdo aborda o tema \"Emoções e Memória: O Registro da Experiência\", explorando como as emoções influenciam a formação, consolidação e recuperação de memórias, incluindo aspectos neurocientíficos e psicológicos dessa relação fundamental.\n\n✓ Arquivo pagina_8.md salvo com 4869 bytes\n✓ Conteúdo segue a continuidade lógica do capítulo 1\n✓ Aborda aspectos científicos da interação entre emoções e memória\n✓ Mantém o padrão de escrita e estrutura das páginas anteriores\n\nNível de confiança: 100%",
+      "timestamp": 1762863910518,
+      "toolsUsed": [
+        "write_file",
+        "read_file"
+      ],
+      "success": true
+    },
+    "task-14": {
+      "taskId": "task-14",
+      "taskTitle": "Escrever e salvar página 9 do ebook",
+      "result": "Página 9 do ebook \"Mecânica das Emoções\" criada com sucesso. O conteúdo aborda o tema \"Emoções e Aprendizagem: O Processo Transformador\", explorando como as emoções influenciam o processo de aprendizagem, a relação entre estados emocionais e retenção de conhecimento, o papel da dopamina no aprendizado, e como o ambiente emocional afeta a capacidade de aprender. O texto também discute a importância da inteligência emocional no processo educativo e como as conexões entre o sistema límbico e as regiões de aprendizagem afetam a formação de memórias e comportamentos.\n\nNível de confiança na resposta: 100%",
+      "timestamp": 1762863952210,
+      "toolsUsed": [
+        "write_file",
+        "read_file"
+      ],
+      "success": true
+    },
+    "task-15": {
+      "taskId": "task-15",
+      "taskTitle": "Escrever e salvar página 10 do ebook",
+      "result": "Página 10 do ebook \"Mecânica das Emoções\" criada com sucesso. O conteúdo aborda o tema \"As Emoções Primárias - A Base do Sistema Emocional\", explorando as seis emoções primárias universais identificadas por Paul Ekman (alegria, tristeza, raiva, medo, surpresa e nojo), suas funções adaptativas, expressões faciais características e a base neurobiológica que sustenta essas respostas emocionais fundamentais.\n\nO texto explica como cada emoção primária desempenha um papel específico na sobrevivência e adaptação humana, mantendo relevância na vida moderna. Além disso, o conteúdo aborda a neurobiologia por trás dessas emoções, destacando o papel do sistema límbico, amígdala, hipocampo e córtex pré-frontal na geração e regulação das respostas emocionais.\n\nNível de confiança na resposta: 100%",
+      "timestamp": 1762863991368,
+      "toolsUsed": [
+        "write_file",
+        "read_file"
+      ],
+      "success": true
+    },
+    "task-16": {
+      "taskId": "task-16",
+      "taskTitle": "Escrever e salvar página 11 do ebook",
+      "result": "Página 11 do ebook \"Mecânica das Emoções\" criada com sucesso. O conteúdo aborda a continuação do Capítulo 2, explorando aspectos como intensidade e expressão das emoções primárias, sua sequência e combinação, desenvolvimento na infância, comunicação não verbal e regulação emocional. O texto mantém a coerência com as páginas anteriores e segue a estrutura e estilo estabelecidos para o ebook.\n\n✓ Nível de confiança: 100%",
+      "timestamp": 1762864027437,
       "toolsUsed": [
         "write_file",
         "read_file"
