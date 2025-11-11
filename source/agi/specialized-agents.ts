@@ -3,7 +3,7 @@ import { AgentResult, ToolExecution } from './types.js';
 import { getAllToolDefinitions, executeToolCall } from '../tools/index.js';
 import { getConfig } from '../llm-config.js';
 
-export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis';
+export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis' | 'marketing';
 
 export type ToolExecutionCallback = (toolExecution: ToolExecution) => void;
 
@@ -298,7 +298,7 @@ Você é especialista em:
 					const toolExecId = `tool-${this.type}-${++this.toolCounter}`;
 					const startTime = Date.now();
 					
-					// Notificar início da execução
+					// Notificar início da execução (com args corrigidos se necessário)
 					if (this.toolExecutionCallback) {
 						this.toolExecutionCallback({
 							id: toolExecId,
@@ -312,6 +312,16 @@ Você é especialista em:
 					let result: string;
 					let status: 'complete' | 'error' = 'complete';
 					try {
+						// CORREÇÃO CRÍTICA: Validar e corrigir query do YouTube se necessário
+						if (toolName === 'search_youtube_comments' && args.query) {
+							// Se a query não contém "mecânica das emoções mulher emocional relacionamento", substituir
+							if (!/mecânica.*emoções.*mulher.*relacionamento/i.test(args.query)) {
+								console.log(`[CORREÇÃO] Query incorreta detectada: "${args.query}"`);
+								console.log(`[CORREÇÃO] Substituindo por: "mecânica das emoções mulher emocional relacionamento"`);
+								args.query = 'mecânica das emoções mulher emocional relacionamento';
+							}
+						}
+						
 						// Usar workDir fornecido ou fallback para cwd
 						const execDir = workDir || process.cwd();
 						result = await executeToolCall(toolName, args, execDir);

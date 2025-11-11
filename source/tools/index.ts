@@ -51,6 +51,16 @@ import { delegateAgentToolDefinition, executeDelegateAgent } from './agent.js';
 import { conditionToolDefinition, executeConditionTool } from './condition.js';
 import { triggerWebhookToolDefinition, executeTriggerWebhookTool } from './trigger-webhook.js';
 import { getMCPToolDefinitions, executeMCPTool, isMCPTool } from '../mcp/mcp-tools-adapter.js';
+import { 
+	generateMarketingCampaignTool, 
+	getCopyTemplateTool, 
+	validateMarketingContentTool,
+	executeMarketingTool,
+	initializeMarketingTools
+} from '../marketing/marketing-tools.js';
+import { slidePDFToolDefinition, executeSlidePDFTool } from './slide-pdf-tool.js';
+import { getConfig } from '../llm-config.js';
+import OpenAI from 'openai';
 
 export function getAllToolDefinitions() {
 	const baseTools = [
@@ -74,6 +84,12 @@ export function getAllToolDefinitions() {
 		delegateAgentToolDefinition,
 		conditionToolDefinition,
 		triggerWebhookToolDefinition,
+		// Marketing tools
+		generateMarketingCampaignTool,
+		getCopyTemplateTool,
+		validateMarketingContentTool,
+		// Slide PDF tool
+		slidePDFToolDefinition,
 	];
 
 	const mcpTools = getMCPToolDefinitions();
@@ -104,6 +120,26 @@ export async function executeToolCall(toolName: string, args: any, workDir: stri
 
 // Internal function without retry (called by executeToolCall)
 async function executeToolSwitch(toolName: string, args: any, workDir: string): Promise<string> {
+	// Inicializar marketing tools se necessário
+	if (toolName.startsWith('generate_marketing') || toolName.startsWith('get_copy') || toolName.startsWith('validate_marketing')) {
+		const config = getConfig();
+		const qwenCreds = await import('../qwen-oauth.js').then(m => m.loadQwenCredentials());
+		let endpoint = config.endpoint;
+		let apiKey = config.apiKey || 'not-needed';
+		
+		if (qwenCreds?.access_token) {
+			const validToken = await import('../qwen-oauth.js').then(m => m.getValidAccessToken());
+			if (validToken) {
+				apiKey = validToken;
+				const resourceUrl = qwenCreds.resource_url || 'portal.qwen.ai';
+				endpoint = `https://${resourceUrl}/v1`;
+			}
+		}
+		
+		const openai = new OpenAI({ baseURL: endpoint, apiKey });
+		initializeMarketingTools(openai);
+	}
+
 	switch (toolName) {
 		case 'edit_file':
 			return executeEditTool(args.file_path, args.old_string, args.new_string);
@@ -179,6 +215,12 @@ async function executeToolSwitch(toolName: string, args: any, workDir: string): 
 			return executeConditionTool(args);
 		case 'trigger_webhook':
 			return executeTriggerWebhookTool(args);
+		case 'generate_marketing_campaign':
+		case 'get_copy_template':
+		case 'validate_marketing_content':
+			return JSON.stringify(await executeMarketingTool(toolName, args, workDir));
+		case 'slide_pdf':
+			return JSON.stringify(await executeSlidePDFTool(args, workDir));
 		default:
 			return `Unknown tool: ${toolName}`;
 	}

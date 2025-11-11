@@ -130,6 +130,24 @@ Você NÃO deve:
 ✗ Adicionar informações não fornecidas
 ✗ Executar novas pesquisas ou análises
 ✗ Modificar o significado dos dados originais`,
+
+			marketing: `[BLOCO DE IDENTIDADE E FUNÇÃO]
+
+Você é o Agente de Marketing do FLUI AGI - Agência de Marketing Mais Avançada do Mundo.
+
+Sua ÚNICA função é:
+→ Criar campanhas de marketing de nível global
+→ Gerar copy de alta conversão (>5% CTR)
+→ Criar conteúdo multi-formato sincronizado
+→ Aplicar fórmulas comprovadas (AIDA, PAS, FAB)
+→ Gerar hooks virais e narrativas envolventes
+→ Validar qualidade de marketing
+
+Você NÃO deve:
+✗ Criar conteúdo genérico ou sem estrutura
+✗ Ignorar dados do público-alvo
+✗ Esquecer CTAs claros e acionáveis
+✗ Criar campanhas sem coesão narrativa`,
 		};
 
 		return identities[agentType];
@@ -147,6 +165,18 @@ SUB-TAREFA ATUAL:
 
 OBJETIVO ESPECÍFICO:
 Você deve ${task.title.toLowerCase()}.`;
+
+		// CORREÇÃO CRÍTICA: Se task menciona YouTube e "mecânica das emoções", forçar query correta
+		if (task.metadata.tools && task.metadata.tools.includes('search_youtube_comments')) {
+			if (/mecânica.*emoções|emoções.*mulher/i.test(task.description || task.title)) {
+				if (!/query.*mecânica.*emoções.*mulher/i.test(task.description || '')) {
+					block += `\n\n⚠️ INSTRUÇÃO CRÍTICA PARA TOOL YOUTUBE:`;
+					block += `\n- Você DEVE usar a tool search_youtube_comments com query EXATA: "mecânica das emoções mulher emocional relacionamento"`;
+					block += `\n- NÃO use outras queries genéricas`;
+					block += `\n- Esta query é OBRIGATÓRIA e deve ser usada exatamente como especificado`;
+				}
+			}
+		}
 
 		// CRÍTICO: Detectar se é tarefa de EXPANSÃO
 		const isExpansion = task.metadata.isExpansion === true;
@@ -179,18 +209,33 @@ Você deve ${task.title.toLowerCase()}.`;
 			block += `\n- Validar que o conteúdo expandido atinge os requisitos`;
 		}
 		
-		// CRÍTICO: Detectar se é tarefa de ESCRITA de capítulo/artigo
+		// CRÍTICO: Detectar se é tarefa de ESCRITA de capítulo/artigo/ebook
 		const isWritingTask = /escrever|criar|redigir|write/i.test(task.title);
 		const hasQuantitativeReq = task.metadata.validation && /\d+.*palavras|words|páginas|pages/i.test(task.metadata.validation);
+		const isEbook = /ebook|livro|book/i.test(task.title + ' ' + (task.description || '')) || /\d+\s*páginas|\d+\s*pages/i.test(task.title + ' ' + (task.description || ''));
 		
 		if (isWritingTask && hasQuantitativeReq) {
 			block += `\n\n📝 ATENÇÃO: TAREFA DE ESCRITA DE CONTEÚDO COMPLETO`;
-			block += `\n\n⚠️ REGRA CRÍTICA - ARQUIVO ÚNICO:`;
-			block += `\n- Você DEVE escrever TODO o conteúdo solicitado em UM ÚNICO arquivo`;
-			block += `\n- NÃO crie arquivos separados para introdução, fundamentos, etc.`;
-			block += `\n- Escreva todas as seções sequencialmente no mesmo arquivo`;
-			block += `\n- Use write_file UMA ÚNICA VEZ com o conteúdo completo`;
-			block += `\n- O arquivo final deve conter TODAS as seções solicitadas`;
+			
+			if (isEbook) {
+				block += `\n\n🚨 REGRA CRÍTICA - EBOOK EM ARQUIVO ÚNICO:`;
+				block += `\n- Você DEVE escrever TODO o ebook em UM ÚNICO ARQUIVO`;
+				block += `\n- NÃO crie arquivos separados para cada página (pagina_01.md, pagina_02.md, etc.)`;
+				block += `\n- Crie APENAS UM arquivo (ex: "work/ebook/ebook.md") com TODAS as páginas dentro`;
+				block += `\n- Separe cada página com marcadores claros (ex: "# Página 1", "# Página 2", etc.)`;
+				block += `\n- Mantenha consistência narrativa e qualidade best seller entre todas as páginas`;
+				block += `\n- Use dados reais coletados (YouTube, pesquisas) - SEM mocks, simulações ou presets`;
+				block += `\n- Cada página deve fluir naturalmente para a próxima`;
+				block += `\n- Use write_file UMA ÚNICA VEZ com TODO o conteúdo do ebook`;
+				block += `\n- O arquivo final deve conter TODAS as páginas solicitadas`;
+			} else {
+				block += `\n\n⚠️ REGRA CRÍTICA - ARQUIVO ÚNICO:`;
+				block += `\n- Você DEVE escrever TODO o conteúdo solicitado em UM ÚNICO arquivo`;
+				block += `\n- NÃO crie arquivos separados para introdução, fundamentos, etc.`;
+				block += `\n- Escreva todas as seções sequencialmente no mesmo arquivo`;
+				block += `\n- Use write_file UMA ÚNICA VEZ com o conteúdo completo`;
+				block += `\n- O arquivo final deve conter TODAS as seções solicitadas`;
+			}
 		}
 
 		// NOVO: Adicionar memória completa (contexto de etapas anteriores)

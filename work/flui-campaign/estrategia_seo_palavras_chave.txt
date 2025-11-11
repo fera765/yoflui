@@ -1,0 +1,244 @@
+# Estratégia de SEO e Palavras-Chave para Campanha FLUI AGI
+
+## Palavras-Chave Primárias
+
+### Palavras-Chave de Alta Intenção Comercial
+- automação de marketing para agências
+- plataforma de automação de marketing
+- marketing automatizado para agências digitais
+- software de automação de marketing
+- ferramenta de automação de marketing para agências
+
+### Palavras-Chave de Intenção de Informação
+- como automatizar marketing para agências
+- benefícios da automação de marketing
+- estratégias de automação de marketing
+- automação de marketing digital
+- marketing automation para pequenas agências
+
+### Palavras-Chave de Intenção de Comparação
+- melhor plataforma de automação de marketing
+- automação de marketing vs marketing tradicional
+- hubspot vs outras plataformas de automação
+- comparação de ferramentas de automação de marketing
+- plataforma de automação de marketing gratuita
+
+## Esboços de Artigos de Blog
+
+### Artigo 1: "Como Automatizar Processos de Marketing para Agências: Guia Completo"
+**Palavras-chave principais:** automação de marketing para agências, como automatizar marketing
+**Intenção:** Informação
+**Público-alvo:** Agências digitais em crescimento
+**Esboço:**
+1. Introdução à automação de marketing
+2. Benefícios para agências digitais
+3. Processos que podem ser automatizados
+4. Ferramentas disponíveis no mercado
+5. Passo a passo para implementação
+6. Casos de sucesso
+7. Conclusão e próximos passos
+
+### Artigo 2: "As 7 Melhores Estratégias de Automação de Marketing para Agências em 2024"
+**Palavras-chave principais:** estratégias de automação de marketing, marketing automatizado para agências
+**Intenção:** Informação
+**Público-alvo:** Agências digitais estabelecidas
+**Esboço:**
+1. Contexto do mercado de marketing digital
+2. Importância da automação em 2024
+3. Estratégia 1: Automação de nutrição de leads
+4. Estratégia 2: Automação de segmentação de público
+5. Estratégia 3: Automação de sequências de email
+6. Estratégia 4: Automação de redes sociais
+7. Estratégia 5: Automação de follow-up
+8. Estratégia 6: Automação de onboarding de clientes
+9. Estratégia 7: Automação de relatórios
+10. Implementação prática
+11. Medição de resultados
+
+### Artigo 3: "Plataforma de Automação de Marketing: Como Escolher a Ideal para Sua Agência"
+**Palavras-chave principais:** plataforma de automação de marketing, melhor plataforma de automação
+**Intenção:** Comparação
+**Público-alvo:** Agências considerando implementação
+**Esboço:**
+1. Importância da escolha da plataforma
+2. Critérios de avaliação
+3. Recursos essenciais
+4. Comparação entre as principais plataformas
+5. Considerações de custo-benefício
+6. Avaliação de necessidades específicas
+7. Processo de seleção
+8. Implementação e treinamento
+9. Conclusão
+
+### Artigo 4: "Benefícios da Automação de Marketing para Agências Digitais: Estudos de Caso"
+**Palavras-chave principais:** benefícios da automação de marketing, marketing automation para pequenas agências
+**Intenção:** Informação
+**Público-alvo:** Agências em fase de crescimento
+**Esboço:**
+1. Introdução aos benefícios da automação
+2. Economia de tempo e recursos
+3. Melhoria na experiência do cliente
+4. Aumento da produtividade
+5. Estudo de caso 1: Agência A
+6. Estudo de caso 2: Agência B
+7. Estudo de caso 3: Agência C
+8. Lições aprendidas
+9. Próximos passos
+
+### Artigo 5: "Aprenda a Criar Sequências de Email Automatizadas que Geram Resultados"
+**Palavras-chave principais:** automação de marketing digital, estratégias de automação de marketing
+**Intenção:** Tutorial
+**Público-alvo:** Agências iniciantes em automação
+**Esboço:**
+1. Importância do email marketing automatizado
+2. Tipos de sequências de email
+3. Planejamento da jornada do cliente
+4. Criação de conteúdo relevante
+5. Segmentação e personalização
+6. Ferramentas para criação
+7. Exemplos de sequências eficazes
+8. Testes e otimização
+9. Medição de resultados
+10. Boas práticas
+
+### Artigo 6: "Automação de Marketing vs Marketing Tradicional: Qual Estratégia Adotar?"
+**Palavras-chave principais:** automação de marketing vs marketing tradicional, marketing automatizado para agências
+**Intenção:** Comparação
+**Público-alvo:** Agências considerando transição
+**Esboço:**
+1. Definição de marketing tradicional
+2. Definição de automação de marketing
+3. Diferenças principais
+4. Vantagens da automação
+5. Limitações do marketing tradicional
+6. Cenários onde cada abordagem é mais eficaz
+7. Transição do tradicional para automatizado
+8. Integração entre as abordagens
+9. Casos de sucesso
+10. Conclusão
+
+### Artigo 7: "Software de Automação de Marketing: Recursos Essenciais para Agências"
+**Palavras-chave principais:** software de automação de marketing, plataforma de automação de marketing
+**Intenção:** Informação
+**Público-alvo:** Agências em processo de seleção
+**Esboço:**
+1. Importância do software adequado
+2. Recursos básicos obrigatórios
+3. Recursos avançados desejáveis
+4. Integração com outras ferramentas
+5. Facilidade de uso
+6. Suporte e treinamento
+7. Considerações de segurança
+8. Avaliação de provedores
+9. Testes e validação
+10. Implementação
+
+### Artigo 8: "Como Medir Resultados de Automação de Marketing: KPIs Essenciais"
+**Palavras-chave principais:** automação de marketing para agências, estratégias de automação de marketing
+**Intenção:** Tutorial
+**Público-alvo:** Agências com automação implementada
+**Esboço:**
+1. Importância da medição de resultados
+2. KPIs de performance
+3. KPIs de engajamento
+4. KPIs de conversão
+5. KPIs de ROI
+6. Ferramentas de análise
+7. Relatórios automatizados
+8. Interpretação de dados
+9. Otimização contínua
+10. Melhores práticas
+
+### Artigo 9: "Automação de Redes Sociais para Agências: Estratégias e Ferramentas"
+**Palavras-chave principais:** automação de marketing digital, estratégias de automação de marketing
+**Intenção:** Tutorial
+**Público-alvo:** Agências com foco em redes sociais
+**Esboço:**
+1. Importância da automação em redes sociais
+2. Benefícios da automação
+3. Estratégias de publicação automatizada
+4. Agendamento de conteúdo
+5. Monitoramento de menções
+6. Resposta automatizada
+7. Ferramentas disponíveis
+8. Integração com outras estratégias
+9. Boas práticas
+10. Casos de sucesso
+
+### Artigo 10: "Ferramenta de Automação de Marketing para Agências: Comparação de Preços e Recursos"
+**Palavras-chave principais:** ferramenta de automação de marketing para agências, melhor plataforma de automação
+**Intenção:** Comparação
+**Público-alvo:** Agências em processo de decisão
+**Esboço:**
+1. Panorama do mercado
+2. Critérios de comparação
+3. Análise de preços
+4. Recursos por faixa de preço
+5. Comparação direta entre plataformas
+6. Avaliação de custo-benefício
+7. Planos recomendados por tipo de agência
+8. Testes gratuitos
+9. Considerações finais
+10. Recomendação
+
+## Estratégia de Palavras Long Tail
+
+### Palavras Long Tail de Alta Conversão
+- plataforma de automação de marketing para agências digitais pequenas
+- como automatizar campanhas de email marketing para agências
+- software de automação de marketing com integração CRM
+- automação de marketing para agências de publicidade digital
+- ferramenta de automação de marketing com analytics avançado
+
+### Palavras Long Tail de Intenção de Informação
+- como escolher plataforma de automação de marketing para agência
+- quais são os benefícios da automação de marketing para agências
+- como implementar automação de marketing em agência digital
+- estratégias de automação de marketing para agências de crescimento
+- como automatizar processos de marketing com baixo custo
+
+## Palavras-Chave por Estágio do Funil
+
+### Topo do Funil (Conscientização)
+- o que é automação de marketing
+- como funciona a automação de marketing
+- benefícios da automação de marketing
+- automação de marketing para iniciantes
+- por que automatizar marketing digital
+
+### Meio do Funil (Consideração)
+- comparar plataformas de automação
+- como escolher ferramenta de automação
+- recursos essenciais de automação de marketing
+- automação de marketing para diferentes setores
+- integração de ferramentas de automação
+
+### Fundo do Funil (Decisão)
+- plataforma de automação de marketing para minha agência
+- como implementar automação de marketing
+- treinamento em automação de marketing
+- suporte para automação de marketing
+- ROI da automação de marketing
+
+## Palavras-Chave por Intenção de Busca
+
+### Informacional
+- como funciona automação de marketing
+- benefícios da automação de marketing
+- estratégias de automação de marketing
+- guia de automação de marketing
+- dicas de automação de marketing
+
+### Navegacional
+- melhores plataformas de automação
+- ferramentas de automação de marketing
+- softwares de automação de marketing
+- provedores de automação de marketing
+- soluções de automação de marketing
+
+### Transacional
+- comprar plataforma de automação
+- contratar serviço de automação
+- assinar ferramenta de automação
+- implementar automação de marketing
+- automatizar marketing da minha agência

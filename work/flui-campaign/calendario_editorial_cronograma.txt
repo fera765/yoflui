@@ -1,0 +1,244 @@
+# Calendário Editorial e Cronograma de Execução - Campanha FLUI AGI
+
+## Visão Geral
+Este documento apresenta o calendário editorial e cronograma de execução detalhado para a campanha de marketing da FLUI AGI, incluindo prazos, responsáveis e métricas de acompanhamento.
+
+## Timeline Geral da Campanha
+- Início: 1º de abril de 2024
+- Duração Total: 12 semanas
+- Fase de Lançamento: Semanas 1-4
+- Fase de Aceleração: Semanas 5-8
+- Fase de Otimização: Semanas 9-12
+
+## Cronograma Detalhado
+
+### Semana 1 (01/04 - 07/04)
+**Objetivo:** Lançamento inicial e setup da campanha
+- **Responsável:** Equipe de Marketing
+- **Atividades:**
+  - Publicação do primeiro e-book "Automação de Marketing para Agências"
+  - Lançamento da landing page principal
+  - Início da sequência de emails (Email 1)
+- **Métricas:**
+  - Taxa de abertura de emails: Meta 25%
+  - Conversão na landing page: Meta 3%
+
+### Semana 2 (08/04 - 14/04)
+**Objetivo:** Geração de leads e engajamento
+- **Responsável:** Equipe de Conteúdo
+- **Atividades:**
+  - Publicação de 2 artigos de blog otimizados para SEO
+  - Lançamento de anúncios no Google Ads e redes sociais
+  - Continuação da sequência de emails (Email 2)
+- **Métricas:**
+  - Tráfego orgânico: Aumento de 15%
+  - Cliques em anúncios: Meta 500/dia
+
+### Semana 3 (15/04 - 21/04)
+**Objetivo:** Expansão do alcance e remarketing
+- **Responsável:** Equipe de Mídia Paga
+- **Atividades:**
+  - Início da campanha de remarketing
+  - Publicação de 2 artigos de blog adicionais
+  - Continuação da sequência de emails (Email 3)
+- **Métricas:**
+  - Taxa de cliques em remarketing: Meta 2%
+  - Leads qualificados: Meta 100/semana
+
+### Semana 4 (22/04 - 28/04)
+**Objetivo:** Consolidação da base e otimização inicial
+- **Responsável:** Equipe de Marketing
+- **Atividades:**
+  - Análise de desempenho da semana 1-3
+  - Otimização de anúncios com base em dados
+  - Continuação da sequência de emails (Email 4)
+- **Métricas:**
+  - Custo por lead: Redução de 10%
+  - Taxa de conversão: Meta 4%
+
+### Semana 5 (29/04 - 05/05)
+**Objetivo:** Fase de aceleração - conteúdo premium
+- **Responsável:** Equipe de Conteúdo
+- **Atividades:**
+  - Lançamento de webinar exclusivo
+  - Publicação de case de sucesso
+  - Continuação da sequência de emails (Email 5)
+- **Métricas:**
+  - Participação no webinar: Meta 200 pessoas
+  - Compartilhamentos sociais: Aumento de 25%
+
+### Semana 6 (06/05 - 12/05)
+**Objetivo:** Engajamento e nutrição de leads
+- **Responsável:** Equipe de CRM
+- **Atividades:**
+  - Envio de email com conteúdo exclusivo
+  - Follow-up com leads qualificados
+  - Publicação de conteúdo em redes sociais
+- **Métricas:**
+  - Taxa de resposta a follow-ups: Meta 8%
+  - Tempo médio de engajamento: Aumento de 20%
+
+### Semana 7 (13/05 - 19/05)
+**Objetivo:** Expansão de público e testes A/B
+- **Responsável:** Equipe de Mídia Paga
+- **Atividades:**
+  - Implementação de testes A/B nas páginas de captura
+  - Expansão de público-alvo em anúncios
+  - Análise de desempenho de diferentes abordagens
+- **Métricas:**
+  - Melhoria na taxa de conversão: Meta 15%
+  - Novos leads: Meta 150/semana
+
+### Semana 8 (20/05 - 26/05)
+**Objetivo:** Consolidação e preparação para otimização
+- **Responsável:** Equipe de Marketing
+- **Atividades:**
+  - Análise de desempenho da fase de aceleração
+  - Preparação de relatório intermediário
+  - Planejamento de ajustes para fase final
+- **Métricas:**
+  - ROI acumulado: Meta 300%
+  - Leads qualificados: Meta 800 acumulados
+
+### Semana 9 (27/05 - 02/06)
+**Objetivo:** Fase de otimização - ajustes baseados em dados
+- **Responsável:** Equipe de Dados
+- **Atividades:**
+  - Implementação de ajustes com base em dados
+  - Refinamento de sequência de emails
+  - Otimização de funil de conversão
+- **Métricas:**
+  - Melhoria contínua: Aumento de 10% em todas as métricas
+  - Taxa de rejeição: Redução de 5%
+
+### Semana 10 (03/06 - 09/06)
+**Objetivo:** Maximização de conversões
+- **Responsável:** Equipe de Vendas
+- **Atividades:**
+  - Intensificação de follow-ups com leads qualificados
+  - Aplicação de técnicas de vendas baseadas em dados
+  - Uso do pitch deck desenvolvido
+- **Métricas:**
+  - Conversão de leads em clientes: Meta 15%
+  - Valor médio de contrato: Meta R$ 5.000
+
+### Semana 11 (10/06 - 16/06)
+**Objetivo:** Consolidação de resultados e feedback
+- **Responsável:** Equipe de Marketing
+- **Atividades:**
+  - Coleta de feedback de clientes
+  - Análise de satisfação
+  - Preparação de estudos de caso
+- **Métricas:**
+  - NPS: Meta 70
+  - Retenção de clientes: Meta 85%
+
+### Semana 12 (17/06 - 23/06)
+**Objetivo:** Encerramento e planejamento futuro
+- **Responsável:** Equipe de Estratégia
+- **Atividades:**
+  - Relatório final de campanha
+  - Análise de ROI e KPIs
+  - Planejamento de campanhas futuras
+- **Métricas:**
+  - ROI total: Meta 400%
+  - Leads qualificados: Meta 1.200 acumulados
+
+## Responsabilidades por Área
+
+### Equipe de Marketing
+- Coordenação geral da campanha
+- Monitoramento de métricas
+- Relatórios semanais
+
+### Equipe de Conteúdo
+- Produção de conteúdo editorial
+- Otimização SEO
+- Calendário de publicações
+
+### Equipe de Mídia Paga
+- Gestão de anúncios
+- Otimização de campanhas
+- Testes A/B
+
+### Equipe de CRM
+- Nutrição de leads
+- Sequência de emails
+- Segmentação de público
+
+### Equipe de Dados
+- Análise de performance
+- Relatórios de métricas
+- Recomendações baseadas em dados
+
+### Equipe de Vendas
+- Follow-up com leads qualificados
+- Conversão de leads em clientes
+- Feedback sobre qualidade dos leads
+
+## Métricas de Acompanhamento
+
+### Métricas Primárias
+1. **Taxa de Conversão** - Meta: 4% (inicial) → 6% (final)
+2. **Custo por Lead (CPL)** - Meta: R$ 150 (inicial) → R$ 120 (final)
+3. **ROI** - Meta: 300% (inicial) → 400% (final)
+4. **Leads Qualificados** - Meta: 1.200 (acumulado)
+5. **Taxa de Retenção** - Meta: 85%
+
+### Métricas Secundárias
+1. **Taxa de Abertura de Email** - Meta: 25%
+2. **Taxa de Cliques em Anúncios** - Meta: 2%
+3. **Tráfego Orgânico** - Meta: Aumento de 50%
+4. **Engajamento nas Redes Sociais** - Meta: Aumento de 35%
+5. **Tempo Médio de Permanência** - Meta: Aumento de 25%
+
+## Indicadores de Desempenho por Fase
+
+### Fase de Lançamento (Semanas 1-4)
+- Estabelecimento de presença
+- Geração inicial de leads
+- Teste de hipóteses iniciais
+
+### Fase de Aceleração (Semanas 5-8)
+- Escala de alcance
+- Otimização contínua
+- Expansão de público
+
+### Fase de Otimização (Semanas 9-12)
+- Maximização de conversões
+- Refinamento baseado em dados
+- Consolidação de resultados
+
+## Contingências e Planos Alternativos
+
+### Baixa Performance em Semanas Iniciais
+- Ajuste imediato de anúncios
+- Reavaliação de público-alvo
+- Modificação de sequência de emails
+
+### Atingimento Antecipado de Metas
+- Expansão de investimento em canais performáticos
+- Criação de conteúdo adicional
+- Ampliação de público-alvo
+
+### Problemas Técnicos
+- Equipe de suporte dedicada
+- Plano B para cada canal
+- Comunicação imediata com stakeholders
+
+## Relatórios e Comunicação
+
+### Relatórios Semanais
+- Dashboard com métricas principais
+- Análise de desempenho por canal
+- Recomendações para próxima semana
+
+### Relatório Intermediário (Semana 8)
+- Análise detalhada de performance
+- Ajustes estratégicos necessários
+- Projeções para fase final
+
+### Relatório Final (Semana 12)
+- Análise completa de ROI
+- Lições aprendidas
+- Recomendações para campanhas futuras

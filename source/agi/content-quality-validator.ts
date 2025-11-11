@@ -160,18 +160,19 @@ export class ContentQualityValidator {
 	}
 
 	/**
-	 * ANÁLISE DE CAPÍTULOS
-	 * Identifica capítulos e conta palavras em cada um
+	 * ANÁLISE DE CAPÍTULOS/PÁGINAS
+	 * Identifica capítulos/páginas e conta palavras em cada um
 	 */
 	private analyzeChapters(content: string, requiredWords: number): ChapterAnalysis[] {
 		const analysis: ChapterAnalysis[] = [];
 
-		// Detectar capítulos (markdown headers ## Capítulo)
-		const chapterPattern = /^##\s+(Capítulo|Chapter)\s+(\d+)[:\s]+(.+)$/gm;
+		// Detectar capítulos/páginas (markdown headers ## Capítulo/Página)
+		// Suporta: ## Capítulo 1, ## Página 1, # Página 1, etc.
+		const chapterPattern = /^(#{1,2})\s+(Capítulo|Chapter|Página|Page)\s+(\d+)[:\s]*(.+)?$/gm;
 		const matches = [...content.matchAll(chapterPattern)];
 
 		if (matches.length === 0) {
-			// Sem capítulos detectados, analisar como documento único
+			// Sem capítulos/páginas detectados, analisar como documento único
 			const totalWords = this.countWords(content);
 			return [{
 				chapterNumber: 1,
@@ -185,14 +186,14 @@ export class ContentQualityValidator {
 			}];
 		}
 
-		// Analisar cada capítulo
+		// Analisar cada capítulo/página
 		for (let i = 0; i < matches.length; i++) {
 			const match = matches[i];
-			const chapterNumber = parseInt(match[2]);
-			const chapterTitle = match[3].trim();
+			const chapterNumber = parseInt(match[3]); // match[3] é o número (após Capítulo/Página)
+			const chapterTitle = (match[4] || `Página ${chapterNumber}`).trim(); // match[4] é o título opcional
 			const startIndex = match.index || 0;
 			
-			// Encontrar fim do capítulo (início do próximo ou fim do arquivo)
+			// Encontrar fim do capítulo/página (início do próximo ou fim do arquivo)
 			const endIndex = i < matches.length - 1 
 				? matches[i + 1].index || content.length 
 				: content.length;

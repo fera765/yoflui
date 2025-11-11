@@ -129,6 +129,7 @@ export class CentralOrchestratorV2 {
 			this.agents.set('automation', new SpecializedAgent('automation', this.openai));
 			this.agents.set('analysis', new SpecializedAgent('analysis', this.openai));
 			this.agents.set('synthesis', new SpecializedAgent('synthesis', this.openai));
+			this.agents.set('marketing', new SpecializedAgent('marketing', this.openai));
 			
 			// Configurar callbacks em todos os agentes
 			for (const agent of this.agents.values()) {
@@ -211,8 +212,13 @@ export class CentralOrchestratorV2 {
 	 * ATIVADO: Detecta frontend e usa template em work/
 	 */
 	private async analyzeTemplateNeed(prompt: string): Promise<{ use: boolean; templateUrl: string; projectName: string }> {
+		// EXCLUSÃO: Não usar template para ebooks ou conteúdo textual
+		if (/\b(ebook|livro|artigo|texto|conteúdo|markdown|md|página.*ebook|escrever.*página)\b/i.test(prompt)) {
+			return { use: false, templateUrl: '', projectName: '' };
+		}
+		
 		// Detectar se é projeto frontend/web
-		const frontendKeywords = /\b(react|ui|interface|frontend|web|app|spa|vite|tailwind|component|clone|spotify|dashboard|página|website|site)/i;
+		const frontendKeywords = /\b(react|ui|interface|frontend|web|app|spa|vite|tailwind|component|clone|spotify|dashboard|website|site)\b/i;
 		
 		// Extrair nome do projeto do prompt
 		let projectName = 'project';
@@ -941,6 +947,37 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 		const hasWriteFile = subTask.metadata.tools?.includes('write_file');
 		
 		if (hasWriteFile) {
+			// VALIDAÇÃO CRÍTICA: Detectar ebook e prevenir múltiplos arquivos
+			const isEbook = /ebook|livro|book/i.test(subTask.title + ' ' + (subTask.description || '')) || /\d+\s*páginas|\d+\s*pages/i.test(subTask.title + ' ' + (subTask.description || ''));
+			if (isEbook) {
+				// Verificar se múltiplos arquivos foram criados (violação da regra)
+				const multipleFilesCreated = await this.detectMultipleFilesCreated(result, workDir);
+				if (multipleFilesCreated.detected) {
+					onProgress?.(`❌ VIOLAÇÃO: Múltiplos arquivos criados para ebook!`);
+					onProgress?.(`📁 Arquivos detectados: ${multipleFilesCreated.files.join(', ')}`);
+					onProgress?.(`🔄 Corrigindo: ebook deve ser UM ÚNICO arquivo`);
+					
+					// Criar subtask de correção para consolidar em arquivo único
+					const consolidationTask = this.createTask(
+						`Consolidar ebook em arquivo único`,
+						'planning',
+						subTask.parentId,
+						{
+							agentType: 'synthesis',
+							tools: ['read_file', 'write_file'],
+							dependencies: [subTask.id],
+							validation: 'Ebook consolidado em arquivo único',
+							isConsolidation: true,
+							originalFiles: multipleFilesCreated.files,
+							targetFile: multipleFilesCreated.targetFile || 'work/ebook/ebook.md'
+						}
+					);
+					
+					await this.moveTask(consolidationTask.id, 'execution_queue');
+					return { success: false, error: 'Múltiplos arquivos criados - consolidação necessária' };
+				}
+			}
+			
 			// OTIMIZAÇÃO: Validação síncrona, sem delay
 			// Validar se arquivo foi realmente criado
 			const fileValidation = await this.validateFileCreationFromResult(result, workDir);
@@ -1472,6 +1509,65 @@ Retorne JSON:
 	/**
 	 * VALIDAÇÃO DE CRIAÇÃO DE ARQUIVO A PARTIR DO RESULTADO
 	 */
+	/**
+	 * Detecta se múltiplos arquivos foram criados para um ebook (violação)
+	 */
+	private async detectMultipleFilesCreated(result: string, workDir?: string): Promise<{ detected: boolean; files: string[]; targetFile?: string }> {
+		try {
+			// Extrair paths de arquivos criados do resultado
+			const filePatterns = [
+				/File written successfully: ([^\s\n]+)/g,
+				/Arquivo criado: ([^\s\n]+)/g,
+				/write_file.*file_path.*?([^\s,}]+\.md)/gi,
+				/pagina_\d+\.md/gi
+			];
+			
+			const filesCreated: string[] = [];
+			for (const pattern of filePatterns) {
+				const matches = result.matchAll(pattern);
+				for (const match of matches) {
+					const filePath = match[1] || match[0];
+					if (filePath && !filesCreated.includes(filePath)) {
+						filesCreated.push(filePath);
+					}
+				}
+			}
+			
+			// Se detectar padrão de múltiplos arquivos (pagina_XX.md), é violação
+			const multiplePageFiles = filesCreated.filter(f => /pagina_\d+\.md/i.test(f));
+			if (multiplePageFiles.length > 1) {
+				return {
+					detected: true,
+					files: multiplePageFiles,
+					targetFile: 'work/ebook/ebook.md'
+				};
+			}
+			
+			// Verificar também no filesystem
+			if (workDir) {
+				const { readdirSync } = await import('fs');
+				const { join } = await import('path');
+				try {
+					const ebookDir = join(workDir, 'work', 'ebook');
+					const files = readdirSync(ebookDir).filter(f => /pagina_\d+\.md/i.test(f));
+					if (files.length > 1) {
+						return {
+							detected: true,
+							files: files.map(f => join(ebookDir, f)),
+							targetFile: 'work/ebook/ebook.md'
+						};
+					}
+				} catch (e) {
+					// Diretório não existe ainda
+				}
+			}
+			
+			return { detected: false, files: [] };
+		} catch (error) {
+			return { detected: false, files: [] };
+		}
+	}
+
 	private async validateFileCreationFromResult(
 		result: string,
 		workDir?: string

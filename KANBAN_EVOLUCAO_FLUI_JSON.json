@@ -1,0 +1,621 @@
+{
+  "kanban": {
+    "metadata": {
+      "title": "Kanban — Evolução da Agência Flui",
+      "version": "1.0",
+      "created": "2025-11-11",
+      "objective": "Transformar Flui na agência de marketing mais avançada do mundo",
+      "totalTasks": 45,
+      "phases": {
+        "backlog": 4,
+        "todo": 30,
+        "inProgress": 0,
+        "done": 10
+      }
+    },
+    "columns": {
+      "backlog": {
+        "name": "Backlog",
+        "description": "Pesquisa e exploração inicial",
+        "tasks": [
+          {
+            "id": "BL-001",
+            "title": "Pesquisa: Estrutura de Campanhas Virais 2025",
+            "category": "Pesquisa",
+            "description": "Analisar 100+ campanhas virais de 2024-2025, identificar padrões narrativos, estrutura visual, timing, plataformas",
+            "impact": "Base de conhecimento para geração de campanhas virais",
+            "kpis": ["Banco de dados com 100+ cases analisados", "Padrões identificados"],
+            "priority": "Alta",
+            "dependencies": [],
+            "estimatedEffort": "2 semanas"
+          },
+          {
+            "id": "BL-002",
+            "title": "Benchmark: Copywriting de Alto Desempenho",
+            "category": "Pesquisa",
+            "description": "Analisar copy de landing pages, anúncios e e-mails com >5% CTR, extrair fórmulas e estruturas",
+            "impact": "Templates de copy otimizados para conversão",
+            "kpis": ["50+ templates de copy validados", "Fórmulas documentadas"],
+            "priority": "Alta",
+            "dependencies": [],
+            "estimatedEffort": "1 semana"
+          },
+          {
+            "id": "BL-003",
+            "title": "Análise: Formatos de Conteúdo Mais Engajantes",
+            "category": "Pesquisa",
+            "description": "Estudo de formatos (carrosséis, vídeos curtos, e-books, infográficos) e taxas de engajamento por nicho",
+            "impact": "Priorização de formatos por objetivo de campanha",
+            "kpis": ["Matriz de formatos x engajamento por nicho"],
+            "priority": "Média",
+            "dependencies": [],
+            "estimatedEffort": "1 semana"
+          },
+          {
+            "id": "BL-004",
+            "title": "Mapeamento: Ferramentas de Top Agencies",
+            "category": "Pesquisa",
+            "description": "Identificar stack tecnológico completo das top 10 agências globais",
+            "impact": "Roadmap de integrações prioritárias",
+            "kpis": ["Lista completa de ferramentas e APIs necessárias"],
+            "priority": "Média",
+            "dependencies": [],
+            "estimatedEffort": "3 dias"
+          }
+        ]
+      },
+      "todo": {
+        "name": "To Do",
+        "description": "Melhorias técnicas, criativas e estratégicas",
+        "sections": {
+          "tecnico": {
+            "name": "Técnico — Arquitetura e Infraestrutura",
+            "tasks": [
+              {
+                "id": "TD-TEC-001",
+                "title": "Sistema de Geração de Campanhas Multi-Formato",
+                "category": "Técnico",
+                "description": "Criar módulo que gera simultaneamente: vídeo script, copy de anúncio, landing page, e-mail, post social, e-book — tudo sincronizado e coeso",
+                "impact": "Produção completa de campanha em minutos",
+                "kpis": ["Geração de 5+ formatos simultâneos", "Coesão narrativa >90%"],
+                "priority": "Alta",
+                "dependencies": ["Templates de campanha", "Sistema de narrativa unificada"],
+                "estimatedEffort": "4 semanas"
+              },
+              {
+                "id": "TD-TEC-002",
+                "title": "Engine de Personalização em Escala",
+                "category": "Técnico",
+                "description": "Sistema que adapta conteúdo automaticamente para diferentes personas, canais e momentos do funil",
+                "impact": "Conteúdo 1:1 para milhares de segmentos simultaneamente",
+                "kpis": ["1000+ variações geradas por campanha", "Relevância >85%"],
+                "priority": "Alta",
+                "dependencies": ["Sistema de personas", "Segmentação"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-TEC-003",
+                "title": "Integração com APIs de Design (Canva, Figma, Midjourney)",
+                "category": "Técnico",
+                "description": "Conectar Flui com APIs de design para geração automática de imagens, vídeos e layouts",
+                "impact": "Produção visual completa automatizada",
+                "kpis": ["Integração com 3+ plataformas", "Geração de assets em <2min"],
+                "priority": "Alta",
+                "dependencies": ["APIs disponíveis", "Autenticação"],
+                "estimatedEffort": "2 semanas"
+              },
+              {
+                "id": "TD-TEC-004",
+                "title": "Sistema de A/B Testing Automatizado",
+                "category": "Técnico",
+                "description": "Gerar múltiplas variações de conteúdo, executar testes, analisar resultados e otimizar automaticamente",
+                "impact": "Otimização contínua sem intervenção manual",
+                "kpis": ["10+ variações por teste", "Análise automática de resultados"],
+                "priority": "Alta",
+                "dependencies": ["Integração com plataformas de anúncios"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-TEC-005",
+                "title": "Pipeline de Vídeo Automatizado",
+                "category": "Técnico",
+                "description": "Gerar scripts, storyboards, editar vídeos, adicionar música e efeitos automaticamente",
+                "impact": "Produção de vídeos profissionais em minutos",
+                "kpis": ["Vídeo completo gerado em <5min", "Qualidade profissional"],
+                "priority": "Alta",
+                "dependencies": ["APIs de edição de vídeo", "Biblioteca de assets"],
+                "estimatedEffort": "4 semanas"
+              },
+              {
+                "id": "TD-TEC-006",
+                "title": "Sistema de Analytics em Tempo Real",
+                "category": "Técnico",
+                "description": "Dashboard que monitora performance de todas as campanhas, identifica tendências e sugere otimizações",
+                "kpis": ["Latência <30s", "Insights automáticos gerados"],
+                "priority": "Média",
+                "dependencies": ["Integrações com Google Analytics", "Facebook Ads"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-TEC-007",
+                "title": "Arquitetura Multi-Tenant para Escala Global",
+                "category": "Técnico",
+                "description": "Suportar milhares de clientes simultâneos com isolamento completo de dados e recursos",
+                "impact": "Escalabilidade para agência global",
+                "kpis": ["Suporte a 10.000+ clientes simultâneos", "SLA 99.9%"],
+                "priority": "Média",
+                "dependencies": ["Infraestrutura cloud", "Segurança"],
+                "estimatedEffort": "6 semanas"
+              }
+            ]
+          },
+          "criativo": {
+            "name": "Criativo — Geração de Conteúdo",
+            "tasks": [
+              {
+                "id": "TD-CRI-001",
+                "title": "Engine de Storytelling Dinâmico",
+                "category": "Criativo",
+                "description": "Sistema que cria narrativas adaptativas baseadas em dados do público, momento do funil e objetivos da campanha",
+                "impact": "Histórias que ressoam profundamente com cada segmento",
+                "kpis": ["Engajamento >3x maior que conteúdo genérico", "Retenção >60%"],
+                "priority": "Alta",
+                "dependencies": ["Banco de dados de narrativas", "Análise de sentimento"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-CRI-002",
+                "title": "Biblioteca de Templates de Copy Otimizados",
+                "category": "Criativo",
+                "description": "100+ templates de copy testados e validados para diferentes objetivos (vendas, engajamento, educação)",
+                "impact": "Copy de alta conversão em segundos",
+                "kpis": ["100+ templates", "CTR médio >3%"],
+                "priority": "Alta",
+                "dependencies": ["Pesquisa de copywriting", "Validação"],
+                "estimatedEffort": "2 semanas"
+              },
+              {
+                "id": "TD-CRI-003",
+                "title": "Sistema de Geração de Hooks Virais",
+                "category": "Criativo",
+                "description": "IA que gera hooks irresistíveis baseados em padrões de conteúdo viral, psicologia e timing",
+                "impact": "Taxa de abertura/clique 5x maior",
+                "kpis": ["Hook viral rate >20%", "Engajamento inicial >50%"],
+                "priority": "Alta",
+                "dependencies": ["Análise de conteúdo viral", "Psicologia aplicada"],
+                "estimatedEffort": "2 semanas"
+              },
+              {
+                "id": "TD-CRI-004",
+                "title": "Gerador de Personas Avançado",
+                "category": "Criativo",
+                "description": "Criar personas detalhadas automaticamente baseadas em dados reais, dores, aspirações e comportamento",
+                "impact": "Conteúdo ultra-relevante para cada persona",
+                "kpis": ["50+ dimensões por persona", "Precisão >85%"],
+                "priority": "Média",
+                "dependencies": ["Dados de comportamento", "Análise psicográfica"],
+                "estimatedEffort": "2 semanas"
+              },
+              {
+                "id": "TD-CRI-005",
+                "title": "Sistema de Geração de E-books Inteligente",
+                "category": "Criativo",
+                "description": "Expandir sistema atual para gerar e-books completos com pesquisa automática, estrutura otimizada, design profissional",
+                "impact": "E-books best-seller em horas",
+                "kpis": ["E-book completo (30+ páginas, 700+ palavras/página) em <2h"],
+                "priority": "Média",
+                "dependencies": ["Sistema atual de e-books (já existe parcialmente)"],
+                "estimatedEffort": "1 semana"
+              },
+              {
+                "id": "TD-CRI-006",
+                "title": "Gerador de Landing Pages de Alta Conversão",
+                "category": "Criativo",
+                "description": "Criar landing pages completas com copy otimizado, estrutura AIDA, CTAs estratégicos, design responsivo",
+                "impact": "Landing pages que convertem >5%",
+                "kpis": ["Taxa de conversão >5%", "Tempo de criação <10min"],
+                "priority": "Alta",
+                "dependencies": ["Templates de design", "Copywriting"],
+                "estimatedEffort": "2 semanas"
+              }
+            ]
+          },
+          "estrategico": {
+            "name": "Estratégico — Posicionamento e Diferenciação",
+            "tasks": [
+              {
+                "id": "TD-EST-001",
+                "title": "Plataforma de Automação de Campanhas End-to-End",
+                "category": "Estratégico",
+                "description": "Sistema que planeja, cria, publica, monitora e otimiza campanhas completas automaticamente",
+                "impact": "Campanhas completas sem intervenção manual",
+                "kpis": ["Automação de 90%+ do processo", "ROI >300%"],
+                "priority": "Alta",
+                "dependencies": ["Todos os módulos técnicos e criativos"],
+                "estimatedEffort": "8 semanas"
+              },
+              {
+                "id": "TD-EST-002",
+                "title": "Sistema de Inteligência Competitiva",
+                "category": "Estratégico",
+                "description": "Monitorar concorrentes, analisar campanhas, identificar oportunidades e gaps no mercado",
+                "impact": "Vantagem competitiva constante",
+                "kpis": ["Análise de 100+ concorrentes", "Insights semanais"],
+                "priority": "Média",
+                "dependencies": ["Web scraping avançado", "Análise de dados"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-EST-003",
+                "title": "Marketplace de Templates e Campanhas",
+                "category": "Estratégico",
+                "description": "Plataforma onde usuários podem comprar/vender templates, campanhas e estratégias validadas",
+                "impact": "Ecossistema de criação colaborativa",
+                "kpis": ["1000+ templates disponíveis", "Transações mensais"],
+                "priority": "Baixa",
+                "dependencies": ["Sistema de pagamentos", "Comunidade"],
+                "estimatedEffort": "6 semanas"
+              },
+              {
+                "id": "TD-EST-004",
+                "title": "Certificação e Treinamento Flui",
+                "category": "Estratégico",
+                "description": "Programa de certificação para profissionais de marketing aprenderem a usar Flui em nível avançado",
+                "impact": "Construção de autoridade e comunidade",
+                "kpis": ["1000+ certificados", "Comunidade ativa"],
+                "priority": "Baixa",
+                "dependencies": ["Documentação completa", "Plataforma de ensino"],
+                "estimatedEffort": "4 semanas"
+              }
+            ]
+          },
+          "automacao": {
+            "name": "Automação — Processos e Workflows",
+            "tasks": [
+              {
+                "id": "TD-AUT-001",
+                "title": "Workflow de Criação de Campanha Completa",
+                "category": "Automação",
+                "description": "Pipeline automatizado: briefing → pesquisa → criação → aprovação → publicação → otimização",
+                "impact": "Campanha completa em horas, não semanas",
+                "kpis": ["Tempo total <4h", "Aprovação automática >80%"],
+                "priority": "Alta",
+                "dependencies": ["Todos os módulos de criação"],
+                "estimatedEffort": "4 semanas"
+              },
+              {
+                "id": "TD-AUT-002",
+                "title": "Sistema de Aprovação Inteligente",
+                "category": "Automação",
+                "description": "IA que valida qualidade, alinhamento com brief e compliance antes de publicar",
+                "impact": "Redução de erros e retrabalho",
+                "kpis": ["Taxa de aprovação automática >90%", "Erros <1%"],
+                "priority": "Média",
+                "dependencies": ["Validação de qualidade (já existe parcialmente)"],
+                "estimatedEffort": "2 semanas"
+              },
+              {
+                "id": "TD-AUT-003",
+                "title": "Automação de Publicação Multi-Canal",
+                "category": "Automação",
+                "description": "Publicar automaticamente em Facebook, Instagram, LinkedIn, TikTok, YouTube, etc. com adaptação por plataforma",
+                "impact": "Presença multi-canal sincronizada",
+                "kpis": ["10+ canais integrados", "Publicação simultânea"],
+                "priority": "Alta",
+                "dependencies": ["APIs de redes sociais"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-AUT-004",
+                "title": "Sistema de Agendamento Inteligente",
+                "category": "Automação",
+                "description": "Otimizar timing de publicação baseado em dados de engajamento histórico e comportamento do público",
+                "impact": "Engajamento 2-3x maior",
+                "kpis": ["Aumento de engajamento >100%", "Otimização automática"],
+                "priority": "Média",
+                "dependencies": ["Dados históricos", "Análise de timing"],
+                "estimatedEffort": "2 semanas"
+              }
+            ]
+          },
+          "ux": {
+            "name": "UX/UI — Experiência do Cliente",
+            "tasks": [
+              {
+                "id": "TD-UX-001",
+                "title": "Dashboard Executivo de Performance",
+                "category": "UX/UI",
+                "description": "Interface visual que mostra ROI, engajamento, conversões e insights em tempo real",
+                "impact": "Visibilidade completa para tomadores de decisão",
+                "kpis": ["Latência <1s", "Visualizações intuitivas"],
+                "priority": "Alta",
+                "dependencies": ["Sistema de analytics"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-UX-002",
+                "title": "Interface de Criação Visual Drag-and-Drop",
+                "category": "UX/UI",
+                "description": "Editor visual onde usuário arrasta elementos, ajusta copy e vê preview em tempo real",
+                "impact": "Criação intuitiva sem conhecimento técnico",
+                "kpis": ["Tempo de criação reduzido em 70%", "Satisfação >90%"],
+                "priority": "Média",
+                "dependencies": ["Editor visual", "Preview em tempo real"],
+                "estimatedEffort": "4 semanas"
+              },
+              {
+                "id": "TD-UX-003",
+                "title": "Assistente Virtual com Voz",
+                "category": "UX/UI",
+                "description": "Interface de voz para criar campanhas através de conversação natural",
+                "impact": "Acessibilidade e velocidade de criação",
+                "kpis": ["Precisão de reconhecimento >95%", "Criação por voz"],
+                "priority": "Baixa",
+                "dependencies": ["Speech-to-text", "Processamento de linguagem natural"],
+                "estimatedEffort": "6 semanas"
+              },
+              {
+                "id": "TD-UX-004",
+                "title": "Mobile App para Gestão de Campanhas",
+                "category": "UX/UI",
+                "description": "App mobile para monitorar e ajustar campanhas em movimento",
+                "impact": "Gestão remota completa",
+                "kpis": ["App nativo iOS/Android", "Funcionalidades principais"],
+                "priority": "Baixa",
+                "dependencies": ["API mobile", "Desenvolvimento nativo"],
+                "estimatedEffort": "8 semanas"
+              }
+            ]
+          },
+          "ia": {
+            "name": "IA — Inteligência Artificial Avançada",
+            "tasks": [
+              {
+                "id": "TD-IA-001",
+                "title": "Modelo de IA Especializado em Marketing",
+                "category": "IA",
+                "description": "Fine-tune de modelo LLM específico para marketing, copywriting e criação de campanhas",
+                "impact": "Qualidade de saída 2x superior",
+                "kpis": ["Acurácia >95%", "Relevância >90%"],
+                "priority": "Alta",
+                "dependencies": ["Dataset de marketing", "Infraestrutura de treinamento"],
+                "estimatedEffort": "8 semanas"
+              },
+              {
+                "id": "TD-IA-002",
+                "title": "Sistema de Análise de Sentimento Avançado",
+                "category": "IA",
+                "description": "Analisar sentimentos do público em tempo real e adaptar campanhas automaticamente",
+                "impact": "Resposta proativa a mudanças de sentimento",
+                "kpis": ["Análise em tempo real", "Adaptação automática"],
+                "priority": "Média",
+                "dependencies": ["NLP avançado", "Dados de redes sociais"],
+                "estimatedEffort": "3 semanas"
+              },
+              {
+                "id": "TD-IA-003",
+                "title": "IA de Previsão de Performance",
+                "category": "IA",
+                "description": "Prever performance de campanhas antes de publicar usando machine learning",
+                "impact": "Otimização preventiva, redução de custos",
+                "kpis": ["Precisão de previsão >80%", "Economia >30%"],
+                "priority": "Média",
+                "dependencies": ["Dados históricos", "Modelos de ML"],
+                "estimatedEffort": "4 semanas"
+              },
+              {
+                "id": "TD-IA-004",
+                "title": "Sistema de Geração de Insights Automáticos",
+                "category": "IA",
+                "description": "IA que analisa dados e gera insights acionáveis automaticamente",
+                "impact": "Decisões baseadas em dados sem análise manual",
+                "kpis": ["Insights gerados diariamente", "Ação tomada >70%"],
+                "priority": "Média",
+                "dependencies": ["Analytics", "Processamento de dados"],
+                "estimatedEffort": "2 semanas"
+              }
+            ]
+          },
+          "branding": {
+            "name": "Branding — Marca e Posicionamento",
+            "tasks": [
+              {
+                "id": "TD-BR-001",
+                "title": "Identidade Visual Profissional",
+                "category": "Branding",
+                "description": "Desenvolver identidade visual completa (logo, cores, tipografia, guidelines) que comunique inovação e confiança",
+                "impact": "Reconhecimento e autoridade de marca",
+                "kpis": ["Brand recognition >60%", "Consistência visual 100%"],
+                "priority": "Média",
+                "dependencies": ["Design profissional"],
+                "estimatedEffort": "2 semanas"
+              },
+              {
+                "id": "TD-BR-002",
+                "title": "Estratégia de Conteúdo para Autoridade",
+                "category": "Branding",
+                "description": "Criar conteúdo educativo, cases de sucesso e thought leadership para posicionar Flui como líder",
+                "impact": "Construção de autoridade e confiança",
+                "kpis": ["50+ artigos publicados", "10+ cases de sucesso"],
+                "priority": "Média",
+                "dependencies": ["Equipe de conteúdo"],
+                "estimatedEffort": "Ongoing"
+              },
+              {
+                "id": "TD-BR-003",
+                "title": "Programa de Parcerias Estratégicas",
+                "category": "Branding",
+                "description": "Parcerias com plataformas (Google, Meta, LinkedIn) e agências para co-marketing",
+                "impact": "Alcance ampliado e credibilidade",
+                "kpis": ["5+ parcerias ativas", "Co-marketing campaigns"],
+                "priority": "Baixa",
+                "dependencies": ["Relacionamentos", "Proposta de valor"],
+                "estimatedEffort": "Ongoing"
+              }
+            ]
+          }
+        }
+      },
+      "inProgress": {
+        "name": "In Progress",
+        "description": "Tarefas em execução",
+        "tasks": []
+      },
+      "done": {
+        "name": "Done",
+        "description": "Funcionalidades já implementadas",
+        "tasks": [
+          {
+            "id": "DN-001",
+            "title": "Sistema AGI de Orquestração Avançada",
+            "status": "Completo",
+            "description": "CentralOrchestratorV2 com decomposição de tarefas, agentes especializados, validação proativa"
+          },
+          {
+            "id": "DN-002",
+            "title": "Geração de E-books com Validação de Qualidade",
+            "status": "Completo (em refinamento)",
+            "description": "Sistema que gera e-books completos com validação de palavras, qualidade e estrutura"
+          },
+          {
+            "id": "DN-003",
+            "title": "Integração com YouTube para Pesquisa",
+            "status": "Completo",
+            "description": "Sistema de busca e análise de comentários do YouTube para insights de mercado"
+          },
+          {
+            "id": "DN-004",
+            "title": "Sistema Kanban para Gestão de Tarefas",
+            "status": "Completo",
+            "description": "Kanban interno com 8 colunas para gestão de fluxo de trabalho"
+          },
+          {
+            "id": "DN-005",
+            "title": "Sistema de Automação com Triggers",
+            "status": "Completo",
+            "description": "Automações configuráveis com triggers, steps e error handling"
+          },
+          {
+            "id": "DN-006",
+            "title": "Interface CLI com React + Ink",
+            "status": "Completo",
+            "description": "Interface interativa e não-interativa para uso via terminal"
+          },
+          {
+            "id": "DN-007",
+            "title": "Sistema de Validação de Qualidade de Conteúdo",
+            "status": "Completo",
+            "description": "ContentQualityValidator que analisa palavras, coesão, repetições e qualidade"
+          },
+          {
+            "id": "DN-008",
+            "title": "Agentes Especializados (Research, Code, Synthesis, Automation)",
+            "status": "Completo",
+            "description": "Sistema de agentes com especialização por tipo de tarefa"
+          },
+          {
+            "id": "DN-009",
+            "title": "Sistema de Prompt Engineering Dinâmico",
+            "status": "Completo",
+            "description": "Geração de prompts em 4 blocos otimizados por agente e contexto"
+          },
+          {
+            "id": "DN-010",
+            "title": "Integração MCP (Model Context Protocol)",
+            "status": "Completo",
+            "description": "Sistema de extensibilidade via MCP para adicionar ferramentas dinamicamente"
+          }
+        ]
+      }
+    },
+    "vision": {
+      "title": "Visão Ideal — Flui 100% Evoluída",
+      "description": "A primeira plataforma AGI completa que automatiza 100% do processo de marketing",
+      "characteristics": [
+        "Automação Total (90%+ sem intervenção manual)",
+        "Multi-Formato Simultâneo (vídeo, anúncios, landing page, e-mail, posts, e-book)",
+        "Inteligência de Mercado em Tempo Real",
+        "Personalização em Escala (1:1 para milhares de segmentos)",
+        "Qualidade Best-Seller",
+        "Velocidade Extrema (campanhas em horas)",
+        "Escalabilidade Global (milhares de clientes)",
+        "Inteligência Competitiva (auto-evolução)"
+      ],
+      "differentiation": {
+        "speed": "Horas vs. Semanas (tradicionais) vs. Dias (concorrência digital)",
+        "cost": "Baixo ($100-$1k) vs. Alto ($10k-$100k+) vs. Médio ($1k-$10k)",
+        "personalization": "Extrema (1:1) vs. Limitada vs. Básica",
+        "automation": "90%+ vs. 20-30% vs. 50-60%",
+        "quality": "Alta (IA avançada) vs. Alta (humana) vs. Média (IA básica)",
+        "scale": "Ilimitada vs. Limitada vs. Média",
+        "multiFormat": "Automático vs. Manual vs. Parcial",
+        "optimization": "Tempo Real vs. Semanal vs. Diária"
+      },
+      "positioning": "A primeira agência de marketing totalmente automatizada por IA, que produz campanhas de qualidade global em horas, não semanas, com personalização extrema e otimização contínua.",
+      "businessModel": {
+        "saas": {
+          "starter": "$99/mês (campanhas básicas)",
+          "professional": "$499/mês (campanhas completas)",
+          "enterprise": "$2,999/mês (automação total)"
+        },
+        "marketplace": "Templates e campanhas vendidos por criadores (comissão 30%)",
+        "premiumServices": ["Consultoria estratégica", "Customização enterprise", "Treinamento e certificação"]
+      },
+      "successMetrics": {
+        "clients": "10.000+ ativos em 12 meses",
+        "arr": "$50M+ ARR em 24 meses",
+        "nps": ">70",
+        "retention": ">95%",
+        "roi": ">300%",
+        "campaignCreationTime": "<4 horas",
+        "conversionRate": ">5%"
+      }
+    },
+    "roadmap": {
+      "phase1": {
+        "name": "Fase 1 — Fundação",
+        "duration": "Meses 1-3",
+        "focus": "Melhorar capacidades de criação e automação básica",
+        "tasks": [
+          "TD-TEC-001",
+          "TD-CRI-002",
+          "TD-TEC-003",
+          "TD-UX-001"
+        ]
+      },
+      "phase2": {
+        "name": "Fase 2 — Inteligência",
+        "duration": "Meses 4-6",
+        "focus": "Adicionar IA avançada e personalização",
+        "tasks": [
+          "TD-IA-001",
+          "TD-TEC-002",
+          "TD-IA-002",
+          "TD-TEC-004"
+        ]
+      },
+      "phase3": {
+        "name": "Fase 3 — Escala",
+        "duration": "Meses 7-9",
+        "focus": "Escalabilidade e multi-canal",
+        "tasks": [
+          "TD-TEC-007",
+          "TD-AUT-003",
+          "TD-TEC-006",
+          "TD-TEC-005"
+        ]
+      },
+      "phase4": {
+        "name": "Fase 4 — Diferenciação",
+        "duration": "Meses 10-12",
+        "focus": "Features avançadas e marketplace",
+        "tasks": [
+          "TD-EST-002",
+          "TD-EST-003",
+          "TD-EST-004",
+          "TD-UX-004"
+        ]
+      }
+    }
+  }
+}

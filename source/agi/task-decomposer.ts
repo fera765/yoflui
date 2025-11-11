@@ -192,20 +192,74 @@ REQUISITOS QUANTITATIVOS DETECTADOS (CRÍTICO - DEVE SER INCLUÍDO NAS SUBTASKS 
 ${quantitativeRequirements.length > 0 ? quantitativeRequirements.join('\n') : 'Nenhum requisito quantitativo específico'}
 
 PATH DE ARQUIVO ESPECIFICADO (CRÍTICO - DEVE SER USADO EXATAMENTE COMO ESTÁ):
-${filePath || 'Nenhum path específico, use padrão work/[nome-arquivo].md'}
+${filePath || 'Nenhum path específico, use padrão work/ebook/[nome-arquivo].md'}
+
+**CRÍTICO - DETECÇÃO DE SLIDE/PDF/POWERPOINT:**
+- Se o prompt mencionar "slide", "pdf", "powerpoint", "pptx", "apresentação", "ebook" com slides
+- A subtask DEVE usar a ferramenta slide_pdf
+- slide_pdf cria slides HTML elegantes e converte para PDF ou PowerPoint
+- Mantém consistência visual entre todas as páginas
+- Parâmetros: title, slides (array), outputFormat ('pdf' | 'pptx' | 'both'), outputPath, theme
+- Cada slide deve ter: title, subtitle (opcional), content, layout (opcional)
+- Exemplo: {"title": "Ebook Emagrecimento", "slides": [{"title": "Página 1", "content": "..."}], "outputFormat": "pdf", "outputPath": "work/ebook-emagrecimento"}
+
+**CRÍTICO - DETECÇÃO DE MARKETING/CAMPANHA:**
+- Se o prompt mencionar "campanha de marketing", "marketing campaign", "criar campanha", "anúncio", "copy", "landing page"
+- A PRIMEIRA subtask DEVE usar a ferramenta generate_marketing_campaign DIRETAMENTE
+- NÃO faça pesquisa primeiro - a ferramenta já gera tudo automaticamente
+- NÃO use write_file diretamente para criar campanhas
+- Use generate_marketing_campaign com os parâmetros extraídos do prompt:
+  * product: nome do produto/serviço mencionado
+  * targetAudience: público-alvo mencionado
+  * objective: objetivo mencionado (awareness/conversion/engagement/education)
+  * tone: tom mencionado (professional/casual/funny/inspirational/urgent)
+  * keyMessages: mensagens-chave extraídas do prompt
+  * cta: CTA mencionado (ou padrão)
+- A ferramenta gera automaticamente: vídeo script, copy de anúncio, landing page, e-mail, post social, e-book
+- Tudo sincronizado e coeso com narrativa unificada
+- Exemplo de subtask: {"id": "1", "title": "Gerar campanha de marketing completa", "description": "Usar generate_marketing_campaign com product='X', targetAudience='Y', objective='conversion', tone='professional', keyMessages=['msg1', 'msg2']", "tools": ["generate_marketing_campaign"], "agentType": "marketing"}
+
+**CRÍTICO - DETECÇÃO DE EBOOK:**
+- Se o prompt mencionar "ebook", "livro", "30 páginas", "múltiplas páginas" OU se houver requisito de páginas (ex: "30 páginas")
+- O ebook DEVE ser criado em UM ÚNICO ARQUIVO
+- NÃO crie múltiplos arquivos (pagina_01.md, pagina_02.md, etc.)
+- Crie APENAS UM arquivo (ex: "ebook.md" ou "livro.md") com TODAS as páginas dentro
+- Cada página deve ser separada por marcadores claros (ex: "# Página 1", "# Página 2", etc.)
+- A menos que o usuário deixe EXPLICITAMENTE que quer arquivos separados
+
+**ATENÇÃO CRÍTICA - LOCALIZAÇÃO DE ARQUIVOS:**
+- Se o usuário especificar um path específico, use EXATAMENTE esse caminho
+- Para ebooks: use work/ebook/ebook.md (ou nome especificado) como padrão
+- NÃO crie em work/project/ ou outros diretórios
+- Use o caminho EXATO especificado pelo usuário
+
+**CRÍTICO - QUERY YOUTUBE:**
+- Se o prompt mencionar "search_youtube_comments" e "mecânica das emoções mulher emocional relacionamento"
+- A PRIMEIRA subtask DEVE usar search_youtube_comments com query EXATA: "mecânica das emoções mulher emocional relacionamento"
+- NÃO use queries genéricas como "AGI" ou "artificial intelligence"
+- A query DEVE ser exatamente: "mecânica das emoções mulher emocional relacionamento"
 
 INSTRUÇÕES:
 1. Identifique todos os requisitos e componentes
 2. Decomponha em sub-tarefas PEQUENAS (máximo 5 minutos cada)
 3. Ordene por dependências (o que deve ser feito primeiro)
-4. **CRÍTICO:** Se houver requisitos quantitativos (palavras, páginas, linhas), INCLUA-OS EXPLICITAMENTE na descrição da subtask relevante
-5. **CRÍTICO:** Se houver PATH de arquivo especificado, INCLUA-O EXATAMENTE na descrição da subtask de escrita/salvamento
-6. **CRÍTICO - REGRA DE ARQUIVO ÚNICO:** 
-   - TODO o conteúdo de um capítulo/artigo/documento DEVE ser escrito em UM ÚNICO arquivo
-   - NUNCA crie subtasks separadas para "introdução.md", "fundamentos.md", etc.
-   - A subtask de escrita deve gerar TODO o conteúdo de uma vez no arquivo especificado
-   - Se o usuário pediu "work/ebook-cap1.md", TODO o capítulo 1 vai nesse arquivo ÚNICO
-   - NÃO fragmente em múltiplos arquivos
+4. **CRÍTICO:** Se o prompt mencionar "search_youtube_comments" ou "PRIMEIRO use a tool", CRIE UMA SUBTASK INICIAL que use essa tool ANTES de qualquer escrita
+5. **CRÍTICO:** Se houver requisitos quantitativos (palavras, páginas, linhas), INCLUA-OS EXPLICITAMENTE na descrição da subtask relevante
+6. **CRÍTICO:** Se houver PATH de arquivo especificado, INCLUA-O EXATAMENTE na descrição da subtask de escrita/salvamento
+6. **CRÍTICO - REGRA DE ARQUIVO ÚNICO PARA EBOOKS:** 
+   - Se detectar ebook/livro com múltiplas páginas, CRIE APENAS UM ARQUIVO
+   - NÃO crie subtasks separadas para cada página
+   - A subtask de escrita deve gerar TODO o ebook em UM ÚNICO arquivo
+   - Dentro do arquivo único, separe as páginas com marcadores claros (ex: "# Página 1", "# Página 2")
+   - Exemplo: Se o usuário pediu "ebook de 30 páginas", crie UM arquivo "work/ebook/ebook.md" com todas as 30 páginas dentro
+   - NÃO fragmente em múltiplos arquivos (pagina_01.md, pagina_02.md, etc.)
+   - A menos que o usuário deixe EXPLICITAMENTE que quer arquivos separados
+7. **CRÍTICO - QUALIDADE BEST SELLER:**
+   - Conteúdo deve ter qualidade de best seller
+   - Mantenha consistência narrativa entre todas as páginas
+   - Use dados reais coletados (YouTube, pesquisas)
+   - NÃO use mocks, simulações, hardcoded ou presets
+   - Cada página deve fluir naturalmente para a próxima
 7. Para cada subtask, forneça:
    - ID único
    - Título claro
@@ -214,13 +268,13 @@ INSTRUÇÕES:
    - Estimativa de tokens necessários
    - Prioridade (1-10)
 
-EXEMPLO DE SUBTASK COM REQUISITO QUANTITATIVO E PATH (ARQUIVO ÚNICO):
+EXEMPLO DE SUBTASK PARA EBOOK (ARQUIVO ÚNICO COM MÚLTIPLAS PÁGINAS):
 {
   "id": "3",
-  "title": "Escrever e salvar capítulo completo",
-  "description": "Escrever TODO o Capítulo 1 completo (introdução, fundamentos, técnicas, exemplos, exercícios) com MÍNIMO 1200 palavras. IMPORTANTE: Escrever TUDO em UM ÚNICO arquivo work/ebook-cap1.md (NÃO criar arquivos separados para cada seção). VALIDAR contagem antes de concluir.",
+  "title": "Escrever ebook completo em arquivo único",
+  "description": "Escrever TODO o ebook completo com 30 páginas em UM ÚNICO arquivo work/ebook/ebook.md. Cada página deve ter MÍNIMO 700 palavras e ser separada por marcadores claros (ex: '# Página 1', '# Página 2'). IMPORTANTE: NÃO criar arquivos separados (pagina_01.md, pagina_02.md, etc.). Escrever TUDO em UM ÚNICO arquivo mantendo consistência narrativa e qualidade best seller. Usar dados reais coletados do YouTube. VALIDAR contagem de palavras antes de concluir.",
   "dependencies": ["2"],
-  "estimated_tokens": 2000,
+  "estimated_tokens": 50000,
   "priority": 8
 }
 
@@ -273,13 +327,19 @@ NÃO inclua explicações, apenas o JSON.`;
 	if (quantitativeRequirements.length > 0) {
 		for (const subtask of decomposition.subtasks) {
 			// Detectar se é subtask de escrita/criação
-			const isWritingTask = /escrever|criar|redigir|write|gerar.*texto|artigo|capítulo/i.test(subtask.title + ' ' + (subtask.description || ''));
+			const isWritingTask = /escrever|criar|redigir|write|gerar.*texto|artigo|capítulo|ebook|livro/i.test(subtask.title + ' ' + (subtask.description || ''));
 			if (isWritingTask) {
 				// Adicionar requisitos ao campo validation
 				const reqText = quantitativeRequirements.join(' ');
 				subtask.validation = subtask.validation 
 					? `${subtask.validation} ${reqText}` 
 					: reqText;
+				
+				// CRÍTICO: Detectar ebook e forçar arquivo único
+				const isEbook = /ebook|livro|book/i.test(prompt) || /\d+\s*páginas|\d+\s*pages/i.test(prompt);
+				if (isEbook && !/arquivo.*único|um.*único.*arquivo|single.*file/i.test(subtask.description)) {
+					subtask.description += " CRÍTICO: Criar TODO o ebook em UM ÚNICO ARQUIVO. NÃO criar múltiplos arquivos (pagina_XX.md). Todas as páginas devem estar dentro do mesmo arquivo, separadas por marcadores claros.";
+				}
 			}
 		}
 	}
@@ -396,6 +456,11 @@ function fallbackDecomposition(prompt: string): Subtask[] {
 function inferAgentType(title: string, description: string): string {
 	const combined = `${title} ${description}`.toLowerCase();
 	
+	// Marketing/Campanha
+	if (/campanha.*marketing|marketing.*campaign|criar.*campanha|anúncio|copy|landing.*page|email.*marketing|post.*social/i.test(combined)) {
+		return 'marketing';
+	}
+	
 	// Código/Desenvolvimento
 	if (/criar.*componente|implementar|desenvolver|código|typescript|react|configurar.*arquivo/i.test(combined)) {
 		return 'code';
@@ -435,6 +500,19 @@ function inferTools(title: string, description: string): string[] {
 	// CRÍTICO: Detectar requisito quantitativo
 	const hasQuantitativeRequirement = /(\d+)\+?\s*(palavras?|words?|páginas?|pages?|linhas?|lines?)/i.test(combined);
 	
+	// Slide/PDF/PowerPoint
+	if (/slide|pdf|powerpoint|pptx|apresentação|ebook.*slide/i.test(combined)) {
+		tools.push('slide_pdf');
+		return tools;
+	}
+	
+	// Marketing/Campanha - PRIORIDADE ALTA
+	if (/campanha.*marketing|marketing.*campaign|criar.*campanha|anúncio|copy|landing.*page|email.*marketing|post.*social/i.test(combined)) {
+		tools.push('generate_marketing_campaign');
+		// Não adicionar write_file para campanhas - a ferramenta já cria tudo
+		return tools;
+	}
+	
 	// Shell commands
 	if (/npm|instalar|comando|executar|criar.*projeto|vite/i.test(combined)) {
 		tools.push('execute_shell');
@@ -466,8 +544,13 @@ function inferTools(title: string, description: string): string[] {
 		tools.push('read_folder');
 	}
 	
-	// Web search
-	if (/pesquisar|buscar.*online|consultar/i.test(combined)) {
+	// CRÍTICO: Detectar uso explícito de search_youtube_comments
+	if (/search_youtube_comments|youtube.*comentários|comentários.*youtube|pesquisar.*youtube/i.test(combined)) {
+		tools.unshift('search_youtube_comments'); // Adicionar no início
+	}
+	
+	// Web search (não usar se já tem search_youtube_comments)
+	if (/pesquisar|buscar.*online|consultar/i.test(combined) && !tools.includes('search_youtube_comments')) {
 		tools.push('web_search');
 	}
 	
@@ -482,7 +565,15 @@ function inferTools(title: string, description: string): string[] {
 export function convertToKanbanTasks(subtasks: Subtask[]): any[] {
 	return subtasks.map((subtask, index) => {
 		const agentType = inferAgentType(subtask.title, subtask.description);
-		const tools = inferTools(subtask.title, subtask.description);
+		let tools = inferTools(subtask.title, subtask.description);
+		
+		// CORREÇÃO CRÍTICA: Se é task de YouTube e menciona "mecânica das emoções", forçar query correta
+		if (tools.includes('search_youtube_comments') && /mecânica.*emoções|emoções.*mulher/i.test(subtask.description)) {
+			// Adicionar query correta na descrição se não estiver presente
+			if (!/query.*mecânica.*emoções.*mulher/i.test(subtask.description)) {
+				subtask.description += " IMPORTANTE: Use query EXATA 'mecânica das emoções mulher emocional relacionamento' na tool search_youtube_comments.";
+			}
+		}
 		
 		return {
 			id: subtask.id,
