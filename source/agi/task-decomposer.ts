@@ -194,12 +194,19 @@ ${quantitativeRequirements.length > 0 ? quantitativeRequirements.join('\n') : 'N
 PATH DE ARQUIVO ESPECIFICADO (CRÍTICO - DEVE SER USADO EXATAMENTE COMO ESTÁ):
 ${filePath || 'Nenhum path específico, use padrão work/[nome-arquivo].md'}
 
+**ATENÇÃO CRÍTICA - LOCALIZAÇÃO DE ARQUIVOS:**
+- Se o usuário especificar "work/ebook/pagina_XX.md", use EXATAMENTE esse caminho
+- NÃO crie em work/project/ ou outros diretórios
+- Use o caminho EXATO especificado pelo usuário
+- Se não especificado, use work/ebook/ como padrão para ebooks
+
 INSTRUÇÕES:
 1. Identifique todos os requisitos e componentes
 2. Decomponha em sub-tarefas PEQUENAS (máximo 5 minutos cada)
 3. Ordene por dependências (o que deve ser feito primeiro)
-4. **CRÍTICO:** Se houver requisitos quantitativos (palavras, páginas, linhas), INCLUA-OS EXPLICITAMENTE na descrição da subtask relevante
-5. **CRÍTICO:** Se houver PATH de arquivo especificado, INCLUA-O EXATAMENTE na descrição da subtask de escrita/salvamento
+4. **CRÍTICO:** Se o prompt mencionar "search_youtube_comments" ou "PRIMEIRO use a tool", CRIE UMA SUBTASK INICIAL que use essa tool ANTES de qualquer escrita
+5. **CRÍTICO:** Se houver requisitos quantitativos (palavras, páginas, linhas), INCLUA-OS EXPLICITAMENTE na descrição da subtask relevante
+6. **CRÍTICO:** Se houver PATH de arquivo especificado, INCLUA-O EXATAMENTE na descrição da subtask de escrita/salvamento
 6. **CRÍTICO - REGRA DE ARQUIVO ÚNICO:** 
    - TODO o conteúdo de um capítulo/artigo/documento DEVE ser escrito em UM ÚNICO arquivo
    - NUNCA crie subtasks separadas para "introdução.md", "fundamentos.md", etc.
@@ -466,8 +473,13 @@ function inferTools(title: string, description: string): string[] {
 		tools.push('read_folder');
 	}
 	
-	// Web search
-	if (/pesquisar|buscar.*online|consultar/i.test(combined)) {
+	// CRÍTICO: Detectar uso explícito de search_youtube_comments
+	if (/search_youtube_comments|youtube.*comentários|comentários.*youtube|pesquisar.*youtube/i.test(combined)) {
+		tools.unshift('search_youtube_comments'); // Adicionar no início
+	}
+	
+	// Web search (não usar se já tem search_youtube_comments)
+	if (/pesquisar|buscar.*online|consultar/i.test(combined) && !tools.includes('search_youtube_comments')) {
 		tools.push('web_search');
 	}
 	

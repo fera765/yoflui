@@ -1,0 +1,46 @@
+Crie um ebook completo sobre "A mecânica das emoções - Conversando com emocional de uma mulher".
+
+REGRAS CRÍTICAS - SEGUIR NA ORDEM EXATA:
+
+1. PRIMEIRO PASSO OBRIGATÓRIO - PESQUISA YOUTUBE:
+   - Você DEVE usar a tool "search_youtube_comments" ANTES de escrever qualquer conteúdo
+   - Use a query: "mecânica das emoções mulher emocional relacionamento"
+   - Colete comentários, transcrições e dores reais dos leitores
+   - Analise os dados coletados e identifique padrões de dores/dúvidas
+
+2. ESTRUTURA DO EBOOK:
+   - Exatamente 30 páginas completas
+   - Cada página: MÍNIMO 700 palavras (validar antes de salvar)
+   - Formato: arquivos markdown em "work/ebook/pagina_01.md" até "pagina_30.md"
+   - Caminho completo: /workspace/work/ebook/pagina_XX.md
+
+3. CONTEÚDO BASEADO EM DADOS REAIS:
+   - Use os dados coletados do YouTube para criar conteúdo relevante
+   - Mencione explicitamente comentários, dores e necessidades identificadas
+   - Cada página deve referenciar dados reais coletados
+   - NÃO use conteúdo genérico - baseie-se nos dados do YouTube
+
+4. QUALIDADE E CONSISTÊNCIA:
+   - Conteúdo profissional e bem estruturado
+   - Consistência entre páginas
+   - Fluxo narrativo coerente
+   - Informações validadas e precisas
+
+5. VALIDAÇÃO ANTES DE SALVAR:
+   - Contar palavras antes de usar write_file
+   - Se < 700 palavras, expandir conteúdo
+   - Verificar que arquivo será salvo em work/ebook/
+   - Confirmar nome do arquivo: pagina_XX.md (formato correto)
+
+ORDEM DE EXECUÇÃO:
+1. search_youtube_comments (OBRIGATÓRIO PRIMEIRO)
+2. Analisar dados coletados
+3. Criar estrutura do ebook baseada nos dados
+4. Escrever página 1 (validar 700+ palavras, salvar em work/ebook/pagina_01.md)
+5. Repetir para páginas 2-30
+
+NÃO USE:
+- Mocks, simulações ou dados fictícios
+- Conteúdo genérico sem base em dados reais
+- Localização incorreta dos arquivos
+- Páginas com menos de 700 palavras

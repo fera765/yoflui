@@ -211,8 +211,13 @@ export class CentralOrchestratorV2 {
 	 * ATIVADO: Detecta frontend e usa template em work/
 	 */
 	private async analyzeTemplateNeed(prompt: string): Promise<{ use: boolean; templateUrl: string; projectName: string }> {
+		// EXCLUSÃO: Não usar template para ebooks ou conteúdo textual
+		if (/\b(ebook|livro|artigo|texto|conteúdo|markdown|md|página.*ebook|escrever.*página)\b/i.test(prompt)) {
+			return { use: false, templateUrl: '', projectName: '' };
+		}
+		
 		// Detectar se é projeto frontend/web
-		const frontendKeywords = /\b(react|ui|interface|frontend|web|app|spa|vite|tailwind|component|clone|spotify|dashboard|página|website|site)/i;
+		const frontendKeywords = /\b(react|ui|interface|frontend|web|app|spa|vite|tailwind|component|clone|spotify|dashboard|website|site)\b/i;
 		
 		// Extrair nome do projeto do prompt
 		let projectName = 'project';
