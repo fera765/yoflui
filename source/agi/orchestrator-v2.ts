@@ -129,7 +129,8 @@ export class CentralOrchestratorV2 {
 			this.agents.set('automation', new SpecializedAgent('automation', this.openai));
 			this.agents.set('analysis', new SpecializedAgent('analysis', this.openai));
 			this.agents.set('synthesis', new SpecializedAgent('synthesis', this.openai));
-			this.agents.set('marketing', new SpecializedAgent('marketing', this.openai));
+				this.agents.set('marketing', new SpecializedAgent('marketing', this.openai));
+				this.agents.set('qa', new SpecializedAgent('qa', this.openai));
 			
 			// Configurar callbacks em todos os agentes
 			for (const agent of this.agents.values()) {
@@ -1329,13 +1330,25 @@ ${availableTools.join(', ')}
    
 NÃO REFORMULE de forma genérica! Use os detalhes EXATOS do prompt original!
 
-Decomponha em sub-tarefas ATÔMICAS e SEQUENCIAIS.
+	Decomponha em sub-tarefas ATÔMICAS e SEQUENCIAIS.
+	
+	**CRÍTICO: Para tarefas de criação de conteúdo (copy, ebook, roteiro, plano), a última sub-tarefa DEVE ser uma etapa de VALIDAÇÃO e REFINAMENTO, atribuída ao Agente 'qa' (Quality Assurance & CEO).**
+	
+	Exemplo de última sub-tarefa:
+	{
+	  "title": "Analisar e refinar o resultado final com o Agente QA para garantir a nota 10/10 (storytelling, persuasão, dados, etc.)",
+	  "agentType": "qa",
+	  "dependencies": ["ID_DA_TAREFA_ANTERIOR"],
+	  "tools": [],
+	  "validation": "Relatório de Validação 10/10 do Agente QA",
+	  "estimatedCost": 8
+	}
 
 Retorne APENAS JSON array:
 [
   {
     "title": "string",
-    "agentType": "research|code|automation|analysis|synthesis",
+	   → agentType: "research|code|automation|analysis|synthesis|qa",
     "dependencies": ["task-id"],
     "tools": ["tool1"],
     "validation": "critério de sucesso",

@@ -3,7 +3,7 @@ import { AgentResult, ToolExecution } from './types.js';
 import { getAllToolDefinitions, executeToolCall } from '../tools/index.js';
 import { getConfig } from '../llm-config.js';
 
-export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis' | 'marketing';
+export type AgentType = 'research' | 'code' | 'automation' | 'analysis' | 'synthesis' | 'marketing' | 'qa';
 
 export type ToolExecutionCallback = (toolExecution: ToolExecution) => void;
 
@@ -31,8 +31,17 @@ export class SpecializedAgent {
 		this.toolExecutionCallback = callback;
 	}
 
-	private initializeSystemPrompts(): Map<AgentType, string> {
-		const prompts = new Map<AgentType, string>();
+	private initializeSystemPrompts(): Map<string, string> {
+		const prompts = new Map<string, string>();
+
+		prompts.set("qa", `Você é o Agente de Qualidade e CEO (Quality Assurance & Chief Executive Officer).
+Sua única função é garantir que o resultado final de qualquer tarefa atinja a excelência inegociável de 10/10.
+Você é especialista em:
+- **Auditoria de Qualidade:** Revisar o output de outros agentes e compará-lo com benchmarks de mercado (grandes players).
+- **Refinamento Estratégico:** Sugerir ajustes cirúrgicos para elevar a qualidade da qualidade de 9.5 para 10.
+- **Visão de CEO:** Garantir que o resultado seja uma "arma secreta" para faturar milhões, focando em conversão, valor e impacto.
+- **Validação de Kanban:** Analisar o plano Kanban e garantir que ele inclua todas as etapas críticas de validação e ajuste.
+- **Geração de Relatórios:** Produzir um relatório final de "Validação 10/10" que justifique a nota e o valor estratégico do output.`);
 
 		prompts.set('research', `Você é o Agente de Pesquisa Profunda.
 Sua única função é realizar pesquisas detalhadas e retornar informação de alta qualidade.
@@ -225,13 +234,16 @@ Você é especialista em:
 - Extração de insights acionáveis
 - Validação estatística`);
 
-		prompts.set('synthesis', `Você é o Agente de Síntese.
-Sua única função é integrar múltiplas fontes de informação em um resultado coerente.
+		prompts.set('synthesis', `Você é o Agente de Síntese e Criação de Conteúdo de Elite.
+Sua função é integrar múltiplas fontes de informação (incluindo dados de pesquisa de dores de nicho) em um resultado coerente, persuasivo e de altíssima qualidade (nota 10/10).
+		
 Você é especialista em:
-- Combinar informações de diferentes fontes
-- Criar narrativas coesas e completas
-- Eliminar redundâncias e contradições
-- Produzir outputs estruturados e claros`);
+- **Narrativa Humanizada:** Utilizar técnicas de storytelling e persuasão (AIDA, PAS, etc.) para criar conteúdo que engaja e converte.
+- **Progressão Lógica:** Garantir que ebooks e documentos tenham uma estrutura impecável, guiando o leitor/espectador do problema à solução de forma fluida.
+- **Alta Qualidade:** Produzir outputs estruturados, claros, sem redundâncias e com valor superior a 1000x o conteúdo de concorrentes.
+- **Integração de Dados:** Combinar insights de dores de nicho (pesquisa) com a estrutura de conteúdo para máxima relevância.
+- **Validação Proativa:** Incluir na saída uma seção de "Validação 10/10" que justifique como o resultado atende aos critérios de excelência (storytelling, persuasão, dados, etc.).
+- **Produzir outputs estruturados e claros`);
 
 		return prompts;
 	}
@@ -312,15 +324,8 @@ Você é especialista em:
 					let result: string;
 					let status: 'complete' | 'error' = 'complete';
 					try {
-						// CORREÇÃO CRÍTICA: Validar e corrigir query do YouTube se necessário
-						if (toolName === 'search_youtube_comments' && args.query) {
-							// Se a query não contém "mecânica das emoções mulher emocional relacionamento", substituir
-							if (!/mecânica.*emoções.*mulher.*relacionamento/i.test(args.query)) {
-								console.log(`[CORREÇÃO] Query incorreta detectada: "${args.query}"`);
-								console.log(`[CORREÇÃO] Substituindo por: "mecânica das emoções mulher emocional relacionamento"`);
-								args.query = 'mecânica das emoções mulher emocional relacionamento';
-							}
-						}
+							// CORREÇÃO CRÍTICA: Lógica de correção de query fixa removida para manter a query original.
+							// A correção de query deve ser feita pelo LLM no prompt, não por substituição fixa.
 						
 						// Usar workDir fornecido ou fallback para cwd
 						const execDir = workDir || process.cwd();
@@ -354,20 +359,20 @@ Você é especialista em:
 				continue;
 			}
 
-				// Retornar resultado final
-				if (assistantMsg.content) {
-					return assistantMsg.content;
-				}
-
-				break;
+			// Retornar resultado final
+			if (assistantMsg.content) {
+				return assistantMsg.content;
 			}
 
-			return 'Execução completada sem resposta final';
-
-		} catch (error) {
-			throw new Error(`Erro no agente ${this.type}: ${error instanceof Error ? error.message : String(error)}`);
+			break;
 		}
+
+		return 'Execução completada sem resposta final';
+
+	} catch (error) {
+		throw new Error(`Erro no agente ${this.type}: ${error instanceof Error ? error.message : String(error)}`);
 	}
+}
 
 	/**
 	 * Temperatura ideal para cada tipo de agente
@@ -379,6 +384,7 @@ Você é especialista em:
 			case 'automation': return 0.1; // Muito preciso e seguro
 			case 'analysis': return 0.3;  // Preciso mas permite insights
 			case 'synthesis': return 0.4; // Balanceado para síntese
+			case 'qa': return 0.1; // Foco em precisão e análise crítica
 			default: return 0.3;
 		}
 	}

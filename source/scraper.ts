@@ -81,35 +81,37 @@ export async function fetchVideoComments(videoId: string, maxComments: number = 
 		// Add small delay to avoid rate limiting
 		await delay(300);
 		
-	// Suppress parser warnings
-	const originalConsoleError = console.error;
-	console.error = () => {};
-		
-		const youtube = await retryWithBackoff(
-			() => Innertube.create(),
-			2,
-			500
-		);
-		
-		const comments: any[] = [];
-		
-		// Try to get comments directly using getComments with retry
-		let commentsList;
-		try {
-			commentsList = await retryWithBackoff(
-				() => youtube.getComments(videoId),
+			// Suppress parser warnings
+		const originalConsoleError = console.error;
+		console.error = () => {};
+			
+			const youtube = await retryWithBackoff(
+				() => Innertube.create(),
 				2,
-				1000
+				500
 			);
-		} catch (commErr) {
+			
+			const comments: any[] = [];
+			
+			// Try to get comments directly using getComments with retry
+			let commentsList;
+			try {
+				commentsList = await retryWithBackoff(
+					() => youtube.getComments(videoId),
+					2,
+					1000
+				);
+			} catch (commErr) {
+				// Restore console.error
+				console.error = originalConsoleError;
+				// Comments may be disabled, rate limited, or have a parsing error
+				// Log the error for debugging but return empty array to continue processing other videos
+				console.error(`[YOUTUBE_COMMENTS_ERROR] Failed to fetch comments for video ${videoId}: ${commErr}`);
+				return [];
+			}
+
 			// Restore console.error
 			console.error = originalConsoleError;
-			// Comments may be disabled or rate limited
-			return [];
-		}
-
-		// Restore console.error
-		console.error = originalConsoleError;
 
 		if (!commentsList) {
 			return [];

@@ -1,0 +1,5 @@
+{
+  "endpoint": "https://portal.qwen.ai/v1",
+  "apiKey": "5GVNYCvq-_m8utc9Cx7ItQpKeYE1j1ol0q8C3cS2eeWyozqb36A-AP-br1clzToGNJwYjUresmMX3RkQ1MikHw",
+  "model": "qwen3-coder-plus"
+}
