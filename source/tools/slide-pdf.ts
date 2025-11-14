@@ -44,10 +44,10 @@ export interface SlidePDFOptions {
 export class SlidePDFGenerator {
 	private openai: OpenAI;
 	private defaultTheme = {
-		primaryColor: '#FFFFFF',
-		secondaryColor: '#000000',
-		backgroundColor: '#000000',
-		textColor: '#FFFFFF',
+		primaryColor: '#4A90E2', // Azul vibrante para destaque
+		secondaryColor: '#B0B0B0', // Cinza claro para texto secundário
+		backgroundColor: '#1A202C', // Fundo escuro (Tailwind gray-900)
+		textColor: '#E2E8F0', // Texto claro (Tailwind gray-200)
 		fontFamily: 'SF Pro'
 	};
 
@@ -69,19 +69,22 @@ export class SlidePDFGenerator {
 	/**
 	 * CRIAR TEMPLATE HTML BASE
 	 */
-	private createSlideHTMLTemplate(config: SlideConfig, theme: any, content?: string): string {
+		private createSlideHTMLTemplate(config: SlideConfig, theme: any, content?: string): string {
+			// Se o conteúdo for gerado pela LLM, ele já é o HTML do body.
+			const isLLMContent = content && !content.includes('será gerado pelo LLM');
+			const finalContent = isLLMContent ? content : this.generateLayoutContent(config, theme);
 		const imageStyle = config.imageUrl 
 			? `<img src="${config.imageUrl}" alt="${config.title}" class="void-image">`
 			: '';
 		
-		const layoutContent = content || this.generateLayoutContent(config, theme);
+			const layoutContent = finalContent;
 		
 		return `<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=SF+Pro:wght@300;400;600&display=swap');
@@ -109,7 +112,7 @@ export class SlidePDFGenerator {
         font-size: 72px;
         font-weight: 700;
         margin-bottom: 20px;
-        text-align: center;
+        text-align: left;
         line-height: 1.2;
         color: ${theme.primaryColor};
       }
@@ -119,14 +122,14 @@ export class SlidePDFGenerator {
         font-size: 36px;
         font-weight: 300;
         margin-bottom: 60px;
-        text-align: center;
+        text-align: left;
         opacity: 0.8;
         color: ${theme.textColor};
       }
       
       .void-image {
         position: absolute;
-        opacity: 0.2;
+       opacity: 1.0, // Imagem visível;
         z-index: 0;
         width: 100%;
         height: 100%;
@@ -155,21 +158,21 @@ export class SlidePDFGenerator {
       }
       
       .content-text {
-        font-size: 24px;
-        line-height: 1.6;
-        max-width: 1000px;
-        text-align: center;
+        font-size: 28px;
+        line-height: 1.8;
+        max-width: 900px;
+        text-align: left;
         color: ${theme.textColor};
       }
       
-      .slide-number {
-        position: absolute;
-        bottom: 20px;
-        right: 40px;
-        font-size: 18px;
-        opacity: 0.5;
-        color: ${theme.textColor};
-      }
+	      .slide-number {
+	        position: absolute;
+	        bottom: 20px;
+	        right: 40px;
+	        font-size: 18px;
+	        opacity: 0.5;
+	        color: ${theme.textColor};
+	      }
     </style>
   </head>
   <body>
@@ -192,19 +195,19 @@ export class SlidePDFGenerator {
 			case 'title':
 				return `
         <div class="circle"></div>
-        <h1 class="title">${config.title}</h1>
-        ${config.subtitle ? `<h2 class="subtitle">${config.subtitle}</h2>` : ''}
+
+		        ${config.subtitle ? `<h2 class="subtitle">${config.subtitle}</h2>` : ''}
       `;
 			
 			case 'content':
 				return `
-        <h1 class="title" style="font-size: 56px; margin-bottom: 40px;">${config.title}</h1>
+
         <div class="content-text">${config.content}</div>
       `;
 			
 			case 'image-content':
 				return `
-        <h1 class="title" style="font-size: 48px; margin-bottom: 30px;">${config.title}</h1>
+
         <div class="content-text" style="max-width: 800px;">${config.content}</div>
       `;
 			
@@ -212,7 +215,7 @@ export class SlidePDFGenerator {
 				return `
         <div style="display: flex; width: 100%; gap: 40px;">
           <div style="flex: 1;">
-            <h1 class="title" style="font-size: 48px; text-align: left;">${config.title}</h1>
+
           </div>
           <div style="flex: 1;" class="content-text" style="text-align: left;">
             ${config.content}
@@ -230,10 +233,10 @@ export class SlidePDFGenerator {
 			
 			default:
 				return `
-        <h1 class="title">${config.title}</h1>
-        ${config.subtitle ? `<h2 class="subtitle">${config.subtitle}</h2>` : ''}
-        ${config.content ? `<div class="content-text">${config.content}</div>` : ''}
-      `;
+
+	        ${config.subtitle ? `<h2 class="subtitle">${config.subtitle}</h2>` : ''}
+			        ${config.content ? `<div class="content-text">${config.content}</div>` : ''}
+		      `;
 		}
 	}
 

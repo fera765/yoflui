@@ -158,6 +158,8 @@ Você NÃO deve:
 	 * Fornece todo o contexto necessário
 	 */
 	private createContextBlock(task: KanbanTask, context: any): string {
+		const injestKnowledge = context.injestKnowledge || '';
+		
 		let block = `[BLOCO DE CONTEXTO E OBJETIVO]
 
 SUB-TAREFA ATUAL:
@@ -241,6 +243,11 @@ Você deve ${task.title.toLowerCase()}.`;
 		// NOVO: Adicionar memória completa (contexto de etapas anteriores)
 		if (context.previousResults && context.previousResults.fullMemory) {
 			block += `\n\n${context.previousResults.fullMemory}`;
+		}
+
+		// NOVO: Adicionar Base de Conhecimento Injetada (INJEST)
+		if (injestKnowledge) {
+			block += `\n\n${injestKnowledge}`;
 		}
 
 		// Adicionar contexto de dependências diretas

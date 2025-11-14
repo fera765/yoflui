@@ -143,29 +143,31 @@ export async function executeSlidePDFTool(
 			// Se conteúdo é placeholder, gerar conteúdo real
 			if (content.includes('será gerado pelo LLM') || content.length < 50) {
 				console.log(`[slide_pdf] Gerando conteúdo para slide ${i + 1}/${args.slides.length}...`);
-				const contentPrompt = `Você é um especialista em criar conteúdo para ebooks de emagrecimento.
+				const contentPrompt = `Você é um especialista em design e criação de conteúdo para slides/ebooks. Sua tarefa é retornar APENAS o código HTML (sem tags <html> ou <body>) para o corpo do slide, utilizando classes Tailwind CSS e ícones Font Awesome para um design elegante e profissional. O design deve ser consistente com o tema escuro.
 
 TÍTULO DO EBOOK: ${args.title}
 PÁGINA: ${i + 1} de ${args.slides.length}
 TÍTULO DA PÁGINA: ${title}
 
 Crie conteúdo relevante e valioso para esta página do ebook. O conteúdo deve:
-- Ser educativo e prático
+- Ser educativo e prático. O conteúdo deve ser formatado em HTML elegante, utilizando classes Tailwind (ex: <p class="text-lg">, <div class="flex items-center">) e ícones Font Awesome (ex: <i class="fas fa-check text-green-400"></i>).
 - Ter entre 100-200 palavras (conciso para slide)
 - Ser específico e acionável
 - Manter tom profissional mas acessível
-- Focar em emagrecimento saudável
+- Focar no tema principal do documento.
 
-Retorne APENAS o conteúdo, sem formatação adicional.`;
+	Retorne APENAS o código HTML do corpo do slide. O conteúdo deve ser denso e ocupar o máximo de espaço possível no slide. **NÃO inclua o título da página no HTML gerado.**`;
 
 				try {
-					const response = await openai.chat.completions.create({
+						const response = await openai.chat.completions.create({
 						model: config.model || 'gpt-4',
 						messages: [{ role: 'user', content: contentPrompt }],
 						temperature: 0.7,
 						max_tokens: 300
 					});
-					content = response.choices[0]?.message?.content || content;
+							content = response.choices[0]?.message?.content || content;
+							// Limpar code blocks de markdown que a LLM insiste em adicionar
+							content = content.replace(/```html\n|```/g, '').trim();
 					console.log(`[slide_pdf] Conteúdo gerado para slide ${i + 1} (${content.length} caracteres)`);
 				} catch (error) {
 					console.error(`[slide_pdf] Erro ao gerar conteúdo para slide ${i + 1}:`, error);

@@ -14,13 +14,14 @@ import { FeedbackGenerator } from './feedback-generator.js';
 import { ContentQualityValidator } from './content-quality-validator.js';
 import { validateProject, autoFixCommonErrors } from './auto-validator.js';
 import {
-	loadOrCreateContext,
-	recordIntermediateResult,
-	recordResourceCreated,
-	getContextForNextStep,
-	resetExecutionState,
-	updateContextCarryover,
-} from '../context-manager.js';
+		loadOrCreateContext,
+		recordIntermediateResult,
+		recordResourceCreated,
+		getContextForNextStep,
+		resetExecutionState,
+		updateContextCarryover,
+	} from '../context-manager.js';
+import { injestKnowledge } from '../injest-manager.js';
 import { getAllToolDefinitions } from '../tools/index.js';
 import { ShortCircuitExecutor } from './short-circuit-executor.js';
 import { detectLargeTask, decomposeTask as decomposeTaskLarge, convertToKanbanTasks, formatDecompositionReport } from './task-decomposer.js';
@@ -164,8 +165,12 @@ export class CentralOrchestratorV2 {
 				throw new Error('Orquestrador não inicializado corretamente');
 			}
 
-			// NOVO: Resetar estado de execução para nova tarefa
-			resetExecutionState(workDir);
+// NOVO: Resetar estado de execução para nova tarefa
+				resetExecutionState(workDir);
+
+				// NOVO: FASE -1.5: INJEÇÃO DE CONHECIMENTO (INJEST)
+				onProgress?.('📚 Verificando e injetando conhecimento (injest)...');
+				await injestKnowledge(workDir);
 
 			// FASE -1: SHORT-CIRCUIT para comandos simples e diretos
 			const shortCircuitResult = await this.shortCircuit.tryShortCircuit(userPrompt, workDir);
@@ -1451,7 +1456,7 @@ Retorne APENAS JSON array:
 		
 		// NOVO: Limitar replanejamentos a 2 por tarefa
 		const replanCount = subTask.metadata.replanCount || 0;
-		if (replanCount >= 2) {
+		if (replanCount >= 5) {
 			const { enhancedLogger } = await import('../utils/enhanced-logger.js');
 			enhancedLogger.warn('REPLAN', `Task ${subTask.id} exceeded replan limit (${replanCount})`, {
 				taskTitle: subTask.title
