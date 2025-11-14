@@ -218,14 +218,25 @@ export class ShortCircuitExecutor {
 
 	/**
 	 * Detectar e extrair parâmetros de slide_pdf
+	 * IMPORTANTE: Ser preciso para não confundir ebook com slides
 	 */
 	private matchSlidePDF(prompt: string): any | null {
 		const lowerPrompt = prompt.toLowerCase();
 		
-		// Verificar se é tarefa de slide/pdf/powerpoint - REGEX MAIS PERMISSIVO
-		const hasSlideKeyword = /slide|pdf|powerpoint|pptx|ebook.*slide|apresentação|usando.*slide|slide_pdf/i.test(lowerPrompt);
+		// CORREÇÃO: Ser mais preciso - detectar EXPLICITAMENTE slides/powerpoint
+		// NÃO confundir ebook simples com slide_pdf
+		const hasExplicitSlideKeyword = /slide|powerpoint|pptx|apresentação|slide_pdf/i.test(lowerPrompt);
+		const hasEbookKeyword = /ebook/i.test(lowerPrompt);
+		const hasPDFKeyword = /pdf/i.test(lowerPrompt);
 		
-		if (!hasSlideKeyword) {
+		// Se menciona ebook SEM mencionar slides/powerpoint, NÃO é short-circuit
+		// Deixar orquestração normal tratar para gerar ebook completo
+		if (hasEbookKeyword && !hasExplicitSlideKeyword) {
+			return null; // Deixar para orquestração normal gerar ebook
+		}
+		
+		// Só fazer short-circuit se for EXPLICITAMENTE slides/powerpoint
+		if (!hasExplicitSlideKeyword && !(/slide.*pdf|slide_pdf/i.test(lowerPrompt))) {
 			return null;
 		}
 		
@@ -238,8 +249,9 @@ export class ShortCircuitExecutor {
 		const formatMatch = prompt.match(/salve?\s+como\s+(pdf|pptx|powerpoint)/i);
 		const themeMatch = prompt.match(/tema[:\s]+([^\.]+)/i);
 		
-		// Se menciona slide_pdf ou slide/pdf, sempre processar
-		if (!titleMatch && !pagesMatch && !/slide.*pdf|slide_pdf/i.test(lowerPrompt)) {
+		// CORREÇÃO: Validar que temos informações suficientes
+		// Se menciona slide_pdf ou slide/pdf explicitamente, processar
+		if (!titleMatch && !pagesMatch && !/slide.*pdf|slide_pdf|powerpoint|pptx/i.test(lowerPrompt)) {
 			return null; // Informações insuficientes
 		}
 		

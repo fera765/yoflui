@@ -24,8 +24,21 @@ import {
 import { injestKnowledge } from '../injest-manager.js';
 import { getAllToolDefinitions } from '../tools/index.js';
 import { ShortCircuitExecutor } from './short-circuit-executor.js';
+import { ContentTypeAnalyzer, ContentTypeDecision } from './content-type-analyzer.js';
+import { RequirementsValidator } from './requirements-validator.js';
+import { ContentCompletenessChecker } from './content-completeness-checker.js';
+import { AutomaticReplanner } from './automatic-replanner.js';
+import { RequirementsGuarantor } from './requirements-guarantor.js';
+import { PostProcessor } from './post-processor.js';
 import { detectLargeTask, decomposeTask as decomposeTaskLarge, convertToKanbanTasks, formatDecompositionReport } from './task-decomposer.js';
 import { validateTaskCompletion, formatValidationReport } from './task-validator.js';
+import { ContinuousLearner } from './continuous-learner.js';
+import { ThemeManager } from './theme-manager.js';
+import { QualityDashboard } from './quality-dashboard.js';
+import { FeedbackAnalyzer } from './feedback-analyzer.js';
+import { ImageGenerator } from './image-generator.js';
+import { ImagePersistence } from './image-persistence.js';
+import { ImageStyleCustomizer } from './image-style-customizer.js';
 
 /**
  * ORQUESTRADOR CENTRAL V2 - FLUI AGI SUPERIOR
@@ -60,6 +73,19 @@ export class CentralOrchestratorV2 {
 	private outputOptimizer: OutputOptimizer;
 	private feedbackGenerator: FeedbackGenerator | null = null;
 	private shortCircuit: ShortCircuitExecutor;
+	private contentTypeAnalyzer: ContentTypeAnalyzer | null = null;
+	private requirementsValidator: RequirementsValidator | null = null;
+	private completenessChecker: ContentCompletenessChecker | null = null;
+	private automaticReplanner: AutomaticReplanner | null = null;
+	private requirementsGuarantor: RequirementsGuarantor | null = null;
+	private postProcessor: PostProcessor | null = null;
+	private continuousLearner: ContinuousLearner | null = null;
+	private themeManager: ThemeManager | null = null;
+	private qualityDashboard: QualityDashboard | null = null;
+	private feedbackAnalyzer: FeedbackAnalyzer | null = null;
+	private imageGenerator: ImageGenerator | null = null;
+	private imagePersistence: ImagePersistence | null = null;
+	private imageStyleCustomizer: ImageStyleCustomizer | null = null;
 	private taskIdCounter = 0;
 	private initialized = false;
 	private replanAttempts: Map<string, number> = new Map();
@@ -117,6 +143,26 @@ export class CentralOrchestratorV2 {
 				this.contentQualityValidator = new ContentQualityValidator(this.openai);
 			}
 			this.feedbackGenerator = new FeedbackGenerator(this.openai);
+			this.contentTypeAnalyzer = new ContentTypeAnalyzer(this.openai);
+			this.requirementsValidator = new RequirementsValidator(this.openai);
+			this.completenessChecker = new ContentCompletenessChecker(this.openai);
+			this.automaticReplanner = new AutomaticReplanner(this.openai);
+			this.requirementsGuarantor = new RequirementsGuarantor(this.openai);
+		this.postProcessor = new PostProcessor(
+			this.requirementsValidator,
+			this.completenessChecker,
+			this.automaticReplanner,
+			this.requirementsGuarantor
+		);
+		
+		// Inicializar módulos de aprendizado e monitoramento
+		this.continuousLearner = new ContinuousLearner(this.openai || undefined);
+		this.themeManager = new ThemeManager(this.openai || undefined);
+		this.qualityDashboard = new QualityDashboard();
+		this.feedbackAnalyzer = new FeedbackAnalyzer(this.openai || undefined);
+		this.imageGenerator = new ImageGenerator(this.openai || undefined);
+		this.imagePersistence = new ImagePersistence();
+		this.imageStyleCustomizer = new ImageStyleCustomizer(this.openai || undefined);
 
 			// Inicializar agentes especializados com callbacks
 			const toolCallback: ToolExecutionCallback = (toolExec) => {
@@ -671,7 +717,37 @@ INÍCIO: Leia package.json e src/ para entender a estrutura!`;
 			finalResult
 		);
 
-		// RESULTADO FINAL vem DEPOIS do Kanban completo
+		// FASE 7: POS-PROCESSAMENTO PARA QUALIDADE NOTA 10
+		if (this.postProcessor) {
+			onProgress?.('\n[POST-PROCESSOR] Iniciando pos-processamento para garantir qualidade nota 10...');
+			
+			try {
+				const contentType = intention.contentType || 'ebook';
+				const qualityAssessment = await this.postProcessor.processForQuality(
+					userPrompt,
+					finalResult,
+					contentType,
+					onProgress
+				);
+				
+				const qualityReport = this.postProcessor.formatQualityReport(qualityAssessment);
+				onProgress?.(qualityReport);
+				
+				if (qualityAssessment.score >= 80) {
+					const finalProcessedResult = this.outputOptimizer.generateExecutionSummary(
+						mainTask.title,
+						context.executionState.completedTasks.length,
+						context.executionState.totalSteps,
+						resourcesCreated,
+						qualityAssessment.finalContent
+					);
+					return finalProcessedResult;
+				}
+			} catch (error) {
+				console.error('[PostProcessor] Erro:', error);
+			}
+		}
+		
 		return optimizedSummary;
 	}
 

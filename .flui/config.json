@@ -1,0 +1,70 @@
+{
+  "version": "2.0.0",
+  "flui": {
+    "name": "Flui - Advanced AI Agent",
+    "description": "Agente de IA autônomo com aprendizado contínuo, templates temáticos e monitoramento de qualidade",
+    "mode": "agi",
+    "autonomy": "high"
+  },
+  "features": {
+    "continuousLearning": {
+      "enabled": true,
+      "description": "Sistema de aprendizado contínuo que melhora o flui automaticamente"
+    },
+    "themeManager": {
+      "enabled": true,
+      "defaultTheme": "corporativo",
+      "availableThemes": ["corporativo", "criativo", "minimalista", "vibrante", "classico"],
+      "description": "Sistema de templates temáticos customizáveis"
+    },
+    "qualityDashboard": {
+      "enabled": true,
+      "port": 3001,
+      "description": "Dashboard de monitoramento de qualidade em tempo real"
+    },
+    "feedbackAnalyzer": {
+      "enabled": true,
+      "description": "Análise contínua de feedback do usuário com recomendações automáticas"
+    },
+    "mcp": {
+      "pollinations": {
+        "enabled": true,
+        "description": "MCP Pollinations AI para geração de imagens",
+        "models": ["flux-pro", "flux-realism", "flux-anime", "flux-3d"],
+        "autoGenerate": true,
+        "canDisable": true
+      }
+    }
+  },
+  "mcp_servers": {
+    "pollinations": {
+      "command": "npx",
+      "args": ["@pollinations/model-context-protocol"],
+      "enabled": true,
+      "env": {
+        "POLLINATIONS_API_KEY": "free"
+      }
+    }
+  },
+  "performance": {
+    "maxConcurrentTasks": 5,
+    "taskTimeout": 300000,
+    "retryAttempts": 3,
+    "cachingEnabled": true
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "outputPath": "./logs"
+  },
+  "database": {
+    "type": "sqlite",
+    "path": "./.flui/flui.db",
+    "tables": [
+      "learning_records",
+      "feedback_history",
+      "quality_metrics",
+      "task_history"
+    ]
+  }
+}
