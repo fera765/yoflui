@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flui AGI - Apresentação Dinâmica</title>
+
+    <!-- CDN obrigatórios - manter exatamente assim -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+    <style>
+        /* Regra 3: Cada slide é uma section com 100vh */
+        .slide {
+            /* Dimensões para simular 16:9 em tela cheia */
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 4rem;
+            /* Regra 8: Quebra de página para PDF */
+            page-break-after: always;
+            /* Regra 4: Fundo escuro */
+            background-color: #050505;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Ajuste para 16:9 - centraliza o conteúdo em uma área de 16:9 */
+        .slide-content-area {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            /* Removido padding para ser aplicado no slide */
+        }
+
+        /* Regra 8: Manter cores e fundos na impressão */
+        @media print {
+            /* Configuração para A4 (210mm x 297mm) */
+            @page {
+                size: A4 landscape; /* A4 paisagem para simular 16:9 */
+                margin: 0;
+            }
+            .slide {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                background-color: #050505 !important;
+                width: 297mm; /* Largura A4 paisagem */
+                height: 210mm; /* Altura A4 paisagem */
+                padding: 10mm; /* Margem interna para o conteúdo */
+            }
+            /* Regra 8: Não exibir elementos de navegação no PDF */
+            .presentation-nav {
+                display: none !important;
+            }
+        }
+
+        /* Regra 4: Estilo Glassmorphism Neon */
+        .glass-card {
+            background: rgba(10, 10, 10, 0.7); /* Fundo escuro semi-transparente */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid;
+            border-image-slice: 1;
+            border-image-source: linear-gradient(to right, #00FFFF, #FF00FF); /* Borda neon sutil */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), 0 0 15px #00FFFF, 0 0 30px #FF00FF; /* Sombra e brilho neon */
+            transition: transform 0.3s ease-in-out;
+        }
+
+        /* Regra 4: Hover scales */
+        .glass-card:hover {
+            transform: scale(1.02);
+        }
+
+        /* Cores Neon */
+        .text-neon-cyan { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; }
+        .text-neon-pink { color: #FF00FF; text-shadow: 0 0 5px #FF00FF; }
+        .text-neon-purple { color: #8A2BE2; text-shadow: 0 0 5px #8A2BE2; }
+        .text-neon-green { color: #39FF14; text-shadow: 0 0 5px #39FF14; }
+
+        /* Estilo para a lista de bullets */
+        .bullet-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .bullet-list li {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
+        }
+
+        .bullet-list li::before {
+            content: "\f00c"; /* Ícone de check do Font Awesome */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-right: 1rem;
+            color: var(--bullet-color, #39FF14); /* Neon Green */
+            text-shadow: 0 0 5px var(--bullet-color, #39FF14);
+        }
+
+        /* Estilo para o ícone de fundo */
+        .bg-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40vh;
+            opacity: 0.05;
+            color: #00FFFF;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="bg-[#050505]">
+    <button id="start-presentation-button" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; padding: 15px 30px; background-color: #8A2BE2; color: white; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 0 20px #8A2BE2; font-size: 1.5rem; transition: all 0.3s ease;">Apresentar</button>
+    <button id="download-pdf-button" style="position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px; background-color: #39FF14; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 0 10px #39FF14;">Baixar PDF</button>
+
+    <!-- Área onde os slides serão renderizados -->
+    <div id="flui-slides-container">
+        <!-- COMENTÁRIO: Os slides serão inseridos aqui pelo JavaScript -->
+    </div>
+
+    <!-- Regra 15: Navegação visual (apenas no modo apresentação) -->
+    <div id="flui-presentation-nav" class="presentation-nav fixed bottom-4 right-4 z-50 flex space-x-4 opacity-0 transition-opacity duration-500">
+        <button id="prev-slide" class="p-3 rounded-full bg-gray-800/50 text-neon-cyan hover:bg-gray-700/70 disabled:opacity-30">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <button id="next-slide" class="p-3 rounded-full bg-gray-800/50 text-neon-cyan hover:bg-gray-700/70 disabled:opacity-30">
+            <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <script>
+
+        // Instruções rápidas para o usuário (Regra 79)
+        /*
+        INSTRUÇÕES RÁPIDAS:
+        1. COLE SEUS DADOS: Substitua o array 'slidesData' abaixo pelos seus dados.
+        2. RENDERIZAR: Chame flui.render(slidesData) no console ou no final do script.
+        3. APRESENTAR: Chame flui.startPresentation() para modo tela cheia e navegação por setas.
+        4. SALVAR PDF: Chame flui.downloadPDF() para abrir a janela de impressão e salvar como PDF.
+        */
+
+        // Regra 10: Exemplo de Entrada (slidesData)
+        // EXPANSÃO: Adicionado suporte para 'chart', 'table', 'box' e 'advanced_list'
+        const THEME_KEYWORD = "Emagrecimento"; // Variável para o tema principal
+        const slidesData = [
+    // Slide 1: Capa (Gatilho: Urgência, Novidade)
+    {
+        type: 'title',
+        title: 'O Segredo da Queima Rápida',
+        subtitle: '7 Dias para Desbloquear Seu Metabolismo e Perder até 5kg',
+        list: [
+            'Método Comprovado e Sem Restrições Malucas',
+            'O Fim do Efeito Sanfona',
+            'Seu Novo Corpo em Apenas Uma Semana'
+        ]
+    },
+    // Slide 2: A Dor (Gatilho: Medo/Dor)
+    {
+        type: 'box',
+        title: 'Você Está Cansado de Tentar?',
+        content: 'Se você já tentou de tudo, se frustrou com dietas restritivas e vive no ciclo vicioso do "efeito sanfona", este Ebook é a sua **última chance** de virar o jogo. Não é sua culpa, é o seu metabolismo bloqueado.',
+        icon: 'fa-solid fa-weight-scale',
+        color: 'pink'
+    },
+    // Slide 3: O Inimigo (Gatilho: Autoridade)
+    {
+        type: 'list',
+        title: 'O Inimigo Oculto: Metabolismo Bloqueado',
+        list: [
+            '**Mito 1: Contar Calorias é o Suficiente.** Foco na qualidade, não na quantidade.',
+            '**Mito 2: Cortar Carboidratos é a Solução.** Seu corpo precisa de energia inteligente.',
+            '**Mito 3: Exercício Extenuante Funciona.** O segredo está na intensidade, não na duração.'
+        ]
+    },
+    // Slide 4: O Método (Gatilho: Novidade)
+    {
+        type: 'list',
+        title: 'O Método 7D: A Chave do Desbloqueio',
+        list: [
+            '**Pilar 1: A Dieta Anti-Bloqueio:** Alimentos que ativam a queima de gordura.',
+            '**Pilar 2: O Movimento Inteligente:** Treinos curtos que aceleram o metabolismo.',
+            '**Pilar 3: A Mente Magra:** Controle do estresse e do sono para resultados duradouros.'
+        ]
+    },
+    // Slide 5: Pilar 1 - Tabela (Gatilho: Autoridade)
+    {
+        type: 'table',
+        title: 'Pilar 1: A Dieta Anti-Bloqueio',
+        color: 'green',
+        headers: ['Aceleradores (Coma Mais)', 'Bloqueadores (Coma Menos)'],
+        rows: [
+            ['Chá Verde, Pimenta, Gengibre', 'Açúcares, Farinhas Brancas'],
+            ['Proteínas Magras (Ovo, Frango)', 'Alimentos Processados'],
+            ['Gorduras Boas (Abacate, Azeite)', 'Refrigerantes e Sucos Industrializados']
+        ]
+    },
+    // Slide 6: Gráfico de Resultados (Gatilho: Prova Social)
+    {
+        type: 'chart',
+        title: 'Resultados Médios do Método 7D (Perda de Peso em Kg)',
+        color: 'cyan',
+        data: {
+            labels: ['Dia 1', 'Dia 3', 'Dia 5', 'Dia 7'],
+            values: [0.5, 1.8, 3.2, 4.5]
+        }
+    },
+    // Slide 7: Pilar 2 - Box (Gatilho: Urgência)
+    {
+        type: 'box',
+        title: 'Pilar 2: O Movimento Inteligente',
+        content: 'Esqueça horas na academia. **15 minutos de HIIT** (Treinamento Intervalado de Alta Intensidade) ativam seu metabolismo por até 48 horas. Acelere seus resultados com menos tempo!',
+        icon: 'fa-solid fa-bolt',
+        color: 'pink'
+    },
+    // Slide 8: Pilar 3 - Lista (Gatilho: Autoridade)
+    {
+        type: 'list',
+        title: 'Pilar 3: A Mente Magra',
+        list: [
+            '**A Regra do Sono 7/8:** Dormir de 7 a 8 horas regula os hormônios da fome (grelina e leptina).',
+            '**Mindful Eating:** Coma devagar, prestando atenção. Seu cérebro leva 20 minutos para registrar a saciedade.'
+        ]
+    },
+    // Slide 9: Plano de Ação 1 (Gatilho: Urgência)
+    {
+        type: 'table',
+        title: 'Plano de Ação 7 Dias: Dias 1 a 3 (Desbloqueio)',
+        color: 'purple',
+        headers: ['Dia', 'Foco Principal', 'Ação Imediata'],
+        rows: [
+            ['Dia 1', 'Hidratação e Detox', 'Beber 2L de água e eliminar açúcar.'],
+            ['Dia 2', 'Ativação Metabólica', 'Primeiro treino HIIT de 15 minutos.'],
+            ['Dia 3', 'Foco na Proteína', 'Aumentar a ingestão de proteínas magras.']
+        ]
+    },
+    // Slide 10: Plano de Ação 2 (Gatilho: Urgência)
+    {
+        type: 'table',
+        title: 'Plano de Ação 7 Dias: Dias 4 a 7 (Queima Rápida)',
+        color: 'purple',
+        headers: ['Dia', 'Foco Principal', 'Ação Imediata'],
+        rows: [
+            ['Dia 4', 'Gorduras Inteligentes', 'Adicionar abacate ou azeite extra virgem.'],
+            ['Dia 5', 'Descanso Ativo', 'Caminhada leve e foco no sono.'],
+            ['Dia 6', 'Recompensa Saudável', 'Refeição livre (moderada) para manter a mente magra.'],
+            ['Dia 7', 'Avaliação e Continuação', 'Pesar e planejar a próxima semana.']
+        ]
+    },
+    // Slide 11: Bônus (Gatilho: Escassez)
+    {
+        type: 'box',
+        title: 'BÔNUS EXCLUSIVO: Guia de Receitas Low-Carb',
+        content: 'Este bônus será removido em **48 horas**! Ele contém 20 receitas deliciosas e fáceis para manter seu metabolismo ativo após os 7 dias. **Aproveite agora!**',
+        icon: 'fa-solid fa-book-open',
+        color: 'pink'
+    },
+    // Slide 12: Depoimentos (Gatilho: Prova Social)
+    {
+        type: 'list',
+        title: 'O Que Dizem Nossos Leitores',
+        list: [
+            '**Maria S. (35 anos):** "Perdi 3kg na primeira semana e o melhor: sem passar fome! O método 7D é real." - *Gatilho de Prova Social*',
+            '**João P. (42 anos):** "Finalmente saí do efeito sanfona. O foco na mente magra foi o diferencial." - *Gatilho de Prova Social*'
+        ]
+    },
+    // Slide 13: CTA Final (Gatilho: Urgência/Preço)
+    {
+        type: 'title',
+        title: 'A Decisão é Sua. Seu Novo Corpo Te Espera.',
+        subtitle: 'Por Apenas R$9,99 (Preço de Lançamento)',
+        list: [
+            '**Aja Agora:** O preço de R$9,99 é por tempo limitado.',
+            '**Risco Zero:** Se não funcionar, você tentou pelo preço de um café.',
+            '**Transformação:** Comece sua jornada de 7 dias hoje mesmo.'
+        ]
+    },
+    // Slide 14: Página Final
+    {
+        type: 'title',
+        title: 'Obrigado por Confiar no Seu Potencial!',
+        subtitle: 'Siga o Plano. Transforme Sua Vida.',
+        list: [
+            'Dúvidas? Entre em contato conosco.',
+            'Compartilhe seus resultados nas redes sociais.'
+        ]
+    }
+];
+            // Slide 1: Título
+            {
+                title: "Viagem 5 Estrelas: O Guia do Viajante Autônomo",
+                subtitle: "Planejamento inteligente e experiências inesquecíveis com o Flui AGI.",
+                icon: "fas fa-plane",
+                bullets: [],
+                bgIcon: "fas fa-globe-americas",
+                cta: "",
+                content: []
+            },
+            // Slide 2: Box de Destaque (Planejamento)
+            {
+                title: "O Segredo do Roteiro Perfeito",
+                subtitle: "Não é sobre o destino, é sobre a jornada otimizada.",
+                icon: "fas fa-map-marked-alt",
+                bullets: [],
+                bgIcon: "fas fa-map-marked-alt",
+                cta: "",
+                content: [
+                    {
+                        type: "box",
+                        title: "Regra de Ouro: Otimização de Tempo",
+                        text: "Use o Flui AGI para analisar rotas, preços e avaliações em tempo real, economizando até 40% do tempo de planejamento.",
+                        icon: "fas fa-clock",
+                        color: "purple"
+                    }
+                ]
+            },
+            // Slide 3: Lista de Pilares
+            {
+                title: "Os 4 Pilares da Viagem Autônoma",
+                subtitle: "Tecnologia, Finanças, Saúde e Cultura.",
+                icon: "fas fa-list-check",
+                bullets: [
+                    "Finanças Inteligentes: Câmbio otimizado e cartões sem taxa.",
+                    "Saúde e Segurança: Seguro viagem e alertas de risco.",
+                    "Imersão Cultural: Guias de bolso e frases essenciais.",
+                    "Logística Autônoma: Check-in e reservas automáticas."
+                ],
+                bgIcon: "fas fa-list-check",
+                cta: "",
+                content: []
+            },
+            // Slide 4: Gráfico de Custos (Simulado)
+            {
+                title: "Distribuição de Custos (Viagem de 10 Dias)",
+                subtitle: "Onde seu dinheiro será melhor investido.",
+                icon: "fas fa-chart-pie",
+                bullets: [],
+                bgIcon: "fas fa-chart-pie",
+                cta: "",
+                content: [
+                    {
+                        type: "chart",
+                        title: "Orçamento (USD)",
+                        data: [
+                            { label: "Acomodação", value: 40 },
+                            { label: "Transporte", value: 20 },
+                            { label: "Alimentação", value: 25 },
+                            { label: "Passeios", value: 15 }
+                        ],
+                        color: "pink"
+                    }
+                ]
+            },
+            // Slide 5: Tabela de Documentos
+            {
+                title: "Checklist de Documentos Essenciais",
+                subtitle: "Não deixe nada para trás.",
+                icon: "fas fa-table",
+                bullets: [],
+                bgIcon: "fas fa-table",
+                cta: "",
+                content: [
+                    {
+                        type: "table",
+                        headers: ["Documento", "Status", "Localização"],
+                        rows: [
+                            ["Passaporte", "Válido", "Mochila de Mão"],
+                            ["Visto (se necessário)", "Aprovado", "Digital e Impresso"],
+                            ["Seguro Viagem", "Ativo", "E-mail e App"],
+                            ["Reservas de Hotel", "Confirmadas", "App Flui AGI"]
+                        ]
+                    }
+                ]
+            },
+            // Slide 6: Box de Destaque (Cultura)
+            {
+                title: "Imersão Cultural",
+                subtitle: "Viajar é aprender a viver de outras formas.",
+                icon: "fas fa-book-open",
+                bullets: [],
+                bgIcon: "fas fa-book-open",
+                cta: "",
+                content: [
+                    {
+                        type: "box",
+                        title: "Dica de Etiqueta Local",
+                        text: "Em muitos países asiáticos, é considerado rude apontar com o dedo. Use a mão inteira para indicar direções.",
+                        icon: "fas fa-hand-paper",
+                        color: "cyan"
+                    }
+                ]
+            },
+            // Slide 7: Gráfico de Avaliação (Simulado)
+            {
+                title: "Avaliação de Destinos (Score 0-100)",
+                subtitle: "Decisão baseada em dados e experiências de outros viajantes.",
+                icon: "fas fa-chart-bar",
+                bullets: [],
+                bgIcon: "fas fa-chart-bar",
+                cta: "",
+                content: [
+                    {
+                        type: "chart",
+                        title: "Score de Experiência",
+                        data: [
+                            { label: "Paris", value: 85 },
+                            { label: "Tóquio", value: 92 },
+                            { label: "Rio de Janeiro", value: 78 },
+                            { label: "Nova York", value: 88 }
+                        ],
+                        color: "purple"
+                    }
+                ]
+            },
+            // Slide 8: Lista de Ações Imediatas
+            {
+                title: "Ações Imediatas (Pré-Viagem)",
+                subtitle: "O que fazer nas próximas 48 horas.",
+                icon: "fas fa-bolt",
+                bullets: [
+                    "Ativar o roaming internacional ou comprar um chip local.",
+                    "Baixar mapas offline do destino no Google Maps.",
+                    "Informar o banco sobre as datas da viagem.",
+                    "Fazer o check-in online do voo."
+                ],
+                bgIcon: "fas fa-bolt",
+                cta: "",
+                content: []
+            },
+            // Slide 9: Tabela de Câmbio
+            {
+                title: "Câmbio Otimizado (Exemplo)",
+                subtitle: "A melhor taxa de conversão para sua moeda.",
+                icon: "fas fa-money-bill-wave",
+                bullets: [],
+                bgIcon: "fas fa-money-bill-wave",
+                cta: "",
+                content: [
+                    {
+                        type: "table",
+                        headers: ["Moeda", "Taxa (R$/1)", "Economia Estimada"],
+                        rows: [
+                            ["Dólar Americano", "5.20", "5%"],
+                            ["Euro", "5.60", "4%"],
+                            ["Iene Japonês", "0.035", "6%"]
+                        ]
+                    }
+                ]
+            },
+            // Slide 10: CTA Final
+            {
+                title: "Sua Próxima Aventura Espera!",
+                subtitle: "Clique abaixo para gerar seu roteiro autônomo.",
+                icon: "fas fa-rocket",
+                bullets: [],
+                bgIcon: "fas fa-rocket",
+                cta: "Gerar Roteiro de Viagem com Flui AGI",
+                content: []
+            }
+        ];
+            // Slide 1: Título
+            {
+                title: "Jornada 90 Dias: A Ciência da Transformação Corporal",
+                subtitle: "Seu guia definitivo para um emagrecimento sustentável e elegante.",
+                icon: "fas fa-weight-scale",
+                bullets: [],
+                bgIcon: "fas fa-heart-pulse",
+                cta: "",
+                content: []
+            },
+            // Slide 2: Box de Destaque (Mindset)
+            {
+                title: "O Poder da Consistência",
+                subtitle: "O sucesso não é um evento, é um hábito diário.",
+                icon: "fas fa-brain",
+                bullets: [],
+                bgIcon: "fas fa-brain",
+                cta: "",
+                content: [
+                    {
+                        type: "box",
+                        title: "Regra de Ouro: O Déficit Calórico",
+                        text: "Para perder peso, você deve consumir menos calorias do que gasta. A elegância do processo está na precisão e na sustentabilidade.",
+                        icon: "fas fa-fire",
+                        color: "green"
+                    }
+                ]
+            },
+            // Slide 3: Lista de Pilares
+            {
+                title: "Os 3 Pilares da Transformação",
+                subtitle: "Nutrição, Treino e Descanso: O tripé da saúde.",
+                icon: "fas fa-list-check",
+                bullets: [
+                    "Nutrição Inteligente: Foco em densidade nutricional e saciedade.",
+                    "Treino Otimizado: Combinação estratégica de força e cardio.",
+                    "Recuperação Ativa: A importância do sono e da gestão do estresse.",
+                    "Hidratação: O catalisador de todas as reações metabólicas."
+                ],
+                bgIcon: "fas fa-list-check",
+                cta: "",
+                content: []
+            },
+            // Slide 4: Gráfico de Progresso (Simulado)
+            {
+                title: "Progresso de Perda de Peso (Simulação)",
+                subtitle: "Acompanhe sua evolução ao longo das semanas.",
+                icon: "fas fa-chart-line",
+                bullets: [],
+                bgIcon: "fas fa-chart-line",
+                cta: "",
+                content: [
+                    {
+                        type: "chart",
+                        title: "Peso Perdido (Kg) - 90 Dias",
+                        data: [
+                            { label: "Sem. 1", value: 2.5 },
+                            { label: "Sem. 4", value: 5.0 },
+                            { label: "Sem. 8", value: 8.0 },
+                            { label: "Sem. 12", value: 10.0 }
+                        ],
+                        color: "green"
+                    }
+                ]
+            },
+            // Slide 5: Tabela de Macronutrientes
+            {
+                title: "Plano de Macronutrientes (Exemplo)",
+                subtitle: "A proporção ideal para otimizar a queima de gordura.",
+                icon: "fas fa-table",
+                bullets: [],
+                bgIcon: "fas fa-table",
+                cta: "",
+                content: [
+                    {
+                        type: "table",
+                        headers: ["Macronutriente", "Percentual Calórico", "Função Principal"],
+                        rows: [
+                            ["Proteínas", "30%", "Manutenção Muscular e Saciedade"],
+                            ["Gorduras Saudáveis", "30%", "Hormônios e Energia Sustentada"],
+                            ["Carboidratos Complexos", "40%", "Energia para Treino e Cérebro"]
+                        ]
+                    }
+                ]
+            },
+            // Slide 6: Box de Destaque (Hidratação)
+            {
+                title: "Hidratação e Metabolismo",
+                subtitle: "A água é o segredo não tão secreto.",
+                icon: "fas fa-droplet",
+                bullets: [],
+                bgIcon: "fas fa-droplet",
+                cta: "",
+                content: [
+                    {
+                        type: "box",
+                        title: "Otimização Metabólica",
+                        text: "Beber água gelada pode aumentar o gasto calórico diário. Mantenha-se hidratado para maximizar a lipólise.",
+                        icon: "fas fa-temperature-low",
+                        color: "cyan"
+                    }
+                ]
+            },
+            // Slide 7: Gráfico de Hábitos (Pontuação)
+            {
+                title: "Monitoramento de Hábitos (Score Semanal)",
+                subtitle: "Transforme hábitos em resultados mensuráveis.",
+                icon: "fas fa-chart-bar",
+                bullets: [],
+                bgIcon: "fas fa-chart-bar",
+                cta: "",
+                content: [
+                    {
+                        type: "chart",
+                        title: "Score de Consistência (0-100)",
+                        data: [
+                            { label: "Sem. 1", value: 65 },
+                            { label: "Sem. 2", value: 80 },
+                            { label: "Sem. 3", value: 90 },
+                            { label: "Sem. 4", value: 95 }
+                        ],
+                        color: "pink"
+                    }
+                ]
+            },
+            // Slide 8: Lista de Alimentos a Evitar
+            {
+                title: "Os Vilões Silenciosos",
+                subtitle: "Alimentos que sabotam sua jornada.",
+                icon: "fas fa-ban",
+                bullets: [
+                    "Açúcares Refinados (Refrigerantes, Doces).",
+                    "Gorduras Trans (Alimentos Processados).",
+                    "Álcool em Excesso (Calorias Vazias).",
+                    "Farinhas Brancas (Pães, Massas)."
+                ],
+                bgIcon: "fas fa-ban",
+                cta: "",
+                content: []
+            },
+            // Slide 9: Tabela de Metas de Treino
+            {
+                title: "Metas de Treino (Mensal)",
+                subtitle: "Construindo um corpo forte e funcional.",
+                icon: "fas fa-dumbbell",
+                bullets: [],
+                bgIcon: "fas fa-dumbbell",
+                cta: "",
+                content: [
+                    {
+                        type: "table",
+                        headers: ["Tipo de Treino", "Frequência Semanal", "Duração Média"],
+                        rows: [
+                            ["Força (Musculação)", "3-4 vezes", "60 minutos"],
+                            ["Cardio (HIIT/LISS)", "2-3 vezes", "30-45 minutos"],
+                            ["Flexibilidade/Mobilidade", "Diariamente", "10 minutos"]
+                        ]
+                    }
+                ]
+            },
+            // Slide 10: CTA Final
+            {
+                title: "Sua Transformação Começa Agora!",
+                subtitle: "Clique abaixo para iniciar sua Jornada 90 Dias.",
+                icon: "fas fa-rocket",
+                bullets: [],
+                bgIcon: "fas fa-rocket",
+                cta: "Iniciar Minha Jornada de Emagrecimento",
+                content: []
+            }
+        ];
+
+        // Regra 10: Objeto flui público
+        const flui = (function() {
+            // Mapeamento de temas para cores primárias e secundárias
+            const themeMap = {
+                "Finanças": { primary: "cyan", secondary: "pink", icon: "fas fa-robot" },
+                "Emagrecimento": { primary: "green", secondary: "cyan", icon: "fas fa-weight-scale" },
+                "Viagens": { primary: "purple", secondary: "pink", icon: "fas fa-plane" },
+                "Padrão": { primary: "cyan", secondary: "pink", icon: "fas fa-star" }
+            };
+
+            let currentTheme = themeMap["Padrão"];
+
+            // Função para definir o tema com base em uma palavra-chave
+            const setGlobalTheme = (keyword) => {
+                const theme = Object.keys(themeMap).find(key => keyword.includes(key)) || "Padrão";
+                currentTheme = themeMap[theme];
+            };
+
+            // Função auxiliar para obter a classe de cor neon
+            const getNeonClass = (colorName) => {
+                return `text-neon-${colorName}`;
+            };
+
+            // Função auxiliar para obter a classe de cor de fundo neon
+            const getBgNeonClass = (colorName) => {
+                return `bg-neon-${colorName}`;
+            };
+            let currentSlide = 0;
+            let totalSlides = 0;
+            const container = document.getElementById('flui-slides-container');
+            const nav = document.getElementById('flui-presentation-nav');
+
+            // Função auxiliar para criar elementos com classes
+            const createElement = (tag, classes = [], content = '') => {
+                const el = document.createElement(tag);
+                el.className = classes.join(' ');
+                el.innerHTML = content;
+                return el;
+            };
+
+            // EXPANSÃO: Função para renderizar o Box de Destaque
+            const renderBox = (data) => {
+                const colorClass = getNeonClass(data.color);
+                const boxEl = createElement('div', ['glass-card', 'p-8', 'mt-8', 'max-w-xl', 'mx-auto', 'text-left', 'rounded-xl', 'border-neon-cyan/50']);
+                
+                const header = createElement('div', ['flex', 'items-center', 'mb-4']);
+                const icon = createElement('i', ['text-3xl', 'mr-4', colorClass, data.icon]);
+                const title = createElement('h3', ['text-2xl', 'font-bold', colorClass], data.title);
+                
+                header.appendChild(icon);
+                header.appendChild(title);
+                boxEl.appendChild(header);
+                
+                const text = createElement('p', ['text-lg', 'text-gray-300'], data.text);
+                boxEl.appendChild(text);
+                
+                return boxEl;
+            };
+
+            // EXPANSÃO: Função para renderizar a Tabela
+            const renderTable = (data) => {
+                const tableEl = createElement('table', ['w-full', 'mt-8', 'text-left', 'border-collapse', 'rounded-xl', 'overflow-hidden', 'shadow-lg']);
+                
+                // Cabeçalho
+                const thead = createElement('thead', ['bg-gray-800/70', 'text-neon-cyan']);
+                const headerRow = createElement('tr');
+                data.headers.forEach(header => {
+                    const th = createElement('th', ['p-4', 'font-bold', 'uppercase', 'text-sm', 'border-b', 'border-neon-cyan/30'], header);
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                tableEl.appendChild(thead);
+                
+                // Corpo
+                const tbody = createElement('tbody', ['bg-gray-900/50', 'text-gray-200']);
+                data.rows.forEach(row => {
+                    const tr = createElement('tr', ['hover:bg-gray-800/50', 'transition-colors']);
+                    row.forEach((cell, index) => {
+                        const td = createElement('td', ['p-4', 'border-b', 'border-neon-pink/20'], cell);
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                tableEl.appendChild(tbody);
+                
+                return tableEl;
+            };
+
+            // EXPANSÃO: Função para renderizar o Gráfico (Barra Simples em CSS)
+            const renderChart = (data) => {
+                const chartContainer = createElement('div', ['mt-8', 'max-w-3xl', 'mx-auto', 'p-6', 'glass-card', 'rounded-xl', 'h-full']);
+                const chartTitle = createElement('h3', ['text-xl', 'font-bold', 'text-neon-cyan', 'mb-6', 'text-center', 'text-neon-cyan'], data.title);
+                chartContainer.appendChild(chartTitle);
+
+                const chartEl = createElement('div', ['flex', 'justify-around', 'items-end', 'h-full', 'space-x-4', 'pt-8', 'w-full']);
+                
+                // Encontrar o valor máximo para normalização
+                const maxVal = Math.max(...data.data.map(item => item.value));
+             const colorClass = getBgNeonClass(data.color);
+                const shadowClass = `shadow-neon-${data.color}/50`;
+
+                data.data.forEach(item => {
+                    const heightPercent = (item.value / maxVal) * 100;
+                    
+                    const barWrapper = createElement('div', ['flex', 'flex-col', 'items-center', 'w-1/4', 'relative', 'h-full', 'justify-end']);
+                    
+    const valueLabel = createElement('span', ['text-sm', 'font-bold', 'text-gray-200', 'mb-1', 'absolute', 'top-0', 'transform', '-translate-y-full'], `${item.value} Kg`);
+                    barWrapper.insertBefore(valueLabel, bar);
+
+                    const bar = createElement('div', ['w-full', 'rounded-t-lg', colorClass, shadowClass, 'shadow-lg', 'transition-all', 'duration-500', 'ease-out', 'hover:scale-y-105', 'transform']);
+                    bar.style.height = `${heightPercent}%`;
+                    bar.style.minHeight = '2px';
+                    barWrapper.appendChild(bar);
+
+                    const label = createElement('span', ['text-xs', 'text-gray-400', 'mt-2', 'text-center'], item.label);
+                    barWrapper.appendChild(label);
+
+                    chartEl.appendChild(barWrapper);
+                });
+
+                chartContainer.appendChild(chartEl);
+                return chartContainer;
+            };
+
+            // Regra 12: flui.render(slidesData)
+            const render = (data) => {
+                if (!container) return;
+                container.innerHTML = ''; // Limpa o container
+                totalSlides = data.length;
+
+                data.forEach((slide, index) => {
+                    const slideEl = createElement('section', ['slide', 'relative', 'z-10']);
+                    slideEl.id = `slide-${index}`;
+                    slideEl.style.display = index === 0 ? 'flex' : 'none'; // Mostra apenas o primeiro
+
+                    // Regra 4: Ícone de Fundo (bgIcon)
+                    if (slide.bgIcon) {
+                        const bgIconEl = createElement('i', ['bg-icon', slide.bgIcon]);
+                        slideEl.appendChild(bgIconEl);
+                    }
+
+                    const contentWrapper = createElement('div', ['slide-content-area', 'glass-card', 'max-w-4xl', 'w-full', 'z-10', 'rounded-xl']);
+
+                    // Título
+                    const titleEl = createElement('h1', ['text-5xl', 'lg:text-7xl', 'font-extrabold', 'mb-4', getNeonClass(currentTheme.primary), 'tracking-tight'], slide.title);
+                    contentWrapper.appendChild(titleEl);
+
+                    // Subtítulo
+                    if (slide.subtitle) {
+                        const subtitleEl = createElement('h2', ['text-2xl', 'lg:text-3xl', 'font-light', 'mb-8', 'text-gray-300', getNeonClass(currentTheme.secondary)], slide.subtitle);
+                        contentWrapper.appendChild(subtitleEl);
+                    }
+
+                    // Ícone Principal
+                    if (slide.icon) {
+                        const iconEl = createElement('i', ['text-7xl', 'lg:text-9xl', 'mb-8', getNeonClass(currentTheme.secondary), slide.icon]);
+                        contentWrapper.appendChild(iconEl);
+                    }
+
+                    // Bullets
+                    if (slide.bullets && slide.bullets.length > 0) {
+                        const ulEl = createElement('ul', ['bullet-list', 'mx-auto']);
+                        // Ajustar a cor do checkmark para a cor primária do tema
+                        ulEl.style.setProperty('--bullet-color', currentTheme.primary);
+                        slide.bullets.forEach(bullet => {
+                            const liEl = createElement('li', ['text-gray-100'], bullet);
+                            ulEl.appendChild(liEl);
+                        });
+                        contentWrapper.appendChild(ulEl);
+                    }
+
+                    // EXPANSÃO: Renderização de Conteúdo Complexo (chart, table, box)
+                    if (slide.content && slide.content.length > 0) {
+                        slide.content.forEach(item => {
+                            let contentEl = null;
+                            switch (item.type) {
+                                case 'box':
+                                    contentEl = renderBox(item);
+                                    break;
+                                case 'table':
+                                    contentEl = renderTable(item);
+                                    break;
+                                case 'chart':
+                                    contentEl = renderChart(item);
+                                    break;
+                                // Adicionar mais tipos aqui (ex: advanced_list)
+                            }
+                            if (contentEl) {
+                                contentWrapper.appendChild(contentEl);
+                            }
+                        });
+                    }
+
+                    // CTA
+                    if (slide.cta) {
+                        const ctaEl = createElement('button', ['mt-10', 'px-8', 'py-4', 'text-xl', 'font-bold', 'rounded-full', 'bg-gradient-to-r', `from-neon-${currentTheme.primary}`, `to-neon-${currentTheme.secondary}`, 'text-black', 'shadow-lg', `shadow-neon-${currentTheme.secondary}/50`, `hover:shadow-neon-${currentTheme.primary}/70`, 'transition-all', 'duration-300'], slide.cta);
+                        contentWrapper.appendChild(ctaEl);
+                    }
+
+                    slideEl.appendChild(contentWrapper);
+                    container.appendChild(slideEl);
+                });
+
+                // Inicializa a navegação após a renderização
+                updateNavigation();
+            };
+
+            // Lógica de navegação
+            const showSlide = (index) => {
+                if (index >= 0 && index < totalSlides) {
+                    const slides = container.querySelectorAll('.slide');
+                    slides[currentSlide].style.display = 'none';
+                    currentSlide = index;
+                    slides[currentSlide].style.display = 'flex';
+                    updateNavigation();
+                }
+            };
+
+            const nextSlide = () => showSlide(currentSlide + 1);
+            const prevSlide = () => showSlide(currentSlide - 1);
+
+            const updateNavigation = () => {
+                const prevBtn = document.getElementById('prev-slide');
+                const nextBtn = document.getElementById('next-slide');
+                if (prevBtn) prevBtn.disabled = currentSlide === 0;
+                if (nextBtn) nextBtn.disabled = currentSlide === totalSlides - 1;
+            };
+
+            // Regra 14: flui.startPresentation()
+            const startPresentation = () => {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+                    document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) { /* IE11 */
+                    document.documentElement.msRequestFullscreen();
+                }
+
+                // Mostra a navegação
+                if (nav) nav.style.opacity = '1';
+
+                // Navegação via setas/teclas
+                document.onkeydown = (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        prevSlide();
+                    } else if (e.key === 'Escape') {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                        if (nav) nav.style.opacity = '0';
+                        document.onkeydown = null; // Remove o listener
+                    }
+                };
+            };
+
+            // Regra 13: flui.downloadPDF()
+            const downloadPDF = () => {
+                // Esconde a navegação antes de imprimir
+                if (nav) nav.style.opacity = '0';
+                
+                // Mostra todos os slides para a impressão
+                container.querySelectorAll('.slide').forEach(slide => {
+                    slide.style.display = 'flex';
+                });
+
+                // Dispara a janela de impressão
+                window.print();
+
+                // Após a impressão (ou cancelamento), volta ao estado normal
+                setTimeout(() => {
+                    container.querySelectorAll('.slide').forEach((slide, index) => {
+                        slide.style.display = index === currentSlide ? 'flex' : 'none';
+                    });
+                    if (nav && document.fullscreenElement) nav.style.opacity = '1';
+                }, 1000); // Pequeno delay para garantir que a impressão seja disparada
+            };
+
+            // Event Listeners para botões de navegação
+            document.getElementById('prev-slide')?.addEventListener('click', prevSlide);
+            document.getElementById('next-slide')?.addEventListener('click', nextSlide);
+
+            // Regra 11: Retorno público
+            return {
+                render,
+                downloadPDF,
+                startPresentation,
+                nextSlide, // EXPANSÃO: Adicionar as funções nextSlide e prevSlide ao objeto flui público
+                prevSlide,  // EXPANSÃO: Adicionar as funções nextSlide e prevSlide ao objeto flui público
+                setGlobalTheme // EXPANSÃO: Adicionar a função setGlobalTheme ao objeto flui público
+            };
+        })();
+        window.flui = flui;
+
+        // Adicionar listener ao botão de apresentação
+        document.getElementById('start-presentation-button').addEventListener('click', () => {
+            console.log("Botão Apresentar clicado. Tentando iniciar a apresentação...");
+            flui.startPresentation();
+            document.getElementById('start-presentation-button').style.display = 'none';
+        });
+
+        document.getElementById('download-pdf-button').addEventListener('click', () => {
+            flui.downloadPDF();
+        });
+
+        // Inicializa o tema e a renderização com os dados de exemplo
+        window.flui.setGlobalTheme(THEME_KEYWORD);
+        window.flui.render(slidesData);
+
+// Regra 15: Navegação por teclado (Correção para usar flui.nextSlide e flui.prevSlide)
+        document.addEventListener('keydown', (e) => {
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                if (e.key === 'ArrowRight') {
+                    window.flui.nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    window.flui.prevSlide();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
