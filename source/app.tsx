@@ -394,7 +394,7 @@ export default function App() {
 			return;
 		}
 		
-		if (txt.startsWith('/') && txt.split(' ').length === 1) {
+			if (txt.startsWith('/')) {
 			selectCmd(txt);
 			return;
 		}
