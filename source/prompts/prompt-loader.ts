@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 interface PromptTemplate {
     name: string;
@@ -35,7 +36,9 @@ export function loadSystemPrompts(): SystemPrompts {
     if (systemPrompts) return systemPrompts;
     
     try {
-        const promptsPath = join(process.cwd(), 'prompts', 'system-prompts.json');
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
+        const promptsPath = join(__dirname, '..', '..', 'prompts', 'system-prompts.json');
         const content = readFileSync(promptsPath, 'utf-8');
         systemPrompts = JSON.parse(content);
         return systemPrompts!;
@@ -52,7 +55,7 @@ export function loadUIMessages(): UIMessages {
     if (uiMessages) return uiMessages;
     
     try {
-        const messagesPath = join(process.cwd(), 'prompts', 'ui-messages.json');
+        const messagesPath = join(__dirname, '..', '..', 'prompts', 'ui-messages.json');
         const content = readFileSync(messagesPath, 'utf-8');
         uiMessages = JSON.parse(content);
         return uiMessages!;

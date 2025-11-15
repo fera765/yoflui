@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "tsx source/cli.tsx",
-    "dev": "tsx watch source/cli.tsx",
+    "dev": "tsx source/cli.tsx",
     "build": "tsc",
     "test": "tsx source/cli.tsx --prompt"
   },
