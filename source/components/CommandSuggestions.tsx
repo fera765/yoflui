@@ -22,9 +22,10 @@ export const CommandSuggestions: React.FC<Props> = React.memo(({ onSelect }) => 
 			setSelectedIndex(prev => Math.max(0, prev - 1));
 		} else if (key.downArrow) {
 			setSelectedIndex(prev => Math.min(COMMANDS.length - 1, prev + 1));
-		} else if (key.return) {
-			onSelect(COMMANDS[selectedIndex].cmd);
-		}
+			} else if (key.return) {
+				onSelect(COMMANDS[selectedIndex].cmd);
+				return true; // Stop propagation of the Enter key
+			}
 	});
 	
 	return (

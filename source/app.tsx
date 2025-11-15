@@ -91,10 +91,10 @@ export default function App() {
 		}
 		
 		// Prevent Enter from submitting when selector is open
-		if (key.return && (showAutomations || cmds)) {
-			// Let the selector handle it, don't submit
-			return;
-		}
+			if (key.return && (showAutomations || cmds)) {
+				// Let the selector handle it, don't submit
+				return;
+			}
 	});
 	
 	const changeInput = useCallback((val: string) => {
