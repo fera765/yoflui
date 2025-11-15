@@ -84,11 +84,12 @@ export default function App() {
 	useInput((_, key) => {
 		if (screen !== 'chat') return;
 		
-		if (key.escape) {
-			setInput('');
-			setCmds(false);
-			setShowAutomations(false);
-		}
+			if (key.escape) {
+				setInput('');
+				setCmds(false);
+				setShowAutomations(false);
+				return;
+			}
 		
 		// Prevent Enter from submitting when selector is open
 			if (key.return && (showAutomations || cmds)) {
@@ -395,9 +396,13 @@ export default function App() {
 		}
 		
 			if (txt.startsWith('/')) {
-			selectCmd(txt);
-			return;
-		}
+				// Comando completo (ex: /llm)
+				selectCmd(txt);
+				setInput(''); // Limpa o input após a execução do comando
+				setCmds(false);
+				setShowAutomations(false);
+				return;
+			}
 		
 		setInput('');
 		setCmds(false);
