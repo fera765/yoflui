@@ -386,7 +386,10 @@ export default function App() {
 			return;
 		}
 		
-		if (!input.trim() || busy) return;
+			if (!input.trim() || busy) {
+				// Consumir o Enter mesmo se o input estiver vazio para evitar o reinício do tsx watch
+				return;
+			}
 		
 		const txt = input.trim();
 		

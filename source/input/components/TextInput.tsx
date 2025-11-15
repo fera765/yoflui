@@ -56,23 +56,24 @@ export function TextInput({
 			if (!buffer || !isActive) return;
 			
 			// Submit on Enter (unless prevented)
-			if (keyMatchers[Command.SUBMIT](key) || key.name === 'return') {
-				if (multiline) {
-					// In multiline, backslash + enter = newline, plain enter = submit
-					const [row, col] = buffer.cursor;
-					const line = buffer.lines[row];
-					const charBefore = col > 0 ? cpSlice(line, col - 1, col) : '';
-					if (charBefore === '\\') {
-						buffer.backspace();
-						buffer.newline();
+				if (keyMatchers[Command.SUBMIT](key) || key.name === 'return') {
+					if (multiline) {
+						// In multiline, backslash + enter = newline, plain enter = submit
+						const [row, col] = buffer.cursor;
+						const line = buffer.lines[row];
+						const charBefore = col > 0 ? cpSlice(line, col - 1, col) : '';
+						if (charBefore === '\\') {
+							buffer.backspace();
+							buffer.newline();
+						} else {
+							handleSubmit();
+						}
 					} else {
 						handleSubmit();
 					}
-				} else {
-					handleSubmit();
+					// Return true to stop propagation of the Enter key, which is the likely cause of tsx watch restart
+					return true;
 				}
-				return;
-			}
 			
 			// Multiline newline (Shift+Enter or Meta+Enter)
 			if (multiline && keyMatchers[Command.NEWLINE](key)) {
