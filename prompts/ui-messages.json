@@ -1,0 +1,79 @@
+{
+  "automation": {
+    "start": {
+      "icon": "🚀",
+      "template": "{{icon}} Starting automation: {{name}} - {{description}}",
+      "color": "blue",
+      "variables": {
+        "name": "Automation name",
+        "description": "Automation description"
+      }
+    },
+    "complete": {
+      "icon": "✅",
+      "template": "{{icon}} Automation completed in {{duration}}s - {{summary}}",
+      "color": "green",
+      "variables": {
+        "duration": "Duration in seconds",
+        "summary": "Summary of results"
+      }
+    },
+    "tool_success": {
+      "icon": "✓",
+      "template": "{{icon}} Tool executed successfully: {{tool_name}}",
+      "color": "green",
+      "variables": {
+        "tool_name": "Name of the tool"
+      }
+    },
+    "tool_error": {
+      "icon": "✗",
+      "template": "{{icon}} Tool execution failed: {{tool_name}} - {{error}}",
+      "color": "red",
+      "variables": {
+        "tool_name": "Name of the tool",
+        "error": "Error message"
+      }
+    },
+    "webhook_setup": {
+      "icon": "🔗",
+      "template": "{{icon}} Webhook configured:\nURL: {{url}}\nMethod: {{method}}\n{{auth_info}}\nPayload Schema:\n{{payload_schema}}",
+      "color": "blue",
+      "variables": {
+        "url": "Webhook URL",
+        "method": "HTTP method",
+        "auth_info": "Authentication information",
+        "payload_schema": "JSON schema for payload"
+      }
+    },
+    "webhook_triggered": {
+      "icon": "📥",
+      "template": "{{icon}} Webhook triggered - executing automation",
+      "color": "yellow",
+      "variables": {}
+    }
+  },
+  "tool_descriptions": {
+    "write_file": "📝 Writing file",
+    "read_file": "📖 Reading file",
+    "list_files": "📂 Listing files",
+    "search_youtube_comments": "🔍 Searching YouTube comments",
+    "execute_shell": "⚙️ Executing shell command",
+    "update_kanban": "📋 Updating kanban board",
+    "save_memory": "💾 Saving to memory",
+    "recall_memory": "🧠 Recalling from memory",
+    "web_search": "🌐 Searching the web",
+    "scrape_webpage": "🕷️ Scraping webpage",
+    "send_http_request": "📡 Sending HTTP request"
+  },
+  "progress": {
+    "analyzing": "🔍 Analyzing...",
+    "processing": "⚙️ Processing...",
+    "generating": "✨ Generating...",
+    "validating": "✓ Validating...",
+    "saving": "💾 Saving...",
+    "loading": "📥 Loading...",
+    "searching": "🔎 Searching...",
+    "complete": "✅ Complete"
+  }
+}
