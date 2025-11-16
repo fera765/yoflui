@@ -39,6 +39,8 @@
     "pdf-lib": "^1.17.1",
     "pptxgenjs": "^4.0.1",
     "puppeteer": "^24.29.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "scrape-youtube": "^2.4.0",
