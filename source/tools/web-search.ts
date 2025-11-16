@@ -1,11 +1,7 @@
-import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
+import { CheerioCrawler, Request } from 'crawlee';
 import * as cheerio from 'cheerio';
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import type { Browser, Page } from 'puppeteer';
 
-// Add stealth plugin to avoid detection
-puppeteer.use(StealthPlugin());
+
 
 export interface SearchResult {
 	title: string;
@@ -22,7 +18,7 @@ export const webSearchToolDefinition = {
 	type: 'function' as const,
 	function: {
 		name: 'web_search',
-		description: 'Search the web using Google search engine. Returns results with title, description, and URL. Uses advanced stealth techniques and fallback APIs to bypass blocking.',
+		description: 'Search the web using Google search engine. Returns results with title, description, and URL. Uses Crawlee CheerioCrawler with proxy and session management to avoid blocking.',
 		parameters: {
 			type: 'object',
 			properties: {
@@ -44,12 +40,10 @@ export const webSearchToolDefinition = {
 };
 
 /**
- * Random delay to simulate human behavior
+ * Free proxy list - will be rotated by Crawlee's ProxyConfiguration
+ * Note: Free proxies may be unreliable. For production, use paid proxy services.
  */
-function randomDelay(min: number = 500, max: number = 2000): Promise<void> {
-	const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-	return new Promise(resolve => setTimeout(resolve, delay));
-}
+
 
 /**
  * Parse Google search results from HTML
@@ -170,164 +164,57 @@ function parseGoogleResults(html: string, maxResults: number = 10): SearchResult
 }
 
 /**
- * Search using free SERP API as fallback
+ * Search Google using Crawlee CheerioCrawler
  */
-async function searchWithFallbackAPI(query: string, maxResults: number = 10): Promise<SearchResult[]> {
-	try {
-		// Using Google's own search API endpoint (no key required for basic searches)
-		const encodedQuery = encodeURIComponent(query);
-		const url = `https://www.google.com/complete/search?q=${encodedQuery}&cp=0&client=gws-wiz&xssi=t&hl=en`;
+async function searchGoogleWithCrawlee(query: string, maxResults: number = 10): Promise<SearchResult[]> {
+	const encodedQuery = encodeURIComponent(query);
+	const url = `https://www.google.com/search?q=${encodedQuery}&hl=en&num=${Math.min(maxResults, 20)}`;
+	
+	const results: SearchResult[] = [];
+	// 1. Configure CheerioCrawler
+	const crawler = new CheerioCrawler({
+		// Set max requests per crawl to 1 (we only need the first page)
+		maxRequestsPerCrawl: 1,
+		requestHandlerTimeoutSecs: 30,
 		
-		// This is a simple fallback - in production, use a proper SERP API
-		// For now, return empty array to indicate fallback didn't work
-		return [];
-	} catch (error) {
-		return [];
-	}
+		// Handle successful requests
+		async requestHandler({ $, request, response, session }) {
+			// Check for blocking indicators
+			const html = $.html();
+			if (html.includes('unusual traffic') || 
+			    html.includes('captcha') ||
+			    html.length < 10000) {
+			throw new Error('Google blocking detected (CheerioCrawler)');
+			}
+			
+			// Parse results
+			const parsedResults = parseGoogleResults(html, maxResults);
+			results.push(...parsedResults);
+		},
+		
+			// Handle failed requests (e.g., 403, 429, network errors)
+			async failedRequestHandler({ request, error }) {
+				// Crawlee automatically retries based on maxRequestRetries
+				console.error(`Request failed for ${request.url}: ${error.message}`);
+			},
+		
+		// Set max retries for a single request
+		maxRequestRetries: 3,
+		
+		// Set max concurrency to 1 to avoid overwhelming the sandbox or Google
+		maxConcurrency: 1,
+	});
+	
+	// 4. Run the crawler
+	await crawler.run([
+		new Request({ url, uniqueKey: query }),
+	]);
+	
+	return results;
 }
 
 /**
- * Search Google using Puppeteer with stealth plugin
- */
-async function searchGoogleWithStealth(query: string, maxResults: number = 10): Promise<SearchResult[]> {
-	let browser: Browser | null = null;
-	let page: Page | null = null;
-	
-	try {
-		const encodedQuery = encodeURIComponent(query);
-		const url = `https://www.google.com/search?q=${encodedQuery}&hl=en&num=${Math.min(maxResults, 20)}`;
-		
-		// Launch browser with stealth
-		browser = await puppeteer.launch({
-			headless: true,
-			args: [
-				'--no-sandbox',
-				'--disable-setuid-sandbox',
-				'--disable-dev-shm-usage',
-				'--disable-accelerated-2d-canvas',
-				'--disable-gpu',
-				'--window-size=1920,1080',
-				'--disable-blink-features=AutomationControlled',
-				'--disable-features=IsolateOrigins,site-per-process',
-			],
-		});
-		
-		page = await browser.newPage();
-		
-		// Set realistic viewport
-		await page.setViewport({ width: 1920, height: 1080 });
-		
-		// Set extra headers
-		await page.setExtraHTTPHeaders({
-			'Accept-Language': 'en-US,en;q=0.9',
-			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-		});
-		
-		// Navigate with realistic behavior
-		await page.goto(url, {
-			waitUntil: 'domcontentloaded',
-			timeout: 30000,
-		});
-		
-		// Wait for results to load
-		await randomDelay(2000, 3000);
-		
-		// Try to wait for search results container
-		try {
-			await page.waitForSelector('#search, #rso, div.g', { timeout: 5000 });
-		} catch (e) {
-			// Continue anyway
-		}
-		
-		// Get HTML content
-		const html = await page.content();
-		
-		// Check for blocking
-		if (html.includes('unusual traffic') || 
-		    html.includes('detected unusual') ||
-		    html.length < 10000) {
-			throw new Error('Google blocking detected');
-		}
-		
-		// Parse results
-		const results = parseGoogleResults(html, maxResults);
-		
-		return results;
-		
-	} finally {
-		if (page) {
-			try {
-				await page.close();
-			} catch (e) {
-				// Ignore
-			}
-		}
-		if (browser) {
-			try {
-				await browser.close();
-			} catch (e) {
-				// Ignore
-			}
-		}
-	}
-}
-
-/**
- * Search Google with retry and fallback logic
- */
-async function searchGoogle(query: string, maxResults: number = 10): Promise<SearchResult[]> {
-	const maxAttempts = 2; // Reduced attempts to avoid long waits
-	let lastError: Error | null = null;
-	
-	// Try with stealth Puppeteer first
-	for (let attempt = 0; attempt < maxAttempts; attempt++) {
-		try {
-			if (attempt > 0) {
-				await randomDelay(3000, 5000);
-			}
-			
-			const results = await searchGoogleWithStealth(query, maxResults);
-			
-			if (results.length > 0) {
-				return results;
-			}
-			
-			// No results but no error
-			if (attempt === maxAttempts - 1) {
-				// Try fallback API
-				const fallbackResults = await searchWithFallbackAPI(query, maxResults);
-				if (fallbackResults.length > 0) {
-					return fallbackResults;
-				}
-				return [];
-			}
-			
-			lastError = new Error('No results found');
-			
-		} catch (error) {
-			lastError = error instanceof Error ? error : new Error(String(error));
-			
-			if (attempt < maxAttempts - 1) {
-				continue;
-			}
-		}
-	}
-	
-	// If all attempts failed, try fallback API one last time
-	try {
-		const fallbackResults = await searchWithFallbackAPI(query, maxResults);
-		if (fallbackResults.length > 0) {
-			return fallbackResults;
-		}
-	} catch (e) {
-		// Ignore fallback errors
-	}
-	
-	throw lastError || new Error('Google search failed after all attempts');
-}
-
-/**
- * Execute web search tool - Google with stealth and fallback
+ * Execute web search tool - Google with Crawlee
  */
 export async function executeWebSearchTool(
 	query: string,
@@ -336,7 +223,7 @@ export async function executeWebSearchTool(
 	try {
 		const limit = Math.min(Math.max(1, maxResults), 20);
 		
-		const results = await searchGoogle(query, limit);
+		const results = await searchGoogleWithCrawlee(query, limit);
 		
 		return JSON.stringify({
 			query,

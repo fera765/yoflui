@@ -1,0 +1,9 @@
+{
+	"id": "OA0w8vkfwSBHa4q",
+	"json": "{\"id\":\"OA0w8vkfwSBHa4q\",\"url\":\"https://www.google.com/search?q=typescript%20web%20scraping&hl=en&num=5\",\"loadedUrl\":\"https://www.google.com/search?q=typescript%20web%20scraping&hl=en&num=5\",\"uniqueKey\":\"typescript web scraping\",\"method\":\"GET\",\"noRetry\":false,\"retryCount\":0,\"errorMessages\":[],\"headers\":{},\"userData\":{\"__crawlee\":{\"state\":4}},\"handledAt\":\"2025-11-16T09:38:57.611Z\"}",
+	"method": "GET",
+	"orderNo": null,
+	"retryCount": 0,
+	"uniqueKey": "typescript web scraping",
+	"url": "https://www.google.com/search?q=typescript%20web%20scraping&hl=en&num=5"
+}
