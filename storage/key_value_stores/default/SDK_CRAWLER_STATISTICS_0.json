@@ -1,27 +1,77 @@
 {
-  "requestsFinished": 1,
-  "requestsFailed": 0,
-  "requestsRetries": 0,
-  "requestsFailedPerMinute": 0,
-  "requestsFinishedPerMinute": 137,
-  "requestMinDurationMillis": 360,
-  "requestMaxDurationMillis": 360,
-  "requestTotalFailedDurationMillis": 0,
-  "requestTotalFinishedDurationMillis": 360,
-  "crawlerStartedAt": "2025-11-16T09:38:57.222Z",
-  "crawlerFinishedAt": "2025-11-16T09:38:57.631Z",
-  "statsPersistedAt": "2025-11-16T09:38:57.631Z",
-  "crawlerRuntimeMillis": 438,
-  "crawlerLastStartTimestamp": 1763285937193,
+  "requestsFinished": 0,
+  "requestsFailed": 1,
+  "requestsRetries": 1,
+  "requestsFailedPerMinute": 1,
+  "requestsFinishedPerMinute": 0,
+  "requestMinDurationMillis": null,
+  "requestMaxDurationMillis": 0,
+  "requestTotalFailedDurationMillis": 4123,
+  "requestTotalFinishedDurationMillis": 0,
+  "crawlerStartedAt": "2025-11-16T09:45:45.550Z",
+  "crawlerFinishedAt": "2025-11-16T09:46:29.961Z",
+  "statsPersistedAt": "2025-11-16T09:46:29.961Z",
+  "crawlerRuntimeMillis": 44431,
+  "crawlerLastStartTimestamp": 1763286345530,
   "requestRetryHistogram": [
+    null,
+    null,
+    null,
     1
   ],
   "statsId": 0,
-  "requestAvgFailedDurationMillis": null,
-  "requestAvgFinishedDurationMillis": 360,
-  "requestTotalDurationMillis": 360,
+  "requestAvgFailedDurationMillis": 4123,
+  "requestAvgFinishedDurationMillis": null,
+  "requestTotalDurationMillis": 4123,
   "requestsTotal": 1,
   "requestsWithStatusCode": {},
-  "errors": {},
-  "retryErrors": {}
+  "errors": {
+    "file:///home/ubuntu/yoflui/node_modules/got/dist/source/core/index.js:200:21": {
+      "ECONNRESET": {
+        "RequestError": {
+          "socket hang up": {
+            "count": 1
+          }
+        }
+      }
+    },
+    "node:_http_client:542:25": {
+      "ECONNRESET": {
+        "Error": {
+          "socket hang up": {
+            "count": 1
+          }
+        }
+      }
+    }
+  },
+  "retryErrors": {
+    "file:///home/ubuntu/yoflui/node_modules/got/dist/source/core/index.js:200:21": {
+      "ECONNRESET": {
+        "RequestError": {
+          "socket hang up": {
+            "count": 2
+          }
+        }
+      }
+    },
+    "node:_http_client:542:25": {
+      "ECONNRESET": {
+        "Error": {
+          "socket hang up": {
+            "count": 2
+          }
+        }
+      }
+    },
+    "/home/ubuntu/yoflui/node_modules/@apify/src/index.ts:88:74": {
+      "missing error code": {
+        "Error": {
+          "request timed out after 30 seconds.": {
+            "count": 1
+          }
+        }
+      }
+    }
+  }
 }

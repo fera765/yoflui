@@ -1,4 +1,4 @@
-import { CheerioCrawler, Request } from 'crawlee';
+import { CheerioCrawler, Request, ProxyConfiguration } from 'crawlee';
 import * as cheerio from 'cheerio';
 
 
@@ -13,6 +13,21 @@ export interface WebSearchOptions {
 	query: string;
 	maxResults?: number;
 }
+
+/**
+ * Free proxy list - will be rotated by Crawlee's ProxyConfiguration
+ * Note: Free proxies may be unreliable. For production, use paid proxy services.
+ */
+const FREE_PROXIES = [
+	'http://103.149.162.194:80',
+	'http://45.79.159.226:8080',
+	'http://138.68.60.8:8080',
+	'http://51.159.24.172:3169',
+	'http://47.74.152.29:8888',
+	'http://165.227.71.60:8080',
+	'http://20.111.54.16:8123',
+	'http://8.219.97.248:80',
+];
 
 export const webSearchToolDefinition = {
 	type: 'function' as const,
@@ -171,10 +186,17 @@ async function searchGoogleWithCrawlee(query: string, maxResults: number = 10): 
 	const url = `https://www.google.com/search?q=${encodedQuery}&hl=en&num=${Math.min(maxResults, 20)}`;
 	
 	const results: SearchResult[] = [];
-	// 1. Configure CheerioCrawler
+	// 1. Configure Proxy
+	const proxyConfiguration = new ProxyConfiguration({
+		proxyUrls: FREE_PROXIES,
+		// Crawlee will automatically rotate and manage proxies
+	});
+
+	// 2. Configure CheerioCrawler
 	const crawler = new CheerioCrawler({
 		// Set max requests per crawl to 1 (we only need the first page)
 		maxRequestsPerCrawl: 1,
+		proxyConfiguration,
 		requestHandlerTimeoutSecs: 30,
 		
 		// Handle successful requests
