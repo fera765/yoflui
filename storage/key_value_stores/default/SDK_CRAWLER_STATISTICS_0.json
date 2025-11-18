@@ -2,17 +2,17 @@
   "requestsFinished": 0,
   "requestsFailed": 1,
   "requestsRetries": 1,
-  "requestsFailedPerMinute": 1,
+  "requestsFailedPerMinute": 2,
   "requestsFinishedPerMinute": 0,
   "requestMinDurationMillis": null,
   "requestMaxDurationMillis": 0,
-  "requestTotalFailedDurationMillis": 4123,
+  "requestTotalFailedDurationMillis": 4391,
   "requestTotalFinishedDurationMillis": 0,
-  "crawlerStartedAt": "2025-11-16T09:45:45.550Z",
-  "crawlerFinishedAt": "2025-11-16T09:46:29.961Z",
-  "statsPersistedAt": "2025-11-16T09:46:29.961Z",
-  "crawlerRuntimeMillis": 44431,
-  "crawlerLastStartTimestamp": 1763286345530,
+  "crawlerStartedAt": "2025-11-18T17:36:37.951Z",
+  "crawlerFinishedAt": "2025-11-18T17:37:03.842Z",
+  "statsPersistedAt": "2025-11-18T17:37:03.842Z",
+  "crawlerRuntimeMillis": 25919,
+  "crawlerLastStartTimestamp": 1763487397923,
   "requestRetryHistogram": [
     null,
     null,
@@ -20,9 +20,9 @@
     1
   ],
   "statsId": 0,
-  "requestAvgFailedDurationMillis": 4123,
+  "requestAvgFailedDurationMillis": 4391,
   "requestAvgFinishedDurationMillis": null,
-  "requestTotalDurationMillis": 4123,
+  "requestTotalDurationMillis": 4391,
   "requestsTotal": 1,
   "requestsWithStatusCode": {},
   "errors": {
@@ -64,10 +64,19 @@
         }
       }
     },
-    "/home/ubuntu/yoflui/node_modules/@apify/src/index.ts:88:74": {
+    "file:///home/ubuntu/yoflui/node_modules/got/dist/source/core/index.js:870:107": {
+      "ERR_GOT_REQUEST_ERROR": {
+        "RequestError": {
+          "The proxy server rejected the request with status code 429 (Too Many Requests)": {
+            "count": 1
+          }
+        }
+      }
+    },
+    "/home/ubuntu/yoflui/node_modules/http2-wrapper/source/proxies/h2-over-hx.js:19:10": {
       "missing error code": {
         "Error": {
-          "request timed out after 30 seconds.": {
+          "The proxy server rejected the request with status code 429 (Too Many Requests)": {
             "count": 1
           }
         }

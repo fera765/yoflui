@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Arquivos gerados pelo FLUI
+qwen-credentials.json
+roteiro-viral.md
+work/

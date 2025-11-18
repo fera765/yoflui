@@ -1,9 +1,9 @@
 {
   "/home/ubuntu/yoflui/injest/dados_tecnicos_flui.txt": {
     "path": "/home/ubuntu/yoflui/injest/dados_tecnicos_flui.txt",
-    "hash": "1763118473141.5334-406",
-    "summary": "[ERRO DE SUMARIZAÇÃO] 401 invalid access token or token expired",
+    "hash": "1763485725276.643-406",
+    "summary": "**Resumo Técnico do Flui AGI:**\n\nO Flui AGI é um sistema baseado no modelo **Qwen3-coder-plus**, com **128k tokens de contexto**, estruturado em uma arquitetura de **7 agentes especializados**: pesquisa (research), código (code), automação (automation), análise (analysis), síntese (synthesis), marketing e garantia de qualidade (qa). O sistema implementa um **mecanismo de replanejamento agressivo**, permitindo até **5 tentativas de correção de rota** para aumentar a robustez. Inclui ainda uma ferramenta de geração de **slides em PDF** com design **dark-themed**, utilizando **Tailwind CSS** e **Font Awesome 6.5.1**.",
     "extractedText": "O Flui AGI utiliza o modelo Qwen3-coder-plus, com um limite de contexto de 128k tokens. A arquitetura de agentes é composta por 7 agentes especializados (research, code, automation, analysis, synthesis, marketing, qa). O sistema de replanejamento agressivo permite até 5 tentativas de correção de rota. A ferramenta slide-pdf-tool utiliza um template dark-themed com Tailwind CSS e Font Awesome 6.5.1.\n",
-    "timestamp": 1763118905373
+    "timestamp": 1763487036566
   }
 }

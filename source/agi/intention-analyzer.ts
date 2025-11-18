@@ -66,31 +66,11 @@ Regras:
 					estimatedSubTasks: intention.estimatedSubTasks || 3,
 				};
 				
-				// CORREÇÃO: Detectar tarefas de comparação/análise como SIMPLES
-				// MAS: Tarefas que requerem ferramentas são SEMPRE medium+
-				const lowerPrompt = userPrompt.toLowerCase();
-				
-				const requiresTools = lowerPrompt.includes('criar arquivo') || lowerPrompt.includes('create file') ||
-					lowerPrompt.includes('escrever arquivo') || lowerPrompt.includes('write file') ||
-					lowerPrompt.includes('ler arquivo') || lowerPrompt.includes('read file') ||
-					lowerPrompt.includes('listar') || lowerPrompt.includes('list') ||
-					lowerPrompt.includes('executar') || lowerPrompt.includes('execute') ||
-					lowerPrompt.includes('buscar arquivo') || lowerPrompt.includes('find file');
-				
-				if (!requiresTools && (lowerPrompt.includes('compare') || lowerPrompt.includes('vantagens') || 
-				    lowerPrompt.includes('desvantagens') || lowerPrompt.includes('diferença') ||
-					lowerPrompt.includes('vs') || lowerPrompt.includes('versus'))) {
-					analyzed.complexity = 'simple';
-					analyzed.estimatedSubTasks = 1;
-				}
-				
-				// FORÇAR complexity para tarefas com ferramentas
-				if (requiresTools && analyzed.complexity === 'simple') {
-					analyzed.complexity = 'medium';
-					analyzed.estimatedSubTasks = Math.max(2, analyzed.estimatedSubTasks);
-				}
-				
-				return analyzed;
+// Otimização FLUI: Confiar na análise de complexidade da LLM (linhas 32-33)
+					// A lógica estática de detecção de palavras-chave foi removida para evitar gargalos e loops de pensamento.
+					// A LLM deve ser a única fonte de verdade para a complexidade da tarefa.
+					
+					return analyzed;
 			} catch (error) {
 				// Fallback em caso de erro no parsing
 				return {
