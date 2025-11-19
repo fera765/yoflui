@@ -1,27 +1,10 @@
 import { withTimeout, TIMEOUT_CONFIG } from '../config/timeout-config.js';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import { HttpProxyAgent } from 'http-proxy-agent';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import dns from 'dns';
 
 // Free proxy list (public proxies - will rotate)
-const FREE_PROXIES = [
-	'http://103.149.162.194:80',
-	'http://45.79.159.226:8080',
-	'http://138.68.60.8:8080',
-	'http://51.159.24.172:3169',
-	'http://47.74.152.29:8888',
-	'http://165.227.71.60:8080',
-];
+const FREE_PROXIES: string[] = []; // Removido para simplificar e remover dependências de proxy
 
-const DNS_SERVERS = [
-	'8.8.8.8',
-	'8.8.4.4',
-	'1.1.1.1',
-	'1.0.0.1',
-	'9.9.9.9',
-	'208.67.222.222',
-];
+const DNS_SERVERS: string[] = []; // Removido para simplificar
 
 // User agents pool
 const USER_AGENTS = [
@@ -32,15 +15,10 @@ const USER_AGENTS = [
 	'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 ];
 
-let proxyIndex = 0;
 const failedProxies = new Set<string>();
 
 function configureDNS() {
-	try {
-		dns.setServers(DNS_SERVERS);
-	} catch (error) {
-		// Silent fail
-	}
+	// Removido para simplificar
 }
 
 function getRandomUserAgent(): string {
@@ -48,23 +26,15 @@ function getRandomUserAgent(): string {
 }
 
 function getNextProxy(): string | null {
-	if (FREE_PROXIES.length === 0) return null;
-	
-	const availableProxies = FREE_PROXIES.filter(p => !failedProxies.has(p));
-	if (availableProxies.length === 0) {
-		failedProxies.clear();
-		return FREE_PROXIES[proxyIndex % FREE_PROXIES.length];
-	}
-	
-	return availableProxies[proxyIndex % availableProxies.length];
+	return null; // Proxies desativados
 }
 
 function markProxyFailed(proxy: string) {
-	failedProxies.add(proxy);
+	// Proxies desativados
 }
 
 function resetProxyFailures() {
-	failedProxies.clear();
+	// Proxies desativados
 }
 
 function randomDelay(min: number, max: number): Promise<void> {
@@ -73,7 +43,7 @@ function randomDelay(min: number, max: number): Promise<void> {
 }
 
 async function createFetchWithAntiDetection() {
-	configureDNS();
+	// Simplificado
 	await randomDelay(100, 500);
 }
 
@@ -99,34 +69,7 @@ async function createFetchWithProxy(
 ): Promise<Response> {
 	const headers = getAntiDetectionHeaders();
 	
-	if (useProxy) {
-		const proxyUrl = getNextProxy();
-		if (proxyUrl) {
-			try {
-				let agent: any;
-				if (proxyUrl.startsWith('socks5://')) {
-					agent = new SocksProxyAgent(proxyUrl);
-				} else if (proxyUrl.startsWith('https://')) {
-					agent = new HttpsProxyAgent(proxyUrl);
-				} else {
-					agent = new HttpProxyAgent(proxyUrl);
-				}
-
-				// @ts-ignore - Node.js fetch with agent
-				const response = await fetch(url, {
-					method: 'GET',
-					headers,
-					// @ts-ignore
-					agent,
-					redirect: 'follow',
-				});
-				
-				return response;
-			} catch (error) {
-				if (proxyUrl) markProxyFailed(proxyUrl);
-			}
-		}
-	}
+	// Lógica de proxy removida para simplificar e remover dependências
 	
 	const response = await fetch(url, {
 		method: 'GET',
@@ -142,18 +85,16 @@ async function createFetchWithProxy(
  */
 async function getGoogleSuggestions(query: string): Promise<string[]> {
 	await createFetchWithAntiDetection();
-	resetProxyFailures();
-	
-	const suggestions: string[] = [];
-	let lastError: Error | null = null;
-	
-	const strategies = [
-		{ useProxy: false },
-		{ useProxy: true },
-	];
-	
-	for (const strategy of strategies) {
-		try {
+		const suggestions: string[] = [];
+		let lastError: Error | null = null;
+		
+		// Estratégia simplificada: apenas sem proxy
+		const strategies = [
+			{ useProxy: false },
+		];
+		
+		for (const strategy of strategies) {
+			try {
 			// Google Suggest API endpoint
 			const url = `https://www.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`;
 			
@@ -220,18 +161,16 @@ async function getGoogleSuggestions(query: string): Promise<string[]> {
  */
 async function getDuckDuckGoSuggestions(query: string): Promise<string[]> {
 	await createFetchWithAntiDetection();
-	resetProxyFailures();
-	
-	const suggestions: string[] = [];
-	let lastError: Error | null = null;
-	
-	const strategies = [
-		{ useProxy: false },
-		{ useProxy: true },
-	];
-	
-	for (const strategy of strategies) {
-		try {
+		const suggestions: string[] = [];
+		let lastError: Error | null = null;
+		
+		// Estratégia simplificada: apenas sem proxy
+		const strategies = [
+			{ useProxy: false },
+		];
+		
+		for (const strategy of strategies) {
+			try {
 			const url = `https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&kl=wt-wt`;
 			
 			await randomDelay(500, 1500);
@@ -278,18 +217,16 @@ async function getDuckDuckGoSuggestions(query: string): Promise<string[]> {
  */
 async function getBingSuggestions(query: string): Promise<string[]> {
 	await createFetchWithAntiDetection();
-	resetProxyFailures();
-	
-	const suggestions: string[] = [];
-	let lastError: Error | null = null;
-	
-	const strategies = [
-		{ useProxy: false },
-		{ useProxy: true },
-	];
-	
-	for (const strategy of strategies) {
-		try {
+		const suggestions: string[] = [];
+		let lastError: Error | null = null;
+		
+		// Estratégia simplificada: apenas sem proxy
+		const strategies = [
+			{ useProxy: false },
+		];
+		
+		for (const strategy of strategies) {
+			try {
 			const url = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`;
 			
 			await randomDelay(500, 1500);

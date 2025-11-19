@@ -1,6 +1,6 @@
-import { scrapeYouTubeData } from './scraper.js';
+
 import { getConfig } from './llm-config.js';
-import type { ScraperResult } from './types.js';
+// import type { ScraperResult } from './types.js'; // Removido, pois ScraperResult estava em types.js, mas a função scrapeYouTubeData não existe mais
 
 export interface YouTubeToolResult {
 	success: boolean;
@@ -34,60 +34,30 @@ export interface YouTubeToolResult {
 
 export async function executeYouTubeTool(query: string): Promise<YouTubeToolResult> {
 	try {
-		const config = getConfig();
-		const result: ScraperResult = await scrapeYouTubeData(
-			query,
-			config.maxVideos,
-			config.maxCommentsPerVideo
-		);
+			// A função scrapeYouTubeData foi removida junto com o scraper.ts.
+			// Para resolver o gargalo, vamos retornar um erro claro para a LLM.
+			return {
+				success: false,
+				query,
+				totalVideos: 0,
+				totalComments: 0,
+				comments: [],
+				videos: [],
+				error: 'A ferramenta de pesquisa do YouTube foi desativada devido a problemas de dependência (scraper.ts).',
+			};
 		
-	// Flatten all comments with video context
-	const allComments = result.videos.flatMap((videoData: any) =>
-		videoData.comments.map((comment: any) => ({
-				videoTitle: videoData.video.title,
-				videoUrl: videoData.video.url,
-				comment: comment.text,
-				author: comment.author,
-				likes: comment.likes || 0,
-			}))
-		);
 
-	// Format videos with transcript info
-	const videosWithData = result.videos.map((videoData: any) => ({
-			videoTitle: videoData.video.title,
-			videoUrl: videoData.video.url,
-			videoId: videoData.video.id,
-			comments: videoData.comments.map((comment: any) => ({
-				comment: comment.text,
-				author: comment.author,
-				likes: comment.likes || 0,
-			})),
-			transcript: videoData.transcript ? {
-				language: videoData.transcript.language,
-				fullText: videoData.transcript.fullText,
-				segmentsCount: videoData.transcript.segments.length,
-			} : undefined,
-		}));
-
-		return {
-			success: true,
-			query,
-			totalVideos: result.videos.length,
-			totalComments: allComments.length,
-			comments: allComments,
-			videos: videosWithData,
-		};
-	} catch (error) {
-		return {
-			success: false,
-			query,
-			totalVideos: 0,
-			totalComments: 0,
-			comments: [],
-			videos: [],
-			error: error instanceof Error ? error.message : 'Unknown error',
-		};
-	}
+		} catch (error) {
+			return {
+				success: false,
+				query,
+				totalVideos: 0,
+				totalComments: 0,
+				comments: [],
+				videos: [],
+				error: error instanceof Error ? error.message : 'Unknown error',
+			};
+		}
 }
 
 // Tool definition for OpenAI function calling
