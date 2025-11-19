@@ -12,7 +12,7 @@
     "dev": "tsx source/cli.tsx",
     "build": "tsc",
     "test": "tsx source/cli.tsx --prompt",
-    "login": "node login.js"
+    "login": "tsx source/cli.tsx --login"
   },
   "keywords": [
     "cli",

@@ -10,9 +10,25 @@ import { join } from 'path';
 // Parse command line arguments
 const args = process.argv.slice(2);
 const promptIndex = args.indexOf('--prompt');
+const loginIndex = args.indexOf('--login');
 
-// Check if --prompt flag exists
-if (promptIndex !== -1 && args[promptIndex + 1]) {
+// Check if --login flag exists
+if (loginIndex !== -1) {
+	// Importar a função de login e executar
+	import('./qwen-oauth.js').then(({ authenticateWithQwen }) => {
+		console.log('Iniciando login OAuth do Qwen...');
+		authenticateWithQwen().then(() => {
+			console.log('Login Qwen concluído com sucesso.');
+			process.exit(0);
+		}).catch((error) => {
+			console.error('Falha no login Qwen:', error.message);
+			process.exit(1);
+		});
+	}).catch((error) => {
+		console.error('Erro ao carregar módulo de login:', error.message);
+		process.exit(1);
+	});
+} else if (promptIndex !== -1 && args[promptIndex + 1]) {
 	const prompt = args[promptIndex + 1];
 	runNonInteractive(prompt);
 } else {

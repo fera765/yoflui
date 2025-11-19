@@ -256,24 +256,15 @@ export async function refreshAccessToken(refreshToken: string): Promise<DeviceTo
 	return data as DeviceTokenData;
 }
 
-export function openBrowser(url: string): void {
-	const platform = process.platform;
-	let command: string;
-
-	if (platform === 'darwin') {
-		command = 'open';
-	} else if (platform === 'win32') {
-		command = 'start';
-	} else {
-		command = 'xdg-open';
+	export function openBrowser(url: string): void {
+		// Solução Termux-compatível: Imprimir o URL e instruir o usuário.
+		console.log('------------------------------------------------------------------');
+		console.log('PASSO 1: Autorização OAuth');
+		console.log('Por favor, abra o seguinte URL no seu navegador para autorizar:');
+		console.log(`\n${url}\n`);
+		console.log('Após a autorização, o processo continuará automaticamente.');
+		console.log('------------------------------------------------------------------');
 	}
-
-	try {
-		spawn(command, [url], { detached: true, stdio: 'ignore' }).unref();
-	} catch (error) {
-		// Silent fail
-	}
-}
 
 export async function authenticateWithQwen(): Promise<QwenCredentials> {
 	const deviceAuth = await requestDeviceAuthorization();
