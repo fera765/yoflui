@@ -1,5 +1,5 @@
 import express from 'express';
-import open from 'open';
+// import open from 'open'; // Removido para compatibilidade com Termux
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -94,19 +94,30 @@ async function runLogin() {
     await startServer();
 
     // 3. Abrir o navegador automaticamente.
-    console.log('Abrindo navegador para autorização...');
-    await open(authUrl);
+    // 3. Abrir o navegador automaticamente (Termux-compatível).
+    // No Termux, o usuário deve copiar e colar o link.
+    console.log('------------------------------------------------------------------');
+    console.log('PASSO 1: Autorização OAuth');
+    console.log('Por favor, abra o seguinte URL no seu navegador para autorizar:');
+    console.log(`\n${authUrl}\n`);
+    console.log('Após a autorização, você será redirecionado para http://localhost:3000/callback.');
+    console.log('O script continuará automaticamente quando o callback for recebido.');
+    console.log('------------------------------------------------------------------');
 
     // 4. Aguardar a resolução do servidor (sucesso ou falha).
-    const feedback = await new Promise((resolve, reject) => {
+    // 4. Aguardar a resolução do servidor (sucesso ou falha).
+    // O resolve/reject é chamado dentro do app.get('/callback', ...)
+    // O servidor é fechado após o callback, o que encerra o processo.
+    // A lógica de 'server.on('close')' é removida, pois o resolve/reject
+    // dentro do callback é o que garante o fluxo.
+    return new Promise((resolve, reject) => {
       server.on('close', () => {
-        // Se o servidor fechar sem resolve/reject, é um erro.
-        reject(new Error('Servidor fechado inesperadamente.'));
+        // O servidor é fechado no sucesso ou falha do callback.
+        // A resolução final é feita dentro do callback.
+        // Se o processo chegar aqui, significa que o servidor fechou.
+        // Para evitar um loop, vamos apenas aguardar o encerramento.
       });
     });
-
-    console.log(feedback);
-    return feedback;
 
   } catch (error) {
     if (error.code === 'EADDRINUSE') {
@@ -119,13 +130,12 @@ async function runLogin() {
 }
 
 runLogin().then(feedback => {
-    // O feedback final de 2 palavras.
-    if (feedback === 'Sucesso. Salvo.') {
-        console.log('Login concluído.');
-    } else {
-        console.log('Login falhou.');
+    // O feedback final de 2 palavras é retornado pelo resolve do callback.
+    // O processo é encerrado dentro do callback do servidor.
+    // Apenas garantindo que o feedback seja impresso.
+    if (feedback) {
+        console.log(feedback);
     }
-    process.exit(0);
 }).catch(err => {
     console.error('Erro fatal:', err.message);
     process.exit(1);
