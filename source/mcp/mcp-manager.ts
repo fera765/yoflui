@@ -27,15 +27,25 @@ export class MCPManager {
 	}
 
 	private loadConfig(): MCPConfig {
-		if (existsSync(this.configPath)) {
-			try {
-				const data = readFileSync(this.configPath, 'utf-8');
-				return JSON.parse(data);
-			} catch (error) {
-				// Config load failed, use defaults
+			if (existsSync(this.configPath)) {
+				try {
+					const data = readFileSync(this.configPath, 'utf-8');
+					return JSON.parse(data);
+				} catch (error) {
+					// Config load failed, use defaults
+				}
 			}
-		}
-		return { mcps: [] };
+			
+			// FLUI: Adicionar Pollinations AI como MCP padrão se não houver config
+			return {
+				mcps: [
+					{
+						packageName: 'pollinations-mcp',
+						installedAt: Date.now(),
+						lastUsed: Date.now(),
+					},
+				],
+			};
 	}
 
 	private saveConfig(): void {
